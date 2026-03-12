@@ -56,8 +56,27 @@ export interface RepoNode {
 export interface Config {
   org: string;
   repos: string[];
+  trackedPackages: string[];
+}
+
+export interface DependencyResult {
+  repo: string;
+  repoUrl: string;
+  version: string;
+  branch: string;
+  depType: "dependencies" | "devDependencies" | "peerDependencies";
+}
+
+export interface TrackedPackage {
+  name: string;
+  results: DependencyResult[];
+  loading: boolean;
+  error: string | null;
+  lastRefresh: Date | null;
 }
 
 export type FilterMode = "all" | "mine" | "review" | "closed";
 
 export type FocusArea = "sidebar" | "list";
+
+export type AppView = "prs" | "dependencies";

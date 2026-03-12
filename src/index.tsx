@@ -63,7 +63,7 @@ process.on("SIGTERM", () => {
 // Use patched stdout to avoid fullscreen flicker
 const patchedStdout = createPatchedStdout();
 
-const instance = render(<App client={client} org={org} />, {
+const instance = render(<App client={client} org={org} token={token} />, {
   exitOnCtrlC: true,
   stdout: patchedStdout,
 });
