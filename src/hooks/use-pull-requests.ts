@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { GraphQLClient } from "../api/client.ts";
-import type { PullRequest, FilterMode } from "../api/types.ts";
+import type { PullRequest, FilterMode, SortMode } from "../api/types.ts";
 import { PR_QUERY, VIEWER_QUERY } from "../api/queries.ts";
 
 const POLL_INTERVAL = 30_000;
@@ -13,12 +13,42 @@ function prListChanged(a: PullRequest[], b: PullRequest[]): boolean {
   return false;
 }
 
+function sortPRs(prs: PullRequest[], sortMode: SortMode): PullRequest[] {
+  const sorted = [...prs];
+  switch (sortMode) {
+    case "repo-updated":
+      sorted.sort((a, b) => {
+        const repoA = `${a.repository.owner.login}/${a.repository.name}`;
+        const repoB = `${b.repository.owner.login}/${b.repository.name}`;
+        const repoCompare = repoA.localeCompare(repoB);
+        if (repoCompare !== 0) return repoCompare;
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      });
+      break;
+    case "updated":
+      sorted.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
+      break;
+    case "oldest":
+      sorted.sort(
+        (a, b) =>
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      );
+      break;
+  }
+  return sorted;
+}
+
 export function usePullRequests(
   client: GraphQLClient | null,
-  org: string,
   repos: string[],
   filterMode: FilterMode,
   selectedRepo: string | null,
+  sortMode: SortMode,
 ) {
   const [prs, setPrs] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +72,7 @@ export function usePullRequests(
   }, [client]);
 
   const fetchPRs = useCallback(async () => {
-    if (!client || !org || repos.length === 0) {
+    if (!client || repos.length === 0) {
       setPrs([]);
       return;
     }
@@ -54,7 +84,8 @@ export function usePullRequests(
     setError(null);
 
     try {
-      const repoQueries = repos.map((r) => `repo:${org}/${r}`).join(" ");
+      // Repos are already qualified (org/repo)
+      const repoQueries = repos.map((r) => `repo:${r}`).join(" ");
       const stateFilter = filterMode === "closed" ? "is:closed" : "is:open";
       let searchQuery = `is:pr ${stateFilter} ${repoQueries}`;
 
@@ -84,28 +115,22 @@ export function usePullRequests(
         if (allPRs.length >= 300) break;
       }
 
-      // Sort by repo name ascending, then by updatedAt descending within each repo
-      allPRs.sort((a, b) => {
-        const repoCompare = a.repository.name.localeCompare(b.repository.name);
-        if (repoCompare !== 0) return repoCompare;
-        return (
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-      });
+      // Sort using sortMode
+      const sorted = sortPRs(allPRs, sortMode);
 
       // For closed filter, limit to last 10 per repo
       let finalPRs: PullRequest[];
       if (filterMode === "closed") {
         const counts = new Map<string, number>();
-        finalPRs = allPRs.filter((pr) => {
-          const repo = pr.repository.name;
+        finalPRs = sorted.filter((pr) => {
+          const repo = `${pr.repository.owner.login}/${pr.repository.name}`;
           const count = counts.get(repo) ?? 0;
           if (count >= 10) return false;
           counts.set(repo, count + 1);
           return true;
         });
       } else {
-        finalPRs = allPRs;
+        finalPRs = sorted;
       }
 
       // Only update state if data actually changed to avoid re-renders
@@ -117,7 +142,7 @@ export function usePullRequests(
     } finally {
       setLoading(false);
     }
-  }, [client, org, repos, filterMode, viewer]);
+  }, [client, repos, filterMode, viewer, sortMode]);
 
   // Reset first fetch flag when filter changes
   useEffect(() => {
@@ -138,7 +163,11 @@ export function usePullRequests(
   const filteredPRs =
     selectedRepo === null
       ? prs
-      : prs.filter((pr) => pr.repository.name === selectedRepo);
+      : prs.filter(
+          (pr) =>
+            `${pr.repository.owner.login}/${pr.repository.name}` ===
+            selectedRepo,
+        );
 
   return {
     prs: filteredPRs,

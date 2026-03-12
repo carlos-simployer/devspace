@@ -21,6 +21,9 @@ export const PR_QUERY = `
           repository {
             name
             url
+            owner {
+              login
+            }
           }
           reviewDecision
           latestReviews(first: 10) {
@@ -43,6 +46,16 @@ export const PR_QUERY = `
               }
             }
           }
+          labels(first: 10) {
+            nodes {
+              name
+              color
+            }
+          }
+          mergeable
+          additions
+          deletions
+          changedFiles
         }
       }
     }
@@ -72,6 +85,52 @@ export const VIEWER_QUERY = `
   query {
     viewer {
       login
+    }
+  }
+`;
+
+export const PR_DETAIL_QUERY = `
+  query($nodeId: ID!) {
+    node(id: $nodeId) {
+      ... on PullRequest {
+        body
+        comments {
+          totalCount
+        }
+        commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                state
+                contexts(first: 50) {
+                  nodes {
+                    ... on CheckRun {
+                      name
+                      status
+                      conclusion
+                      detailsUrl
+                    }
+                    ... on StatusContext {
+                      context
+                      state
+                      targetUrl
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        reviews(first: 20) {
+          nodes {
+            state
+            author {
+              login
+            }
+            submittedAt
+          }
+        }
+      }
     }
   }
 `;

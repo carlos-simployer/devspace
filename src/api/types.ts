@@ -13,6 +13,9 @@ export interface PullRequest {
   repository: {
     name: string;
     url: string;
+    owner: {
+      login: string;
+    };
   };
   reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
   latestReviews: {
@@ -44,6 +47,16 @@ export interface PullRequest {
       };
     }>;
   };
+  labels: {
+    nodes: Array<{
+      name: string;
+      color: string;
+    }>;
+  };
+  mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
+  additions: number;
+  deletions: number;
+  changedFiles: number;
 }
 
 export interface RepoNode {
@@ -53,11 +66,30 @@ export interface RepoNode {
   updatedAt: string;
 }
 
-export interface Config {
+// V1 config (legacy format for migration)
+export interface ConfigV1 {
   org: string;
   repos: string[];
+}
+
+// V2 config (multi-org)
+export interface Config {
+  version: 2;
+  orgs: string[];
+  activeOrg: string;
+  repos: string[]; // qualified: "org/repo"
+  lastViewed: Record<string, number>; // PR id -> timestamp
 }
 
 export type FilterMode = "all" | "mine" | "review" | "closed";
 
 export type FocusArea = "sidebar" | "list";
+
+export type SortMode = "repo-updated" | "updated" | "oldest";
+
+export interface PendingAction {
+  type: "approve" | "comment" | "request-changes";
+  prId: string;
+  prNumber: number;
+  confirmed: boolean;
+}
