@@ -16,6 +16,7 @@ import { RepoSearch } from "./components/repo-search.tsx";
 import { PRDetailPanel } from "./components/pr-detail.tsx";
 import { NotificationsView } from "./components/notifications-view.tsx";
 import { DependencyTracker } from "./views/dependency-tracker.tsx";
+import { TabBar } from "./components/tab-bar.tsx";
 import { copyToClipboard } from "./utils/clipboard.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "./api/mutations.ts";
 
@@ -380,20 +381,27 @@ export function App({ client, org, token }: Props) {
     }
   });
 
+  const tabBarHeight = 1;
+
   // Dependency tracker view
   if (view === "dependencies") {
     return (
-      <DependencyTracker
-        token={token}
-        org={config.activeOrg}
-        trackedPackages={config.trackedPackages}
-        addPackage={addPackage}
-        removePackage={removePackage}
-        onSwitchView={() => setView("prs")}
-        height={height}
-        width={width}
-        onQuit={exit}
-      />
+      <Box height={height} width={width} flexDirection="column">
+        <Box paddingX={1}>
+          <TabBar activeView={view} />
+        </Box>
+        <DependencyTracker
+          token={token}
+          org={config.activeOrg}
+          trackedPackages={config.trackedPackages}
+          addPackage={addPackage}
+          removePackage={removePackage}
+          onSwitchView={() => setView("prs")}
+          height={height - tabBarHeight}
+          width={width}
+          onQuit={exit}
+        />
+      </Box>
     );
   }
 
@@ -402,7 +410,7 @@ export function App({ client, org, token }: Props) {
   const selectedPR = prs[listIndex] ?? null;
   const hasLabels = (selectedPR?.labels?.nodes?.length ?? 0) > 0;
   const statusBarHeight = 3 + (hasLabels ? 1 : 0);
-  const mainHeight = height - headerHeight - statusBarHeight;
+  const mainHeight = height - tabBarHeight - headerHeight - statusBarHeight;
   const sidebarWidth = 28;
   const listWidth = width - sidebarWidth;
   const multiOrg = config.orgs.length > 1;
@@ -449,22 +457,18 @@ export function App({ client, org, token }: Props) {
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Header */}
+      {/* Tab bar + Header */}
       <Box
         width={width}
-        height={headerHeight}
+        height={tabBarHeight + headerHeight}
         flexDirection="column"
         paddingX={1}
       >
         <Box>
-          <Text bold color="cyan">
-            GitHub PR Dashboard
-          </Text>
-          <Text dimColor> [Tab: Dependencies]</Text>
+          <TabBar activeView={view} />
           {unreadCount > 0 && (
             <Text color="yellow" bold>
-              {" "}
-              [{unreadCount} notifications]
+              {"  "}[{unreadCount} notifications]
             </Text>
           )}
         </Box>

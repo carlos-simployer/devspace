@@ -147,7 +147,7 @@ export function DependencyTracker({
     setResultIndex(0);
   }, [packageIndex]);
 
-  const headerHeight = 3;
+  const headerHeight = 2;
   const statusBarHeight = 3;
   const mainHeight = height - headerHeight - statusBarHeight;
 
@@ -179,12 +179,6 @@ export function DependencyTracker({
         flexDirection="column"
         paddingX={1}
       >
-        <Box>
-          <Text bold color="magenta">
-            Dependency Tracker
-          </Text>
-          <Text dimColor> [Tab: switch to PRs]</Text>
-        </Box>
         <Text dimColor>+ Add d Remove R Refresh o Open / Enter ? Help</Text>
       </Box>
 

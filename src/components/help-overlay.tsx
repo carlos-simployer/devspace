@@ -29,7 +29,7 @@ const PR_SHORTCUTS = [
   ["d", "Remove selected repo"],
   ["R", "Force refresh"],
   ["/", "Search/filter PRs"],
-  ["Tab", "Switch to Dependencies / org"],
+  ["Tab", "Switch to Dependencies"],
   ["Esc", "Clear search / close overlay"],
   ["?", "Toggle this help"],
   ["q", "Quit"],
