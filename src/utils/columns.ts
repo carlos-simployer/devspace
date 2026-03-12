@@ -6,6 +6,7 @@ export const COL = {
   author: 34,
   review: 4, // icon + padding
   ci: 4, // icon + padding
+  merge: 3, // merge conflict indicator
   age: 7, // time since opened
   updated: 7,
 } as const;
@@ -18,6 +19,7 @@ export function getTitleWidth(totalWidth: number): number {
     COL.author +
     COL.review +
     COL.ci +
+    COL.merge +
     COL.age +
     COL.updated;
   return Math.max(10, totalWidth - fixed);

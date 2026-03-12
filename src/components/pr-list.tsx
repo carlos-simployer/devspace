@@ -12,6 +12,7 @@ interface Props {
   isFocused: boolean;
   searchText: string;
   loading: boolean;
+  lastViewed: Record<string, number>;
 }
 
 export function PRList({
@@ -22,6 +23,7 @@ export function PRList({
   isFocused,
   searchText,
   loading,
+  lastViewed,
 }: Props) {
   // Header takes 1 line, leave room
   const listHeight = height - 1;
@@ -62,6 +64,7 @@ export function PRList({
           {"Author".padEnd(COL.author)}
           {"Rv".padEnd(COL.review)}
           {"CI".padEnd(COL.ci)}
+          {"Mg".padEnd(COL.merge)}
           {"Age".padEnd(COL.age)}
           {"Updated".padEnd(COL.updated)}
         </Text>
@@ -77,14 +80,21 @@ export function PRList({
           </Text>
         </Box>
       ) : (
-        visiblePRs.map((pr, i) => (
-          <PRRow
-            key={pr.id}
-            pr={pr}
-            isSelected={isFocused && startIndex + i === selectedIndex}
-            width={width}
-          />
-        ))
+        visiblePRs.map((pr, i) => {
+          const viewedAt = lastViewed[pr.id];
+          const hasNewActivity =
+            viewedAt !== undefined &&
+            new Date(pr.updatedAt).getTime() > viewedAt;
+          return (
+            <PRRow
+              key={pr.id}
+              pr={pr}
+              isSelected={isFocused && startIndex + i === selectedIndex}
+              width={width}
+              hasNewActivity={hasNewActivity}
+            />
+          );
+        })
       )}
     </Box>
   );

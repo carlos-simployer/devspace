@@ -38,3 +38,15 @@ export function getCIStatus(pr: PullRequest): StatusInfo {
       return { icon: "—", color: "gray" };
   }
 }
+
+export function getMergeableStatus(pr: PullRequest): StatusInfo {
+  switch (pr.mergeable) {
+    case "CONFLICTING":
+      return { icon: "!", color: "red" };
+    case "UNKNOWN":
+      return { icon: "?", color: "gray" };
+    case "MERGEABLE":
+    default:
+      return { icon: " ", color: "gray" };
+  }
+}

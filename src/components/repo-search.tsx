@@ -5,13 +5,17 @@ import type { RepoNode } from "../api/types.ts";
 
 interface Props {
   repos: RepoNode[];
-  pinnedRepos: string[];
+  pinnedRepos: string[]; // qualified: "org/repo"
   loading: boolean;
   onSelect: (repo: string) => void;
   onRemove: (repo: string) => void;
   onClose: () => void;
   height: number;
   width: number;
+  orgs: string[];
+  activeOrg: string;
+  onSwitchOrg: (org: string) => void;
+  onAddOrg: (org: string) => void;
 }
 
 function fuzzyMatch(name: string, query: string): boolean {
@@ -47,10 +51,18 @@ export function RepoSearch({
   onClose,
   height,
   width,
+  orgs,
+  activeOrg,
+  onSwitchOrg,
+  onAddOrg,
 }: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const [mode, setMode] = useState<"repos" | "orgs">(
+    activeOrg ? "repos" : "orgs",
+  );
+  const [orgSelectedIndex, setOrgSelectedIndex] = useState(0);
 
   const filtered = useMemo(() => {
     if (!query) return repos;
@@ -68,9 +80,34 @@ export function RepoSearch({
 
   useInput((_input, key) => {
     if (key.escape) {
+      if (mode === "orgs") {
+        setMode("repos");
+        return;
+      }
       onClose();
       return;
     }
+    if (key.tab) {
+      setMode((m) => (m === "repos" ? "orgs" : "repos"));
+      return;
+    }
+
+    if (mode === "orgs") {
+      if (key.upArrow) {
+        setOrgSelectedIndex((i) => Math.max(0, i - 1));
+      }
+      if (key.downArrow) {
+        setOrgSelectedIndex((i) => Math.min(orgs.length, i + 1));
+      }
+      if (key.return) {
+        if (orgSelectedIndex < orgs.length) {
+          onSwitchOrg(orgs[orgSelectedIndex]!);
+          setMode("repos");
+        }
+      }
+      return;
+    }
+
     if (key.upArrow) {
       setSelectedIndex((i) => {
         const next = Math.max(0, i - 1);
@@ -89,8 +126,9 @@ export function RepoSearch({
     }
     if (key.return && filtered[selectedIndex]) {
       const repo = filtered[selectedIndex]!.name;
-      if (pinnedRepos.includes(repo)) {
-        onRemove(repo);
+      const qualified = `${activeOrg}/${repo}`;
+      if (pinnedRepos.includes(qualified)) {
+        onRemove(qualified);
       } else {
         onSelect(repo);
       }
@@ -99,6 +137,71 @@ export function RepoSearch({
 
   const matchCount = filtered.length;
   const totalCount = repos.length;
+
+  if (mode === "orgs") {
+    return (
+      <Box
+        flexDirection="column"
+        width={boxWidth}
+        height={boxHeight}
+        borderStyle="round"
+        borderColor="magenta"
+        paddingX={1}
+      >
+        <Box>
+          <Text bold color="magenta">
+            Switch Organization
+          </Text>
+          <Text dimColor> (Tab: back to repos)</Text>
+        </Box>
+        {orgs.map((org, i) => (
+          <Box key={org}>
+            <Text
+              backgroundColor={i === orgSelectedIndex ? "blue" : undefined}
+              color={
+                i === orgSelectedIndex
+                  ? "white"
+                  : org === activeOrg
+                    ? "cyan"
+                    : undefined
+              }
+              bold={org === activeOrg}
+            >
+              {org === activeOrg ? "● " : "  "}
+              {org}
+            </Text>
+          </Box>
+        ))}
+        <Box>
+          <Text
+            backgroundColor={
+              orgSelectedIndex === orgs.length ? "blue" : undefined
+            }
+            color={orgSelectedIndex === orgs.length ? "white" : "green"}
+          >
+            {"  [+] Add organization"}
+          </Text>
+        </Box>
+        {orgSelectedIndex === orgs.length && (
+          <Box>
+            <Text>Org name: </Text>
+            <TextInput
+              placeholder="type org name..."
+              onSubmit={(val) => {
+                if (val.trim()) {
+                  onAddOrg(val.trim());
+                  setMode("repos");
+                }
+              }}
+            />
+          </Box>
+        )}
+        <Box marginTop={0}>
+          <Text dimColor>Enter: select │ Tab: repos │ Esc: close</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -117,6 +220,11 @@ export function RepoSearch({
           {" "}
           ({matchCount}/{totalCount})
         </Text>
+        <Text dimColor> │ Org: </Text>
+        <Text color="cyan" bold>
+          {activeOrg}
+        </Text>
+        <Text dimColor> (Tab: switch)</Text>
       </Box>
       <Box>
         <Text>Search: </Text>
@@ -130,8 +238,9 @@ export function RepoSearch({
           onSubmit={() => {
             if (filtered[selectedIndex]) {
               const repo = filtered[selectedIndex]!.name;
-              if (pinnedRepos.includes(repo)) {
-                onRemove(repo);
+              const qualified = `${activeOrg}/${repo}`;
+              if (pinnedRepos.includes(qualified)) {
+                onRemove(qualified);
               } else {
                 onSelect(repo);
               }
@@ -146,7 +255,8 @@ export function RepoSearch({
       ) : (
         visible.map((repo, i) => {
           const actualIndex = scrollOffset + i;
-          const isPinned = pinnedRepos.includes(repo.name);
+          const qualified = `${activeOrg}/${repo.name}`;
+          const isPinned = pinnedRepos.includes(qualified);
           const isActive = actualIndex === selectedIndex;
           return (
             <Box key={repo.name}>
@@ -163,7 +273,7 @@ export function RepoSearch({
       )}
       <Box marginTop={0}>
         <Text dimColor>
-          Enter: {"{add/remove}"} │ Esc: close │ ↑↓: navigate
+          Enter: {"{add/remove}"} │ Tab: orgs │ Esc: close │ ↑↓: navigate
         </Text>
       </Box>
     </Box>
