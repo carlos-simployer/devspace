@@ -1,7 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import type { FocusArea, TrackedPackage } from "../api/types.ts";
-import { useDependencySearch } from "../hooks/use-dependency-search.ts";
 import { PackageList } from "../components/package-list.tsx";
 import { DepResults } from "../components/dep-results.tsx";
 import { DepStatusBar } from "../components/dep-status-bar.tsx";
@@ -9,8 +8,8 @@ import { PackageSearch } from "../components/package-search.tsx";
 import { HelpOverlay } from "../components/help-overlay.tsx";
 
 interface Props {
-  token: string;
-  org: string;
+  packages: Map<string, TrackedPackage>;
+  refetch: () => void;
   trackedPackages: string[];
   addPackage: (pkg: string) => void;
   removePackage: (pkg: string) => void;
@@ -21,8 +20,8 @@ interface Props {
 }
 
 export function DependencyTracker({
-  token,
-  org,
+  packages,
+  refetch,
   trackedPackages,
   addPackage,
   removePackage,
@@ -31,30 +30,32 @@ export function DependencyTracker({
   width,
   onQuit,
 }: Props) {
-  const { packages, refetch } = useDependencySearch(
-    token,
-    org,
-    trackedPackages,
-  );
-
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [packageIndex, setPackageIndex] = useState(0);
   const [resultIndex, setResultIndex] = useState(0);
   const [showPackageSearch, setShowPackageSearch] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const packageList: TrackedPackage[] = trackedPackages.map(
-    (name) =>
-      packages.get(name) ?? {
-        name,
-        results: [],
-        loading: false,
-        error: null,
-        lastRefresh: null,
-      },
+  const packageList: TrackedPackage[] = useMemo(
+    () =>
+      trackedPackages.map(
+        (name) =>
+          packages.get(name) ?? {
+            name,
+            results: [],
+            loading: false,
+            error: null,
+            lastRefresh: null,
+          },
+      ),
+    [trackedPackages, packages],
   );
 
   const selectedPackage = packageList[packageIndex] ?? null;
+  const selectedResults = useMemo(
+    () => selectedPackage?.results ?? [],
+    [selectedPackage],
+  );
 
   const openInBrowser = useCallback(async (url: string) => {
     const { default: open } = await import("open");
@@ -191,7 +192,7 @@ export function DependencyTracker({
           width={sidebarWidth}
         />
         <DepResults
-          results={selectedPackage?.results ?? []}
+          results={selectedResults}
           packageName={selectedPackage?.name ?? ""}
           selectedIndex={resultIndex}
           height={mainHeight}

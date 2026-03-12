@@ -10,6 +10,7 @@ interface Tab {
 const TABS: Tab[] = [
   { key: "prs", label: "PRs" },
   { key: "dependencies", label: "Dependencies" },
+  { key: "config", label: "Config" },
 ];
 
 interface Props {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { TrackedPackage } from "../api/types.ts";
 import { searchPackageUsage } from "../api/dependency-queries.ts";
 
@@ -6,7 +6,7 @@ const POLL_INTERVAL = 120_000; // 2 minutes
 
 export function useDependencySearch(
   token: string,
-  org: string,
+  orgs: string[],
   trackedPackages: string[],
 ) {
   const [packages, setPackages] = useState<Map<string, TrackedPackage>>(
@@ -14,9 +14,13 @@ export function useDependencySearch(
   );
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Stabilize orgs reference to prevent effect cascades
+  const orgsKey = orgs.join(",");
+  const stableOrgs = useMemo(() => orgs, [orgsKey]);
+
   const fetchPackage = useCallback(
     async (packageName: string) => {
-      if (!org) return;
+      if (stableOrgs.length === 0) return;
 
       setPackages((prev) => {
         const next = new Map(prev);
@@ -32,7 +36,11 @@ export function useDependencySearch(
       });
 
       try {
-        const results = await searchPackageUsage(token, org, packageName);
+        const results = await searchPackageUsage(
+          token,
+          stableOrgs,
+          packageName,
+        );
         setPackages((prev) => {
           const next = new Map(prev);
           next.set(packageName, {
@@ -59,7 +67,7 @@ export function useDependencySearch(
         });
       }
     },
-    [token, org],
+    [token, stableOrgs],
   );
 
   const fetchAll = useCallback(async () => {
@@ -95,13 +103,16 @@ export function useDependencySearch(
 
   // Fetch new packages that haven't been fetched yet
   useEffect(() => {
-    for (const pkg of trackedPackages) {
-      const existing = packages.get(pkg);
-      if (!existing?.lastRefresh && !existing?.loading) {
-        fetchPackage(pkg);
+    setPackages((prev) => {
+      for (const pkg of trackedPackages) {
+        const existing = prev.get(pkg);
+        if (!existing?.lastRefresh && !existing?.loading) {
+          fetchPackage(pkg);
+        }
       }
-    }
-  }, [trackedPackages, packages, fetchPackage]);
+      return prev;
+    });
+  }, [trackedPackages, fetchPackage]);
 
   // Polling
   useEffect(() => {

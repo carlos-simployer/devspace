@@ -8,6 +8,7 @@ import { usePullRequests } from "./hooks/use-pull-requests.ts";
 import { useRepos } from "./hooks/use-repos.ts";
 import { usePRDetail } from "./hooks/use-pr-detail.ts";
 import { useNotifications } from "./hooks/use-notifications.ts";
+import { useDependencySearch } from "./hooks/use-dependency-search.ts";
 import { Sidebar } from "./components/sidebar.tsx";
 import { PRList } from "./components/pr-list.tsx";
 import { StatusBar } from "./components/status-bar.tsx";
@@ -16,6 +17,7 @@ import { RepoSearch } from "./components/repo-search.tsx";
 import { PRDetailPanel } from "./components/pr-detail.tsx";
 import { NotificationsView } from "./components/notifications-view.tsx";
 import { DependencyTracker } from "./views/dependency-tracker.tsx";
+import { ConfigView } from "./views/config-view.tsx";
 import { TabBar } from "./components/tab-bar.tsx";
 import { copyToClipboard } from "./utils/clipboard.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "./api/mutations.ts";
@@ -38,13 +40,18 @@ export function App({ client, org, token }: Props) {
     addPackage,
     removePackage,
     addOrg,
-    setActiveOrg,
+    removeOrg,
     markViewed,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
     client,
-    config.activeOrg,
+    config.orgs,
+  );
+  const { packages: depPackages, refetch: depRefetch } = useDependencySearch(
+    token,
+    config.orgs,
+    config.trackedPackages,
   );
 
   const [view, setView] = useState<AppView>("prs");
@@ -135,8 +142,8 @@ export function App({ client, org, token }: Props) {
   );
 
   useInput((input, key) => {
-    // Dependency tracker view handles its own input
-    if (view === "dependencies") return;
+    // Other views handle their own input
+    if (view !== "prs") return;
 
     // Overlays capture input
     if (showRepoSearch) return;
@@ -225,7 +232,11 @@ export function App({ client, org, token }: Props) {
       return;
     }
     if (key.tab) {
-      setView("dependencies");
+      setView((v) => {
+        const views: AppView[] = ["prs", "dependencies", "config"];
+        const idx = views.indexOf(v);
+        return views[(idx + 1) % views.length]!;
+      });
       return;
     }
     if (input === "?") {
@@ -383,6 +394,14 @@ export function App({ client, org, token }: Props) {
 
   const tabBarHeight = 1;
 
+  const nextView = () => {
+    setView((v) => {
+      const views: AppView[] = ["prs", "dependencies", "config"];
+      const idx = views.indexOf(v);
+      return views[(idx + 1) % views.length]!;
+    });
+  };
+
   // Dependency tracker view
   if (view === "dependencies") {
     return (
@@ -391,12 +410,32 @@ export function App({ client, org, token }: Props) {
           <TabBar activeView={view} />
         </Box>
         <DependencyTracker
-          token={token}
-          org={config.activeOrg}
+          packages={depPackages}
+          refetch={depRefetch}
           trackedPackages={config.trackedPackages}
           addPackage={addPackage}
           removePackage={removePackage}
-          onSwitchView={() => setView("prs")}
+          onSwitchView={nextView}
+          height={height - tabBarHeight}
+          width={width}
+          onQuit={exit}
+        />
+      </Box>
+    );
+  }
+
+  // Config view
+  if (view === "config") {
+    return (
+      <Box height={height} width={width} flexDirection="column">
+        <Box paddingX={1}>
+          <TabBar activeView={view} />
+        </Box>
+        <ConfigView
+          orgs={config.orgs}
+          addOrg={addOrg}
+          removeOrg={removeOrg}
+          onSwitchView={nextView}
           height={height - tabBarHeight}
           width={width}
           onQuit={exit}
@@ -411,9 +450,23 @@ export function App({ client, org, token }: Props) {
   const hasLabels = (selectedPR?.labels?.nodes?.length ?? 0) > 0;
   const statusBarHeight = 3 + (hasLabels ? 1 : 0);
   const mainHeight = height - tabBarHeight - headerHeight - statusBarHeight;
-  const sidebarWidth = 28;
-  const listWidth = width - sidebarWidth;
   const multiOrg = config.orgs.length > 1;
+  // Sidebar width adapts to longest repo name (min 20, max 40% of screen)
+  const displayRepoNames = config.repos.map((r) => {
+    if (multiOrg) return r;
+    const idx = r.indexOf("/");
+    return idx >= 0 ? r.slice(idx + 1) : r;
+  });
+  const longestRepoLabel = Math.max(
+    "All repos (999)".length,
+    "[+] Add repo".length,
+    ...displayRepoNames.map((r) => r.length + 6), // "● " prefix + " (99)" suffix
+  );
+  const sidebarWidth = Math.min(
+    Math.max(longestRepoLabel + 4, 20), // +4 for border + padding
+    Math.floor(width * 0.4),
+  );
+  const listWidth = width - sidebarWidth;
 
   if (showHelp) {
     return (
@@ -486,6 +539,7 @@ export function App({ client, org, token }: Props) {
           selectedIndex={sidebarIndex}
           isFocused={focus === "sidebar"}
           height={mainHeight}
+          width={sidebarWidth}
           allPRs={allPRs}
           multiOrg={multiOrg}
         />
@@ -536,14 +590,6 @@ export function App({ client, org, token }: Props) {
             onClose={() => setShowRepoSearch(false)}
             height={height}
             width={width}
-            orgs={config.orgs}
-            activeOrg={config.activeOrg}
-            onSwitchOrg={(org) => {
-              setActiveOrg(org);
-            }}
-            onAddOrg={(org) => {
-              addOrg(org);
-            }}
           />
         </Box>
       )}

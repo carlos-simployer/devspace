@@ -25,7 +25,7 @@ function getRepoWidth(totalWidth: number): number {
   return Math.max(20, totalWidth - fixed);
 }
 
-export function DepResults({
+export const DepResults = React.memo(function DepResults({
   results,
   packageName,
   selectedIndex,
@@ -62,7 +62,7 @@ export function DepResults({
           {"Type".padEnd(COL.depType)}
         </Text>
       </Box>
-      {loading ? (
+      {loading && results.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
           <Text color="yellow">Searching for {packageName}...</Text>
         </Box>
@@ -84,7 +84,7 @@ export function DepResults({
           const isSelected = isFocused && actualIndex === selectedIndex;
 
           return (
-            <Box key={result.repo + result.depType}>
+            <Box key={`${result.repo}:${result.depType}`}>
               <Text
                 backgroundColor={isSelected ? "blue" : undefined}
                 color={isSelected ? "white" : undefined}
@@ -115,4 +115,4 @@ export function DepResults({
       )}
     </Box>
   );
-}
+});

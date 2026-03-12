@@ -8,6 +8,7 @@ interface Props {
   selectedIndex: number;
   isFocused: boolean;
   height: number;
+  width: number;
   allPRs: PullRequest[];
   multiOrg: boolean;
 }
@@ -18,6 +19,7 @@ export function Sidebar({
   selectedIndex,
   isFocused,
   height: _height,
+  width,
   allPRs,
   multiOrg,
 }: Props) {
@@ -49,10 +51,13 @@ export function Sidebar({
     { label: "[+] Add repo", value: null, isAdd: true },
   ];
 
+  // Inner content width = total width - border (1) - paddingRight (1)
+  const innerWidth = width - 2;
+
   return (
     <Box
       flexDirection="column"
-      width={26}
+      width={width}
       borderStyle="single"
       borderRight
       borderLeft={false}
@@ -66,6 +71,9 @@ export function Sidebar({
       {items.map((item, i) => {
         const isActive = isFocused && i === selectedIndex;
         const isCurrentFilter = !item.isAdd && item.value === selectedRepo;
+        const prefix = isCurrentFilter && !item.isAdd ? "● " : "  ";
+        const text = prefix + item.label;
+        const padded = isActive ? text.padEnd(innerWidth) : text;
 
         return (
           <Box key={item.label + i}>
@@ -83,8 +91,7 @@ export function Sidebar({
               bold={isActive || isCurrentFilter}
               dimColor={!isFocused && !isCurrentFilter}
             >
-              {isCurrentFilter && !item.isAdd ? "● " : "  "}
-              {item.label}
+              {padded}
             </Text>
           </Box>
         );

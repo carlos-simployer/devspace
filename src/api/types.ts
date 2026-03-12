@@ -61,6 +61,7 @@ export interface PullRequest {
 
 export interface RepoNode {
   name: string;
+  owner: string; // org login
   url: string;
   isArchived: boolean;
   updatedAt: string;
@@ -103,7 +104,7 @@ export type FilterMode = "all" | "mine" | "review" | "closed";
 
 export type FocusArea = "sidebar" | "list";
 
-export type AppView = "prs" | "dependencies";
+export type AppView = "prs" | "dependencies" | "config";
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
 

@@ -40,7 +40,7 @@ async function getDefaultBranch(
   return data.default_branch || "main";
 }
 
-export async function searchPackageUsage(
+async function searchPackageInOrg(
   token: string,
   org: string,
   packageName: string,
@@ -107,6 +107,19 @@ export async function searchPackageUsage(
     }),
   );
 
+  return results;
+}
+
+export async function searchPackageUsage(
+  token: string,
+  orgs: string[],
+  packageName: string,
+): Promise<DependencyResult[]> {
+  const orgResults = await Promise.all(
+    orgs.map((org) => searchPackageInOrg(token, org, packageName)),
+  );
+
+  const results = orgResults.flat();
   results.sort((a, b) => a.repo.localeCompare(b.repo));
   return results;
 }
@@ -147,8 +160,8 @@ async function fetchPackageVersion(
     if (version) {
       const repoName =
         path === "package.json"
-          ? fullName.split("/")[1]!
-          : `${fullName.split("/")[1]}/${path.replace("/package.json", "")}`;
+          ? fullName
+          : `${fullName}/${path.replace("/package.json", "")}`;
       return {
         repo: repoName,
         repoUrl,

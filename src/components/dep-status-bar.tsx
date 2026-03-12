@@ -8,7 +8,10 @@ interface Props {
   width: number;
 }
 
-export function DepStatusBar({ selectedPackage, width }: Props) {
+export const DepStatusBar = React.memo(function DepStatusBar({
+  selectedPackage,
+  width,
+}: Props) {
   const refreshText = selectedPackage?.loading
     ? "Searching..."
     : selectedPackage?.lastRefresh
@@ -36,4 +39,4 @@ export function DepStatusBar({ selectedPackage, width }: Props) {
       </Box>
     </Box>
   );
-}
+});

@@ -9,7 +9,7 @@ interface Props {
   width: number;
 }
 
-export function PackageList({
+export const PackageList = React.memo(function PackageList({
   packages,
   selectedIndex,
   isFocused,
@@ -19,6 +19,9 @@ export function PackageList({
     ...packages.map((p) => ({ label: p.name, isAdd: false, pkg: p })),
     { label: "[+] Add package", isAdd: true, pkg: null },
   ];
+
+  // Inner content width = total width - border (1) - paddingRight (1)
+  const innerWidth = width - 2;
 
   return (
     <Box
@@ -37,6 +40,10 @@ export function PackageList({
       {items.map((item, i) => {
         const isActive = isFocused && i === selectedIndex;
         const isSelected = !item.isAdd && i === selectedIndex;
+        const prefix = isSelected && !item.isAdd ? "● " : "  ";
+        const suffix = item.pkg?.loading ? " ..." : "";
+        const text = prefix + item.label + suffix;
+        const padded = isActive ? text.padEnd(innerWidth) : text;
 
         return (
           <Box key={item.label + i}>
@@ -54,13 +61,11 @@ export function PackageList({
               bold={isActive || isSelected}
               dimColor={!isFocused && !isSelected}
             >
-              {isSelected && !item.isAdd ? "● " : "  "}
-              {item.label}
-              {item.pkg?.loading ? " ..." : ""}
+              {padded}
             </Text>
           </Box>
         );
       })}
     </Box>
   );
-}
+});

@@ -172,6 +172,19 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const removeOrg = useCallback(
+    (org: string) => {
+      setConfig((prev) => {
+        const orgs = prev.orgs.filter((o) => o !== org);
+        const repos = prev.repos.filter((r) => !r.startsWith(`${org}/`));
+        const activeOrg =
+          prev.activeOrg === org ? (orgs[0] ?? "") : prev.activeOrg;
+        return { ...prev, orgs, repos, activeOrg };
+      });
+    },
+    [setConfig],
+  );
+
   const setActiveOrg = useCallback(
     (org: string) => {
       setConfig((prev) => ({ ...prev, activeOrg: org }));
@@ -206,6 +219,7 @@ export function useConfig(orgArg?: string) {
     addPackage,
     removePackage,
     addOrg,
+    removeOrg,
     setActiveOrg,
     markViewed,
     isFirstLaunch,
