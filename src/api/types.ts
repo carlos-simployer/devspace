@@ -105,7 +105,10 @@ export interface Config {
   repos: string[]; // qualified: "org/repo"
   lastViewed: Record<string, number>; // PR id -> timestamp
   trackedPackages: string[];
+  refreshInterval: number; // PR poll interval in seconds
 }
+
+export const REFRESH_PRESETS = [30, 45, 60, 120] as const;
 
 export type FilterMode = "all" | "mine" | "review" | "closed";
 

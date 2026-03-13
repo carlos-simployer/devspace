@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { TrackedPackage } from "../api/types.ts";
 import { relativeTime } from "../utils/time.ts";
@@ -12,6 +12,12 @@ export const DepStatusBar = React.memo(function DepStatusBar({
   selectedPackage,
   width,
 }: Props) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
+
   const refreshText = selectedPackage?.loading
     ? "Searching..."
     : selectedPackage?.lastRefresh

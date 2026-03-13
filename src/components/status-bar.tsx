@@ -8,6 +8,7 @@ interface Props {
   prCount: number;
   totalCount: number;
   lastRefresh: Date | null;
+  secondsUntilRefresh: number;
   loading: boolean;
   searchText: string;
   selectedPR: PullRequest | null;
@@ -82,6 +83,7 @@ export function StatusBar({
   prCount,
   totalCount,
   lastRefresh,
+  secondsUntilRefresh,
   loading,
   searchText,
   selectedPR,
@@ -93,7 +95,7 @@ export function StatusBar({
   const refreshText = loading
     ? "Refreshing..."
     : lastRefresh
-      ? `Last refresh: ${relativeTime(lastRefresh.toISOString()).text} ago`
+      ? `Refresh in ${secondsUntilRefresh}s`
       : "";
 
   const reviewers = selectedPR ? getReviewers(selectedPR) : [];

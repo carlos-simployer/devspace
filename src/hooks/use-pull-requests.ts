@@ -3,8 +3,6 @@ import type { GraphQLClient } from "../api/client.ts";
 import type { PullRequest, FilterMode, SortMode } from "../api/types.ts";
 import { PR_QUERY, VIEWER_QUERY } from "../api/queries.ts";
 
-const POLL_INTERVAL = 30_000;
-
 function prListChanged(a: PullRequest[], b: PullRequest[]): boolean {
   if (a.length !== b.length) return true;
   for (let i = 0; i < a.length; i++) {
@@ -49,13 +47,18 @@ export function usePullRequests(
   filterMode: FilterMode,
   selectedRepo: string | null,
   sortMode: SortMode,
+  refreshIntervalSec: number,
 ) {
+  const pollInterval = refreshIntervalSec * 1000;
   const [prs, setPrs] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [viewer, setViewer] = useState<string>("");
+  const [secondsUntilRefresh, setSecondsUntilRefresh] =
+    useState(refreshIntervalSec);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFirstFetch = useRef(true);
 
   // Fetch current user login
@@ -136,6 +139,7 @@ export function usePullRequests(
       // Only update state if data actually changed to avoid re-renders
       setPrs((prev) => (prListChanged(prev, finalPRs) ? finalPRs : prev));
       setLastRefresh(new Date());
+      setSecondsUntilRefresh(refreshIntervalSec);
       isFirstFetch.current = false;
     } catch (err: any) {
       setError(err.message || "Failed to fetch PRs");
@@ -149,15 +153,32 @@ export function usePullRequests(
     isFirstFetch.current = true;
   }, [filterMode]);
 
+  const startPolling = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    timerRef.current = setInterval(fetchPRs, pollInterval);
+    countdownRef.current = setInterval(() => {
+      setSecondsUntilRefresh((s) => Math.max(0, s - 1));
+    }, 1000);
+  }, [fetchPRs]);
+
+  // Manual refresh: show loading, reset countdown, restart poll timer
+  const manualRefetch = useCallback(() => {
+    setLoading(true);
+    setSecondsUntilRefresh(refreshIntervalSec);
+    startPolling();
+    fetchPRs();
+  }, [fetchPRs, startPolling]);
+
   // Initial fetch and polling
   useEffect(() => {
     fetchPRs();
-
-    timerRef.current = setInterval(fetchPRs, POLL_INTERVAL);
+    startPolling();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [fetchPRs]);
+  }, [fetchPRs, startPolling]);
 
   // Filter by selected repo (client-side)
   const filteredPRs =
@@ -175,7 +196,8 @@ export function usePullRequests(
     loading,
     error,
     lastRefresh,
+    secondsUntilRefresh,
     viewer,
-    refetch: fetchPRs,
+    refetch: manualRefetch,
   };
 }

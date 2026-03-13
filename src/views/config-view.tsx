@@ -2,33 +2,54 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
 import type { AppView } from "../api/types.ts";
+import { REFRESH_PRESETS } from "../api/types.ts";
 
 interface Props {
   orgs: string[];
   addOrg: (org: string) => void;
   removeOrg: (org: string) => void;
+  refreshInterval: number;
+  setRefreshInterval: (seconds: number) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
 }
 
+function formatInterval(seconds: number): string {
+  if (seconds >= 60) return `${seconds / 60}m`;
+  return `${seconds}s`;
+}
+
+type Section = "orgs" | "settings";
+
 export function ConfigView({
   orgs,
   addOrg,
   removeOrg,
+  refreshInterval,
+  setRefreshInterval,
   onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
+  const [section, setSection] = useState<Section>("orgs");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAddOrg, setShowAddOrg] = useState(false);
 
-  const items = [
+  const orgItems = [
     ...orgs.map((org) => ({ label: org, isAdd: false })),
     { label: "[+] Add organization", isAdd: true },
   ];
+
+  const refreshPresetItems = REFRESH_PRESETS.map((s) => ({
+    label: formatInterval(s),
+    value: s,
+    active: s === refreshInterval,
+  }));
+
+  const items = section === "orgs" ? orgItems : refreshPresetItems;
 
   useInput((input, key) => {
     if (showAddOrg) {
@@ -41,8 +62,12 @@ export function ConfigView({
       return;
     }
 
-    if (key.tab) {
-      onSwitchView(undefined, key.shift);
+    if (key.tab && !key.shift && !key.ctrl) {
+      onSwitchView(undefined, false);
+      return;
+    }
+    if (key.tab && key.shift) {
+      onSwitchView(undefined, true);
       return;
     }
     if (input === "1") {
@@ -58,6 +83,13 @@ export function ConfigView({
       return;
     }
 
+    // Switch between sections with left/right
+    if (key.leftArrow || key.rightArrow) {
+      setSection((s) => (s === "orgs" ? "settings" : "orgs"));
+      setSelectedIndex(0);
+      return;
+    }
+
     if (key.upArrow) {
       setSelectedIndex((i) => Math.max(0, i - 1));
       return;
@@ -67,52 +99,93 @@ export function ConfigView({
       return;
     }
 
-    if (input === "+") {
-      setShowAddOrg(true);
-      return;
-    }
-
-    if (key.return) {
-      if (selectedIndex === orgs.length) {
+    if (section === "orgs") {
+      if (input === "+") {
         setShowAddOrg(true);
+        return;
       }
-      return;
+
+      if (key.return) {
+        if (selectedIndex === orgs.length) {
+          setShowAddOrg(true);
+        }
+        return;
+      }
+
+      if ((input === "d" || input === "-") && selectedIndex < orgs.length) {
+        const org = orgs[selectedIndex];
+        if (org) {
+          removeOrg(org);
+          setSelectedIndex((i) => Math.max(0, i - 1));
+        }
+      }
     }
 
-    if ((input === "d" || input === "-") && selectedIndex < orgs.length) {
-      const org = orgs[selectedIndex];
-      if (org) {
-        removeOrg(org);
-        setSelectedIndex((i) => Math.max(0, i - 1));
+    if (section === "settings") {
+      if (key.return) {
+        const preset = refreshPresetItems[selectedIndex];
+        if (preset) setRefreshInterval(preset.value);
       }
     }
   });
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Organizations */}
-      <Box flexGrow={1} flexDirection="column" paddingX={2}>
-        <Text bold>Organizations</Text>
-        <Text dimColor>
-          Repos and dependency searches use all configured orgs.
-        </Text>
-        <Box height={1} />
-        {items.map((item, i) => {
-          const isActive = i === selectedIndex;
+      <Box flexGrow={1} flexDirection="row">
+        {/* Organizations */}
+        <Box flexDirection="column" paddingX={2} width="50%">
+          <Text bold inverse={section === "orgs"}>
+            {" "}
+            Organizations{" "}
+          </Text>
+          <Text dimColor>
+            Repos and dependency searches use all configured orgs.
+          </Text>
+          <Box height={1} />
+          {orgItems.map((item, i) => {
+            const isActive = section === "orgs" && i === selectedIndex;
 
-          return (
-            <Box key={item.label + i}>
-              <Text
-                backgroundColor={isActive ? "blue" : undefined}
-                color={isActive ? "white" : item.isAdd ? "green" : "cyan"}
-                bold={isActive}
-              >
-                {isActive ? "> " : "  "}
-                {item.label}
-              </Text>
-            </Box>
-          );
-        })}
+            return (
+              <Box key={item.label + i}>
+                <Text
+                  backgroundColor={isActive ? "blue" : undefined}
+                  color={isActive ? "white" : item.isAdd ? "green" : "cyan"}
+                  bold={isActive}
+                >
+                  {isActive ? "> " : "  "}
+                  {item.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* Settings */}
+        <Box flexDirection="column" paddingX={2} width="50%">
+          <Text bold inverse={section === "settings"}>
+            {" "}
+            Settings{" "}
+          </Text>
+          <Text dimColor>PR auto-refresh interval.</Text>
+          <Box height={1} />
+          {refreshPresetItems.map((item, i) => {
+            const isActive = section === "settings" && i === selectedIndex;
+
+            return (
+              <Box key={item.value}>
+                <Text
+                  backgroundColor={isActive ? "blue" : undefined}
+                  color={isActive ? "white" : item.active ? "green" : undefined}
+                  bold={isActive || item.active}
+                >
+                  {isActive ? "> " : "  "}
+                  {item.active ? "● " : "○ "}
+                  {item.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
 
       {/* Status bar */}
@@ -129,6 +202,9 @@ export function ConfigView({
         <Text>
           <Text dimColor>Orgs: </Text>
           <Text bold>{orgs.length}</Text>
+          <Text dimColor> │ Refresh: </Text>
+          <Text bold>{formatInterval(refreshInterval)}</Text>
+          <Text dimColor> │ ←/→ switch section</Text>
         </Text>
       </Box>
 

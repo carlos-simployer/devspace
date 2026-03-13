@@ -18,6 +18,8 @@ function readRawConfig(): any {
   }
 }
 
+const DEFAULT_REFRESH_INTERVAL = 60;
+
 function migrateV1toV2(v1: ConfigV1): Config {
   return {
     version: 2,
@@ -26,6 +28,7 @@ function migrateV1toV2(v1: ConfigV1): Config {
     repos: v1.repos.map((r) => (r.includes("/") ? r : `${v1.org}/${r}`)),
     lastViewed: {},
     trackedPackages: v1.trackedPackages ?? [],
+    refreshInterval: DEFAULT_REFRESH_INTERVAL,
   };
 }
 
@@ -68,6 +71,7 @@ export function useConfig(orgArg?: string) {
         repos: [],
         lastViewed: {},
         trackedPackages: [],
+        refreshInterval: DEFAULT_REFRESH_INTERVAL,
       };
     }
 
@@ -97,6 +101,7 @@ export function useConfig(orgArg?: string) {
       ),
       lastViewed: raw.lastViewed || {},
       trackedPackages: raw.trackedPackages || [],
+      refreshInterval: raw.refreshInterval || DEFAULT_REFRESH_INTERVAL,
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -192,6 +197,13 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setRefreshInterval = useCallback(
+    (seconds: number) => {
+      setConfig((prev) => ({ ...prev, refreshInterval: seconds }));
+    },
+    [setConfig],
+  );
+
   const markViewed = useCallback(
     (prId: string) => {
       setConfig((prev) => ({
@@ -221,6 +233,7 @@ export function useConfig(orgArg?: string) {
     addOrg,
     removeOrg,
     setActiveOrg,
+    setRefreshInterval,
     markViewed,
     isFirstLaunch,
   };

@@ -50,6 +50,7 @@ export function App({ client, org, token }: Props) {
     removePackage,
     addOrg,
     removeOrg,
+    setRefreshInterval,
     markViewed,
     isFirstLaunch,
   } = useConfig(org);
@@ -94,8 +95,16 @@ export function App({ client, org, token }: Props) {
     loading,
     error,
     lastRefresh,
+    secondsUntilRefresh,
     refetch,
-  } = usePullRequests(client, config.repos, filterMode, selectedRepo, sortMode);
+  } = usePullRequests(
+    client,
+    config.repos,
+    filterMode,
+    selectedRepo,
+    sortMode,
+    config.refreshInterval,
+  );
 
   // Reorder PRs to match time-bucket display order
   const prs = useMemo(() => orderByTimeBucket(rawPrs), [rawPrs]);
@@ -531,6 +540,8 @@ export function App({ client, org, token }: Props) {
           orgs={config.orgs}
           addOrg={addOrg}
           removeOrg={removeOrg}
+          refreshInterval={config.refreshInterval}
+          setRefreshInterval={setRefreshInterval}
           onSwitchView={switchView}
           height={height - measuredViewHeader}
           width={width}
@@ -671,6 +682,7 @@ export function App({ client, org, token }: Props) {
           prCount={prs.length}
           totalCount={allPRs.length}
           lastRefresh={lastRefresh}
+          secondsUntilRefresh={secondsUntilRefresh}
           loading={loading}
           searchText={searchMode ? searchText : ""}
           selectedPR={selectedPR}
