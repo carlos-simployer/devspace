@@ -3,7 +3,7 @@ export const COL = {
   selector: 2, // ">" or " " + space
   repo: 14,
   num: 6, // "#" + number
-  author: 34,
+  author: 20,
   review: 4, // icon + padding
   ci: 4, // icon + padding
   merge: 3, // merge conflict indicator
