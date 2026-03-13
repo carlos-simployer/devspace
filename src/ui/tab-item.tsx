@@ -1,5 +1,6 @@
 import React from "react";
 import { Text } from "ink";
+import { getTheme } from "./theme.ts";
 
 interface Props {
   label: string;
@@ -11,7 +12,7 @@ export function TabItem({ label, isActive }: Props) {
     <Text
       bold={isActive}
       underline={isActive}
-      color={!isActive ? "#6c7086" : undefined}
+      color={!isActive ? getTheme().ui.muted : undefined}
     >
       {` ${label} `}
     </Text>

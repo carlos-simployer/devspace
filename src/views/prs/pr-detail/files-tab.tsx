@@ -2,6 +2,7 @@ import React from "react";
 import { Text } from "ink";
 import type { PRFile } from "../../../hooks/use-pr-detail.ts";
 import { getChangeTypeIcon } from "../../../utils/status.ts";
+import { getTheme } from "../../../ui/theme.ts";
 import { buildDiffLines } from "./diff-view.tsx";
 
 type LineEntry = { key: string; node: React.ReactNode };
@@ -33,16 +34,16 @@ export function buildFilesLines(
       key: `file-${i}`,
       node: (
         <Text>
-          <Text color={isExpanded ? "cyan" : undefined}>
+          <Text color={isExpanded ? getTheme().ui.heading : undefined}>
             {isExpanded ? "> " : "  "}
           </Text>
           <Text color={color as any}>{icon}</Text>
           {"  "}
           <Text bold={isExpanded}>{file.path}</Text>
           {"  "}
-          <Text color="green">+{file.additions}</Text>
+          <Text color={getTheme().diff.added}>+{file.additions}</Text>
           <Text dimColor> </Text>
-          <Text color="red">-{file.deletions}</Text>
+          <Text color={getTheme().diff.removed}>-{file.deletions}</Text>
           {"  "}
           <Text dimColor>{arrow}</Text>
         </Text>

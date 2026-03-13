@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { TrackedPackage } from "../../api/types.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   packages: TrackedPackage[];
@@ -53,7 +54,7 @@ export const PackageList = React.memo(function PackageList({
                 isActive
                   ? undefined
                   : item.isAdd
-                    ? "green"
+                    ? getTheme().list.addAction
                     : isSelected
                       ? "white"
                       : undefined

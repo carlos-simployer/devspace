@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { DependencyResult } from "../../api/types.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   results: DependencyResult[];
@@ -69,7 +70,7 @@ export const DepResults = React.memo(function DepResults({
         </Box>
       ) : error ? (
         <Box paddingLeft={2} paddingTop={1}>
-          <Text color="red">{error}</Text>
+          <Text color={getTheme().status.failure}>{error}</Text>
         </Box>
       ) : results.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
@@ -89,7 +90,9 @@ export const DepResults = React.memo(function DepResults({
               <Text inverse={isSelected} bold={isSelected}>
                 {isSelected ? "> " : "  "}
                 <Text bold={isSelected}>{result.repo.padEnd(repoWidth)}</Text>
-                <Text color={isSelected ? undefined : "yellow"}>
+                <Text
+                  color={isSelected ? undefined : getTheme().status.pending}
+                >
                   {result.version.padEnd(COL.version)}
                 </Text>
                 <Text dimColor={!isSelected}>

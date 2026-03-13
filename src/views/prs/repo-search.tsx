@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { Spinner, TextInput } from "@inkjs/ui";
 import type { RepoNode } from "../../api/types.ts";
 import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   repos: RepoNode[];
@@ -102,11 +103,11 @@ export function RepoSearch({
       width={boxWidth}
       height={boxHeight}
       borderStyle="round"
-      borderColor="cyan"
+      borderColor={getTheme().ui.border}
       paddingX={1}
     >
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={getTheme().ui.heading}>
           Add / Remove Repository
         </Text>
         <Text dimColor>

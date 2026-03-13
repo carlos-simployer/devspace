@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { GitHubNotification } from "../../hooks/use-notifications.ts";
 import { relativeTime } from "../../utils/time.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   notifications: GitHubNotification[];
@@ -68,7 +69,7 @@ export function NotificationsView({
       paddingY={1}
     >
       <Box marginBottom={1}>
-        <Text bold color="cyan">
+        <Text bold color={getTheme().ui.heading}>
           Notifications
         </Text>
         <Text dimColor> ({notifications.length} PR notifications)</Text>
@@ -94,7 +95,10 @@ export function NotificationsView({
               >
                 {isSelected ? "> " : "  "}
                 {n.unread ? (
-                  <Text bold color={isSelected ? "white" : "cyan"}>
+                  <Text
+                    bold
+                    color={isSelected ? "white" : getTheme().activity.unread}
+                  >
                     {"● "}
                   </Text>
                 ) : (

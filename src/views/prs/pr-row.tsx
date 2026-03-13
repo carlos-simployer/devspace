@@ -8,6 +8,7 @@ import {
 } from "../../utils/status.ts";
 import { relativeTime } from "../../utils/time.ts";
 import { COL, getTitleWidth } from "../../utils/columns.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   pr: PullRequest;
@@ -72,12 +73,12 @@ export function PRRow({ pr, isSelected, width, hasNewActivity }: Props) {
     <Box>
       <Text>
         <Text
-          color={hasNewActivity ? "yellow" : undefined}
+          color={hasNewActivity ? getTheme().activity.dot : undefined}
           bold={hasNewActivity}
         >
           {selector}
         </Text>
-        <Text color="#6c7086">{repo}</Text>
+        <Text color={getTheme().list.repoName}>{repo}</Text>
         <Text bold>{num}</Text>
         <Text dimColor={pr.isDraft}>{title}</Text>
         {author}

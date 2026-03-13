@@ -32,6 +32,7 @@ import { TabBar } from "../../components/tab-bar.tsx";
 import { copyToClipboard } from "../../utils/clipboard.ts";
 import { orderByTimeBucket } from "../../utils/time-buckets.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "../../api/mutations.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -515,7 +516,7 @@ export function PRView({
         <Box>
           <TabBar activeView="prs" />
           {unreadCount > 0 && (
-            <Text color="yellow" bold>
+            <Text color={getTheme().activity.notification} bold>
               {"  "}[{unreadCount} notifications]
             </Text>
           )}
@@ -533,7 +534,7 @@ export function PRView({
             { key: "?", label: "Help" },
           ]}
         />
-        {error && <Text color="red">Error: {error}</Text>}
+        {error && <Text color={getTheme().status.failure}>Error: {error}</Text>}
       </Box>
 
       {/* Main area */}

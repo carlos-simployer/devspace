@@ -5,6 +5,7 @@ import type { PRDetail } from "../../../hooks/use-pr-detail.ts";
 import { relativeTime } from "../../../utils/time.ts";
 import { renderMarkdown } from "../../../utils/markdown.ts";
 import { getCheckIcon } from "../../../utils/status.ts";
+import { getTheme } from "../../../ui/theme.ts";
 
 type LineEntry = { key: string; node: React.ReactNode };
 
@@ -27,7 +28,7 @@ export function buildOverviewLines(
   lines.push({
     key: "title",
     node: (
-      <Text bold color="cyan">
+      <Text bold color={getTheme().ui.heading}>
         #{pr.number} {pr.title}
       </Text>
     ),
@@ -42,7 +43,7 @@ export function buildOverviewLines(
         <Text dimColor>Author: </Text>
         <Text>{pr.author.name || pr.author.login}</Text>
         <Text dimColor> │ Branch: </Text>
-        <Text color="cyan">{pr.headRefName}</Text>
+        <Text color={getTheme().meta.branch}>{pr.headRefName}</Text>
       </Text>
     ),
   });
@@ -57,9 +58,9 @@ export function buildOverviewLines(
         <Text>{relativeTime(pr.updatedAt).text} ago</Text>
         <Text dimColor> │ </Text>
         {pr.isDraft ? (
-          <Text color="yellow">Draft</Text>
+          <Text color={getTheme().meta.draft}>Draft</Text>
         ) : (
-          <Text color="green">Ready</Text>
+          <Text color={getTheme().meta.ready}>Ready</Text>
         )}
       </Text>
     ),
@@ -70,13 +71,19 @@ export function buildOverviewLines(
     node: (
       <Text>
         <Text dimColor>Merge: </Text>
-        <Text color={pr.mergeable === "CONFLICTING" ? "red" : "green"}>
+        <Text
+          color={
+            pr.mergeable === "CONFLICTING"
+              ? getTheme().status.failure
+              : getTheme().status.success
+          }
+        >
           {mergeStatus}
         </Text>
         <Text dimColor> │ Diff: </Text>
-        <Text color="green">+{pr.additions}</Text>
+        <Text color={getTheme().diff.added}>+{pr.additions}</Text>
         <Text dimColor> </Text>
-        <Text color="red">-{pr.deletions}</Text>
+        <Text color={getTheme().diff.removed}>-{pr.deletions}</Text>
         <Text dimColor> ({pr.changedFiles} files)</Text>
       </Text>
     ),
@@ -104,12 +111,12 @@ export function buildOverviewLines(
   if (loading) {
     lines.push({
       key: "loading",
-      node: <Text color="yellow">Loading details...</Text>,
+      node: <Text color={getTheme().status.pending}>Loading details...</Text>,
     });
   } else if (error) {
     lines.push({
       key: "error",
-      node: <Text color="red">Error: {error}</Text>,
+      node: <Text color={getTheme().status.failure}>Error: {error}</Text>,
     });
   } else if (detail) {
     lines.push({
@@ -175,10 +182,10 @@ export function buildOverviewLines(
               : "●";
         const stateColor =
           review.state === "APPROVED"
-            ? "green"
+            ? getTheme().status.success
             : review.state === "CHANGES_REQUESTED"
-              ? "red"
-              : "yellow";
+              ? getTheme().status.failure
+              : getTheme().status.pending;
         lines.push({
           key: `review-${i}`,
           node: (

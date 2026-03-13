@@ -33,6 +33,7 @@ export function App({ client, org, token }: Props) {
     removeOrg,
     setRefreshInterval,
     markViewed,
+    setThemeName,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
@@ -166,6 +167,8 @@ export function App({ client, org, token }: Props) {
         removeOrg={removeOrg}
         refreshInterval={config.refreshInterval}
         setRefreshInterval={setRefreshInterval}
+        themeName={config.theme}
+        setThemeName={setThemeName}
         onSwitchView={switchView}
         height={height - measuredViewHeader}
         width={width}

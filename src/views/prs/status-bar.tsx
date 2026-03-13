@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { FilterMode, PullRequest, SortMode } from "../../api/types.ts";
 import { getReviewers, hexToAnsiColor } from "../../utils/reviewers.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   filterMode: FilterMode;
@@ -80,19 +81,25 @@ export function StatusBar({
           {searchText && (
             <>
               <Text dimColor>│</Text>
-              <Text color="yellow"> Search: {searchText} </Text>
+              <Text color={getTheme().input.search}>
+                {" "}
+                Search: {searchText}{" "}
+              </Text>
             </>
           )}
           {commentInput && (
             <>
               <Text dimColor>│</Text>
-              <Text color="magenta"> Comment: {commentInput}▌ </Text>
+              <Text color={getTheme().input.comment}>
+                {" "}
+                Comment: {commentInput}▌{" "}
+              </Text>
             </>
           )}
           {statusMessage && (
             <>
               <Text dimColor>│</Text>
-              <Text color="green"> {statusMessage} </Text>
+              <Text color={getTheme().status.success}> {statusMessage} </Text>
             </>
           )}
         </Text>
@@ -100,16 +107,16 @@ export function StatusBar({
       {selectedPR && (
         <Box>
           <Text dimColor> Branch: </Text>
-          <Text color="cyan">{selectedPR.headRefName}</Text>
+          <Text color={getTheme().meta.branch}>{selectedPR.headRefName}</Text>
           <Text dimColor> │ </Text>
-          <Text color="green">+{selectedPR.additions}</Text>
+          <Text color={getTheme().diff.added}>+{selectedPR.additions}</Text>
           <Text dimColor> </Text>
-          <Text color="red">-{selectedPR.deletions}</Text>
+          <Text color={getTheme().diff.removed}>-{selectedPR.deletions}</Text>
           <Text dimColor> ({selectedPR.changedFiles} files)</Text>
           {selectedPR.mergeable === "CONFLICTING" && (
             <>
               <Text dimColor> │ </Text>
-              <Text color="red" bold>
+              <Text color={getTheme().status.failure} bold>
                 Conflicts
               </Text>
             </>
@@ -123,11 +130,11 @@ export function StatusBar({
             reviewers.map((r, i) => {
               const color =
                 r.state === "approved"
-                  ? "green"
+                  ? getTheme().status.success
                   : r.state === "changes"
-                    ? "red"
+                    ? getTheme().status.failure
                     : r.state === "pending"
-                      ? "yellow"
+                      ? getTheme().status.pending
                       : undefined;
               const icon =
                 r.state === "approved"

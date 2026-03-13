@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { getTheme } from "../ui/theme.ts";
 
 interface ShortcutDef {
   key: string;
@@ -15,7 +16,7 @@ export function Shortcuts({ items }: Props) {
     <Box gap={1}>
       {items.map((item) => (
         <Box key={item.key + item.label}>
-          <Text bold color="cyan">
+          <Text bold color={getTheme().ui.shortcutKey}>
             {item.key}
           </Text>
           <Text dimColor> {item.label}</Text>

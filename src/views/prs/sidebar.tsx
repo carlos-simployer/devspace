@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { PullRequest } from "../../api/types.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   repos: string[]; // qualified: "org/repo"
@@ -83,7 +84,7 @@ export function Sidebar({
                 isActive
                   ? undefined
                   : item.isAdd
-                    ? "green"
+                    ? getTheme().list.addAction
                     : isCurrentFilter
                       ? "white"
                       : undefined

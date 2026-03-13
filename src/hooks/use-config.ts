@@ -8,6 +8,7 @@ import {
   migrateV1toV2,
   pruneLastViewed,
 } from "../utils/config-migration.ts";
+import { setTheme, type ThemeName } from "../ui/theme.ts";
 
 const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
@@ -48,6 +49,7 @@ export function useConfig(orgArg?: string) {
         lastViewed: {},
         trackedPackages: [],
         refreshInterval: DEFAULT_REFRESH_INTERVAL,
+        theme: "default",
       };
     }
 
@@ -78,6 +80,7 @@ export function useConfig(orgArg?: string) {
       lastViewed: raw.lastViewed || {},
       trackedPackages: raw.trackedPackages || [],
       refreshInterval: raw.refreshInterval || DEFAULT_REFRESH_INTERVAL,
+      theme: raw.theme || "default",
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -86,6 +89,9 @@ export function useConfig(orgArg?: string) {
 
     return cfg;
   });
+
+  // Sync theme module state on init
+  setTheme((config.theme || "default") as ThemeName);
 
   const isFirstLaunch = config.repos.length === 0;
 
@@ -190,6 +196,14 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setThemeName = useCallback(
+    (theme: string) => {
+      setTheme(theme as ThemeName);
+      setConfig((prev) => ({ ...prev, theme }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -211,6 +225,7 @@ export function useConfig(orgArg?: string) {
     setActiveOrg,
     setRefreshInterval,
     markViewed,
+    setThemeName,
     isFirstLaunch,
   };
 }

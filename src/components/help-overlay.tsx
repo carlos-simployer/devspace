@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { getTheme } from "../ui/theme.ts";
 
 interface Props {
   height: number;
@@ -64,13 +65,13 @@ export function HelpOverlay({ height, width, view = "prs" }: Props) {
       paddingY={1}
     >
       <Box justifyContent="center" marginBottom={1}>
-        <Text bold color="cyan">
+        <Text bold color={getTheme().ui.heading}>
           {title}
         </Text>
       </Box>
       {shortcuts.map(([key, desc]) => (
         <Box key={key}>
-          <Text bold color="yellow">
+          <Text bold color={getTheme().ui.shortcutKey}>
             {"  "}
             {key!.padEnd(12)}
           </Text>

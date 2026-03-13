@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   trackedPackages: string[];
@@ -41,11 +42,11 @@ export function PackageSearch({
       width={boxWidth}
       height={7}
       borderStyle="round"
-      borderColor="cyan"
+      borderColor={getTheme().ui.border}
       paddingX={1}
     >
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={getTheme().ui.heading}>
           Add Package to Track
         </Text>
       </Box>
@@ -57,7 +58,7 @@ export function PackageSearch({
         />
       </Box>
       {alreadyTracked ? (
-        <Text color="yellow">Already tracked</Text>
+        <Text color={getTheme().input.warning}>Already tracked</Text>
       ) : query.trim() ? (
         <Text dimColor>Enter: add | Esc: cancel</Text>
       ) : (

@@ -106,6 +106,7 @@ export interface Config {
   lastViewed: Record<string, number>; // PR id -> timestamp
   trackedPackages: string[];
   refreshInterval: number; // PR poll interval in seconds
+  theme: string; // ThemeName — defaults to "default"
 }
 
 export const REFRESH_PRESETS = [30, 45, 60, 120] as const;

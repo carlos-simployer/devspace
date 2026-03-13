@@ -1,5 +1,6 @@
 import React from "react";
 import { Text } from "ink";
+import { getTheme } from "../../../ui/theme.ts";
 
 type LineEntry = { key: string; node: React.ReactNode };
 
@@ -21,11 +22,11 @@ export function buildDiffLines(
 
     let color: string | undefined;
     if (patchLine.startsWith("@@")) {
-      color = "cyan";
+      color = getTheme().diff.hunk;
     } else if (patchLine.startsWith("+")) {
-      color = "green";
+      color = getTheme().diff.added;
     } else if (patchLine.startsWith("-")) {
-      color = "red";
+      color = getTheme().diff.removed;
     }
 
     lines.push({

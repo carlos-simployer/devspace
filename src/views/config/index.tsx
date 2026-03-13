@@ -4,6 +4,12 @@ import { TextInput } from "@inkjs/ui";
 import type { AppView } from "../../api/types.ts";
 import { REFRESH_PRESETS } from "../../api/types.ts";
 import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import {
+  getTheme,
+  getThemeNames,
+  THEMES,
+  type ThemeName,
+} from "../../ui/theme.ts";
 
 interface Props {
   orgs: string[];
@@ -11,6 +17,8 @@ interface Props {
   removeOrg: (org: string) => void;
   refreshInterval: number;
   setRefreshInterval: (seconds: number) => void;
+  themeName: string;
+  setThemeName: (name: string) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
@@ -22,7 +30,8 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "settings";
+type Section = "orgs" | "settings" | "theme";
+const SECTIONS: Section[] = ["orgs", "settings", "theme"];
 
 export function ConfigView({
   orgs,
@@ -30,6 +39,8 @@ export function ConfigView({
   removeOrg,
   refreshInterval,
   setRefreshInterval,
+  themeName,
+  setThemeName,
   onSwitchView,
   height,
   width,
@@ -50,7 +61,18 @@ export function ConfigView({
     active: s === refreshInterval,
   }));
 
-  const items = section === "orgs" ? orgItems : refreshPresetItems;
+  const themeItems = getThemeNames().map((name) => ({
+    name,
+    label: THEMES[name].name,
+    active: name === themeName,
+  }));
+
+  const items =
+    section === "orgs"
+      ? orgItems
+      : section === "settings"
+        ? refreshPresetItems
+        : themeItems;
 
   useInput((input, key) => {
     if (showAddOrg) {
@@ -69,7 +91,13 @@ export function ConfigView({
 
     // Switch between sections with left/right
     if (key.leftArrow || key.rightArrow) {
-      setSection((s) => (s === "orgs" ? "settings" : "orgs"));
+      setSection((s) => {
+        const idx = SECTIONS.indexOf(s);
+        const next = key.rightArrow
+          ? (idx + 1) % SECTIONS.length
+          : (idx - 1 + SECTIONS.length) % SECTIONS.length;
+        return SECTIONS[next]!;
+      });
       setSelectedIndex(0);
       return;
     }
@@ -111,13 +139,20 @@ export function ConfigView({
         if (preset) setRefreshInterval(preset.value);
       }
     }
+
+    if (section === "theme") {
+      if (key.return) {
+        const item = themeItems[selectedIndex];
+        if (item) setThemeName(item.name);
+      }
+    }
   });
 
   return (
     <Box height={height} width={width} flexDirection="column">
       <Box flexGrow={1} flexDirection="row">
         {/* Organizations */}
-        <Box flexDirection="column" paddingX={2} width="50%">
+        <Box flexDirection="column" paddingX={2} width="34%">
           <Text bold inverse={section === "orgs"}>
             {" "}
             Organizations{" "}
@@ -134,7 +169,11 @@ export function ConfigView({
                 <Text
                   inverse={isActive}
                   color={
-                    isActive ? undefined : item.isAdd ? "green" : undefined
+                    isActive
+                      ? undefined
+                      : item.isAdd
+                        ? getTheme().list.addAction
+                        : undefined
                   }
                   bold={isActive}
                 >
@@ -147,7 +186,7 @@ export function ConfigView({
         </Box>
 
         {/* Settings */}
-        <Box flexDirection="column" paddingX={2} width="50%">
+        <Box flexDirection="column" paddingX={2} width="33%">
           <Text bold inverse={section === "settings"}>
             {" "}
             Settings{" "}
@@ -162,7 +201,11 @@ export function ConfigView({
                 <Text
                   inverse={isActive}
                   color={
-                    isActive ? undefined : item.active ? "green" : undefined
+                    isActive
+                      ? undefined
+                      : item.active
+                        ? getTheme().ui.activeIndicator
+                        : undefined
                   }
                   bold={isActive || item.active}
                 >
@@ -170,6 +213,49 @@ export function ConfigView({
                   {item.active ? "● " : "○ "}
                   {item.label}
                 </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* Theme */}
+        <Box flexDirection="column" paddingX={2} width="33%">
+          <Text bold inverse={section === "theme"}>
+            {" "}
+            Theme{" "}
+          </Text>
+          <Text dimColor>Color theme for the UI.</Text>
+          <Box height={1} />
+          {themeItems.map((item, i) => {
+            const isActive = section === "theme" && i === selectedIndex;
+            const theme = THEMES[item.name as ThemeName];
+
+            return (
+              <Box key={item.name}>
+                <Text
+                  inverse={isActive}
+                  color={
+                    isActive
+                      ? undefined
+                      : item.active
+                        ? getTheme().ui.activeIndicator
+                        : undefined
+                  }
+                  bold={isActive || item.active}
+                >
+                  {isActive ? "> " : "  "}
+                  {item.active ? "● " : "○ "}
+                  {item.label}
+                </Text>
+                {!isActive && (
+                  <Text>
+                    {"  "}
+                    <Text color={theme.status.success}>●</Text>
+                    <Text color={theme.status.failure}>●</Text>
+                    <Text color={theme.status.pending}>●</Text>
+                    <Text color={theme.ui.border}>●</Text>
+                  </Text>
+                )}
               </Box>
             );
           })}
@@ -192,6 +278,8 @@ export function ConfigView({
           <Text bold>{orgs.length}</Text>
           <Text dimColor> │ Refresh: </Text>
           <Text bold>{formatInterval(refreshInterval)}</Text>
+          <Text dimColor> │ Theme: </Text>
+          <Text bold>{THEMES[themeName as ThemeName]?.name ?? "Default"}</Text>
           <Text dimColor> │ ←/→ switch section</Text>
         </Text>
       </Box>
@@ -207,10 +295,10 @@ export function ConfigView({
             flexDirection="column"
             width={50}
             borderStyle="round"
-            borderColor="green"
+            borderColor={getTheme().ui.activeIndicator}
             paddingX={1}
           >
-            <Text bold color="green">
+            <Text bold color={getTheme().ui.activeIndicator}>
               Add Organization
             </Text>
             <Box>

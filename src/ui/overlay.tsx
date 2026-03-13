@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { getTheme } from "./theme.ts";
 
 interface Props {
   title: string;
@@ -12,7 +13,7 @@ interface Props {
 
 export function Overlay({
   title,
-  titleColor = "cyan",
+  titleColor = getTheme().ui.border,
   width,
   height,
   children,
