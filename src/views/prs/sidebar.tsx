@@ -78,18 +78,18 @@ export function Sidebar({
         return (
           <Box key={item.label + i}>
             <Text
-              backgroundColor={isActive ? "blue" : undefined}
+              inverse={isActive}
               color={
                 isActive
-                  ? "white"
+                  ? undefined
                   : item.isAdd
                     ? "green"
                     : isCurrentFilter
-                      ? "cyan"
+                      ? "white"
                       : undefined
               }
               bold={isActive || isCurrentFilter}
-              dimColor={!isFocused && !isCurrentFilter}
+              dimColor={!isFocused && !isCurrentFilter && !isActive}
             >
               {padded}
             </Text>

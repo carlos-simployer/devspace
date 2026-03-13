@@ -48,18 +48,18 @@ export const PackageList = React.memo(function PackageList({
         return (
           <Box key={item.label + i}>
             <Text
-              backgroundColor={isActive ? "blue" : undefined}
+              inverse={isActive}
               color={
                 isActive
-                  ? "white"
+                  ? undefined
                   : item.isAdd
                     ? "green"
                     : isSelected
-                      ? "cyan"
+                      ? "white"
                       : undefined
               }
               bold={isActive || isSelected}
-              dimColor={!isFocused && !isSelected}
+              dimColor={!isFocused && !isSelected && !isActive}
             >
               {padded}
             </Text>

@@ -10,10 +10,7 @@ interface Props {
 export function SelectableListItem({ isSelected, children }: Props) {
   return (
     <Box>
-      <Text
-        backgroundColor={isSelected ? "blue" : undefined}
-        color={isSelected ? "white" : undefined}
-      >
+      <Text inverse={isSelected} bold={isSelected}>
         {isSelected ? "> " : "  "}
         {children}
       </Text>

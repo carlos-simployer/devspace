@@ -61,7 +61,7 @@ export function PRRow({ pr, isSelected, width, hasNewActivity }: Props) {
       updatedText;
     return (
       <Box>
-        <Text backgroundColor="blue" color="white">
+        <Text inverse bold>
           {line}
         </Text>
       </Box>
@@ -71,9 +71,14 @@ export function PRRow({ pr, isSelected, width, hasNewActivity }: Props) {
   return (
     <Box>
       <Text>
-        <Text color={hasNewActivity ? "cyan" : undefined}>{selector}</Text>
-        <Text dimColor>{repo}</Text>
-        <Text color="cyan">{num}</Text>
+        <Text
+          color={hasNewActivity ? "yellow" : undefined}
+          bold={hasNewActivity}
+        >
+          {selector}
+        </Text>
+        <Text color="#6c7086">{repo}</Text>
+        <Text bold>{num}</Text>
         <Text dimColor={pr.isDraft}>{title}</Text>
         {author}
         <Text color={review.color as any}>{rv}</Text>

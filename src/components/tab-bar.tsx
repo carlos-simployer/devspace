@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { AppView } from "../api/types.ts";
+import { TabItem } from "../ui/tab-item.tsx";
 
 interface Tab {
   key: AppView;
@@ -20,22 +21,13 @@ interface Props {
 export function TabBar({ activeView }: Props) {
   return (
     <Box>
-      {TABS.map((tab, i) => {
-        const isActive = tab.key === activeView;
-        return (
-          <Box key={tab.key}>
-            {i > 0 && <Text dimColor> </Text>}
-            <Text
-              backgroundColor={isActive ? "cyan" : undefined}
-              color={isActive ? "black" : undefined}
-              bold={isActive}
-              dimColor={!isActive}
-            >
-              {` ${tab.label} `}
-            </Text>
-          </Box>
-        );
-      })}
+      {TABS.map((tab) => (
+        <TabItem
+          key={tab.key}
+          label={tab.label}
+          isActive={tab.key === activeView}
+        />
+      ))}
       <Text dimColor> Tab/1-3: switch</Text>
     </Box>
   );

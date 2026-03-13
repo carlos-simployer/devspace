@@ -132,8 +132,10 @@ export function ConfigView({
             return (
               <Box key={item.label + i}>
                 <Text
-                  backgroundColor={isActive ? "blue" : undefined}
-                  color={isActive ? "white" : item.isAdd ? "green" : "cyan"}
+                  inverse={isActive}
+                  color={
+                    isActive ? undefined : item.isAdd ? "green" : undefined
+                  }
                   bold={isActive}
                 >
                   {isActive ? "> " : "  "}
@@ -158,8 +160,10 @@ export function ConfigView({
             return (
               <Box key={item.value}>
                 <Text
-                  backgroundColor={isActive ? "blue" : undefined}
-                  color={isActive ? "white" : item.active ? "green" : undefined}
+                  inverse={isActive}
+                  color={
+                    isActive ? undefined : item.active ? "green" : undefined
+                  }
                   bold={isActive || item.active}
                 >
                   {isActive ? "> " : "  "}

@@ -142,9 +142,7 @@ export function PRList({
                 paddingLeft={1}
                 marginTop={i === 0 ? 0 : 1}
               >
-                <Text bold color="green">
-                  {row.label}
-                </Text>
+                <Text bold>{row.label}</Text>
                 <Text dimColor> ({row.count})</Text>
               </Box>
             );

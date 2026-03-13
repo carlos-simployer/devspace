@@ -5,6 +5,9 @@ export const colors = {
   pending: "yellow",
   info: "cyan",
   muted: "gray",
+  activity: "yellow",
+  repo: "#6c7086",
+  addAction: "green",
 } as const;
 
 export const icons = {

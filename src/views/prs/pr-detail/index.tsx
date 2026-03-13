@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import type { PullRequest } from "../../../api/types.ts";
 import type { PRDetail } from "../../../hooks/use-pr-detail.ts";
 import { getChangeTypeIcon } from "../../../utils/status.ts";
+import { TabItem } from "../../../ui/tab-item.tsx";
 import { buildOverviewLines } from "./overview-tab.tsx";
 import { buildFilesLines, findFileRow } from "./files-tab.tsx";
 
@@ -168,24 +169,12 @@ export function PRDetailPanel({
     >
       {/* Tab bar */}
       <Box>
-        <Text
-          backgroundColor={tab === "overview" ? "cyan" : undefined}
-          color={tab === "overview" ? "black" : undefined}
-          bold={tab === "overview"}
-          dimColor={tab !== "overview"}
-        >
-          {" d Overview "}
-        </Text>
+        <TabItem label="d Overview" isActive={tab === "overview"} />
         <Text> </Text>
-        <Text
-          backgroundColor={tab === "files" ? "cyan" : undefined}
-          color={tab === "files" ? "black" : undefined}
-          bold={tab === "files"}
-          dimColor={tab !== "files"}
-        >
-          {" f Files"}
-          {files.length > 0 ? ` (${files.length})` : ""}{" "}
-        </Text>
+        <TabItem
+          label={`f Files${files.length > 0 ? ` (${files.length})` : ""}`}
+          isActive={tab === "files"}
+        />
       </Box>
       <Text dimColor>{"─".repeat(contentWidth)}</Text>
 
@@ -193,7 +182,7 @@ export function PRDetailPanel({
       {visibleLines.map((line) => (
         <Box key={line.key}>
           {tab === "files" && line.key === selectedFileKey ? (
-            <Text backgroundColor="blue" color="white">
+            <Text inverse bold>
               {(() => {
                 const file = files[fileIndex];
                 if (!file) return null;

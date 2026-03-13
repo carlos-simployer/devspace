@@ -86,29 +86,16 @@ export const DepResults = React.memo(function DepResults({
 
           return (
             <Box key={`${result.repo}:${result.depType}`}>
-              <Text
-                backgroundColor={isSelected ? "blue" : undefined}
-                color={isSelected ? "white" : undefined}
-              >
+              <Text inverse={isSelected} bold={isSelected}>
                 {isSelected ? "> " : "  "}
-                <Text color={isSelected ? "white" : "cyan"} bold={isSelected}>
-                  {result.repo.padEnd(repoWidth)}
-                </Text>
-                <Text color={isSelected ? "white" : "yellow"}>
+                <Text bold={isSelected}>{result.repo.padEnd(repoWidth)}</Text>
+                <Text color={isSelected ? undefined : "yellow"}>
                   {result.version.padEnd(COL.version)}
                 </Text>
-                <Text
-                  color={isSelected ? "white" : undefined}
-                  dimColor={!isSelected}
-                >
+                <Text dimColor={!isSelected}>
                   {result.branch.padEnd(COL.branch)}
                 </Text>
-                <Text
-                  color={isSelected ? "white" : undefined}
-                  dimColor={!isSelected}
-                >
-                  {result.depType}
-                </Text>
+                <Text dimColor={!isSelected}>{result.depType}</Text>
               </Text>
             </Box>
           );
