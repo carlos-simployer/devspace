@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
-import type { AppView } from "../api/types.ts";
-import { REFRESH_PRESETS } from "../api/types.ts";
+import type { AppView } from "../../api/types.ts";
+import { REFRESH_PRESETS } from "../../api/types.ts";
+import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
 
 interface Props {
   orgs: string[];
@@ -57,31 +58,14 @@ export function ConfigView({
       return;
     }
 
-    if (input === "q") {
-      onQuit();
+    if (
+      handleGlobalKeys(input, key, {
+        onQuit,
+        onSwitchView,
+        onHelp: () => {},
+      })
+    )
       return;
-    }
-
-    if (key.tab && !key.shift && !key.ctrl) {
-      onSwitchView(undefined, false);
-      return;
-    }
-    if (key.tab && key.shift) {
-      onSwitchView(undefined, true);
-      return;
-    }
-    if (input === "1") {
-      onSwitchView("prs");
-      return;
-    }
-    if (input === "2") {
-      onSwitchView("dependencies");
-      return;
-    }
-    if (input === "3") {
-      onSwitchView("config");
-      return;
-    }
 
     // Switch between sections with left/right
     if (key.leftArrow || key.rightArrow) {

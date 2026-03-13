@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { PullRequest } from "../api/types.ts";
+import type { PullRequest } from "../../api/types.ts";
 
 interface Props {
   repos: string[]; // qualified: "org/repo"

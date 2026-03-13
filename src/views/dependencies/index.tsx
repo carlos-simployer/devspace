@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import type { AppView, FocusArea, TrackedPackage } from "../api/types.ts";
-import { PackageList } from "../components/package-list.tsx";
-import { DepResults } from "../components/dep-results.tsx";
-import { DepStatusBar } from "../components/dep-status-bar.tsx";
-import { PackageSearch } from "../components/package-search.tsx";
-import { HelpOverlay } from "../components/help-overlay.tsx";
+import type { AppView, FocusArea, TrackedPackage } from "../../api/types.ts";
+import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { PackageList } from "./package-list.tsx";
+import { DepResults } from "./dep-results.tsx";
+import { DepStatusBar } from "./dep-status-bar.tsx";
+import { PackageSearch } from "./package-search.tsx";
+import { HelpOverlay } from "../../components/help-overlay.tsx";
 
 interface Props {
   packages: Map<string, TrackedPackage>;
@@ -78,32 +79,14 @@ export function DependencyTracker({
       return;
     }
 
-    if (input === "q") {
-      onQuit();
+    if (
+      handleGlobalKeys(input, key, {
+        onQuit,
+        onSwitchView,
+        onHelp: () => setShowHelp(true),
+      })
+    )
       return;
-    }
-
-    if (key.tab) {
-      onSwitchView(undefined, key.shift);
-      return;
-    }
-    if (input === "1") {
-      onSwitchView("prs");
-      return;
-    }
-    if (input === "2") {
-      onSwitchView("dependencies");
-      return;
-    }
-    if (input === "3") {
-      onSwitchView("config");
-      return;
-    }
-
-    if (input === "?") {
-      setShowHelp(true);
-      return;
-    }
 
     if (input === "R") {
       if (selectedName) fetchPackage(selectedName, true);

@@ -1,13 +1,14 @@
 import React, { useMemo } from "react";
 import { Box, Text } from "ink";
-import type { PullRequest } from "../api/types.ts";
+import { Spinner } from "@inkjs/ui";
+import type { PullRequest } from "../../api/types.ts";
 import { PRRow } from "./pr-row.tsx";
-import { COL, getTitleWidth } from "../utils/columns.ts";
+import { COL, getTitleWidth } from "../../utils/columns.ts";
 import {
   groupByTimeBucket,
   flattenGroups,
   type FlatRow,
-} from "../utils/time-buckets.ts";
+} from "../../utils/time-buckets.ts";
 
 interface Props {
   prs: PullRequest[];
@@ -124,7 +125,7 @@ export function PRList({
       </Box>
       {loading ? (
         <Box paddingLeft={2} paddingTop={1}>
-          <Text color="yellow">Loading pull requests...</Text>
+          <Spinner label="Loading pull requests..." />
         </Box>
       ) : filtered.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>

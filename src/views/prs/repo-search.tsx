@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import { TextInput } from "@inkjs/ui";
-import type { RepoNode } from "../api/types.ts";
+import { Spinner, TextInput } from "@inkjs/ui";
+import type { RepoNode } from "../../api/types.ts";
+import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
 
 interface Props {
   repos: RepoNode[];
@@ -12,25 +13,6 @@ interface Props {
   onClose: () => void;
   height: number;
   width: number;
-}
-
-function fuzzyMatch(name: string, query: string): boolean {
-  const lower = name.toLowerCase();
-  const q = query.toLowerCase();
-  if (lower.includes(q)) return true;
-  let qi = 0;
-  for (let i = 0; i < lower.length && qi < q.length; i++) {
-    if (lower[i] === q[qi]) qi++;
-  }
-  return qi === q.length;
-}
-
-function fuzzyScore(name: string, query: string): number {
-  const lower = name.toLowerCase();
-  const q = query.toLowerCase();
-  if (lower.startsWith(q)) return 3;
-  if (lower.includes(q)) return 2;
-  return 1;
 }
 
 export function RepoSearch({
@@ -147,7 +129,7 @@ export function RepoSearch({
         />
       </Box>
       {loading ? (
-        <Text color="yellow">Loading repos...</Text>
+        <Spinner label="Loading repos..." />
       ) : filtered.length === 0 ? (
         <Text dimColor>{query ? "No repos match" : "No repos found"}</Text>
       ) : (

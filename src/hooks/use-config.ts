@@ -3,11 +3,14 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import type { Config, ConfigV1 } from "../api/types.ts";
+import {
+  DEFAULT_REFRESH_INTERVAL,
+  migrateV1toV2,
+  pruneLastViewed,
+} from "../utils/config-migration.ts";
 
 const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
-
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function readRawConfig(): any {
   try {
@@ -16,33 +19,6 @@ function readRawConfig(): any {
   } catch {
     return null;
   }
-}
-
-const DEFAULT_REFRESH_INTERVAL = 60;
-
-function migrateV1toV2(v1: ConfigV1): Config {
-  return {
-    version: 2,
-    orgs: v1.org ? [v1.org] : [],
-    activeOrg: v1.org || "",
-    repos: v1.repos.map((r) => (r.includes("/") ? r : `${v1.org}/${r}`)),
-    lastViewed: {},
-    trackedPackages: v1.trackedPackages ?? [],
-    refreshInterval: DEFAULT_REFRESH_INTERVAL,
-  };
-}
-
-function pruneLastViewed(
-  lastViewed: Record<string, number>,
-): Record<string, number> {
-  const now = Date.now();
-  const pruned: Record<string, number> = {};
-  for (const [key, value] of Object.entries(lastViewed)) {
-    if (now - value < THIRTY_DAYS_MS) {
-      pruned[key] = value;
-    }
-  }
-  return pruned;
 }
 
 function writeConfig(config: Config) {

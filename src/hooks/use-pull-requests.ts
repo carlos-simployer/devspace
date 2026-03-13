@@ -2,44 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { GraphQLClient } from "../api/client.ts";
 import type { PullRequest, FilterMode, SortMode } from "../api/types.ts";
 import { PR_QUERY, VIEWER_QUERY } from "../api/queries.ts";
-
-function prListChanged(a: PullRequest[], b: PullRequest[]): boolean {
-  if (a.length !== b.length) return true;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].id !== b[i].id || a[i].updatedAt !== b[i].updatedAt) return true;
-  }
-  return false;
-}
-
-function sortPRs(prs: PullRequest[], sortMode: SortMode): PullRequest[] {
-  const sorted = [...prs];
-  switch (sortMode) {
-    case "repo-updated":
-      sorted.sort((a, b) => {
-        const repoA = `${a.repository.owner.login}/${a.repository.name}`;
-        const repoB = `${b.repository.owner.login}/${b.repository.name}`;
-        const repoCompare = repoA.localeCompare(repoB);
-        if (repoCompare !== 0) return repoCompare;
-        return (
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-      });
-      break;
-    case "updated":
-      sorted.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
-      break;
-    case "oldest":
-      sorted.sort(
-        (a, b) =>
-          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
-      );
-      break;
-  }
-  return sorted;
-}
+import { prListChanged, sortPRs } from "../utils/pr-sort.ts";
 
 export function usePullRequests(
   client: GraphQLClient | null,

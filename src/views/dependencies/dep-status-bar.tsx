@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
-import type { TrackedPackage } from "../api/types.ts";
-import { relativeTime } from "../utils/time.ts";
+import type { TrackedPackage } from "../../api/types.ts";
+import { relativeTime } from "../../utils/time.ts";
 
 interface Props {
   selectedPackage: TrackedPackage | null;

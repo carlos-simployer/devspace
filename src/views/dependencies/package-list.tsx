@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { TrackedPackage } from "../api/types.ts";
+import type { TrackedPackage } from "../../api/types.ts";
 
 interface Props {
   packages: TrackedPackage[];

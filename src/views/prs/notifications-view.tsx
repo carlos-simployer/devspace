@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { GitHubNotification } from "../hooks/use-notifications.ts";
-import { relativeTime } from "../utils/time.ts";
+import { Spinner } from "@inkjs/ui";
+import type { GitHubNotification } from "../../hooks/use-notifications.ts";
+import { relativeTime } from "../../utils/time.ts";
 
 interface Props {
   notifications: GitHubNotification[];
@@ -73,7 +74,7 @@ export function NotificationsView({
         <Text dimColor> ({notifications.length} PR notifications)</Text>
       </Box>
       {loading ? (
-        <Text color="yellow">Loading notifications...</Text>
+        <Spinner label="Loading notifications..." />
       ) : notifications.length === 0 ? (
         <Text dimColor>No PR notifications</Text>
       ) : (

@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { DependencyResult } from "../api/types.ts";
+import { Spinner } from "@inkjs/ui";
+import type { DependencyResult } from "../../api/types.ts";
 
 interface Props {
   results: DependencyResult[];
@@ -64,7 +65,7 @@ export const DepResults = React.memo(function DepResults({
       </Box>
       {loading && results.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
-          <Text color="yellow">Searching for {packageName}...</Text>
+          <Spinner label={"Searching for " + packageName + "..."} />
         </Box>
       ) : error ? (
         <Box paddingLeft={2} paddingTop={1}>

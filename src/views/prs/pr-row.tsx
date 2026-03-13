@@ -1,13 +1,13 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { PullRequest } from "../api/types.ts";
+import type { PullRequest } from "../../api/types.ts";
 import {
   getReviewStatus,
   getCIStatus,
   getMergeableStatus,
-} from "../utils/status.ts";
-import { relativeTime } from "../utils/time.ts";
-import { COL, getTitleWidth } from "../utils/columns.ts";
+} from "../../utils/status.ts";
+import { relativeTime } from "../../utils/time.ts";
+import { COL, getTitleWidth } from "../../utils/columns.ts";
 
 interface Props {
   pr: PullRequest;
