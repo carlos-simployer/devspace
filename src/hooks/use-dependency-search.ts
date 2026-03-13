@@ -1,26 +1,94 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import type { TrackedPackage } from "../api/types.ts";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+import type { TrackedPackage, DependencyResult } from "../api/types.ts";
 import { searchPackageUsage } from "../api/dependency-queries.ts";
 
-const POLL_INTERVAL = 120_000; // 2 minutes
+const CACHE_MAX_AGE = 60 * 60_000; // 1 hour — skip fetch if cached within this
+
+const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
+const CACHE_PATH = join(CONFIG_DIR, "dep-cache.json");
+
+interface CacheEntry {
+  results: DependencyResult[];
+  timestamp: number;
+}
+
+type CacheData = Record<string, CacheEntry>;
+
+function readCache(): CacheData {
+  try {
+    return JSON.parse(readFileSync(CACHE_PATH, "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeCache(data: CacheData) {
+  try {
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(CACHE_PATH, JSON.stringify(data));
+  } catch {
+    // Best-effort
+  }
+}
+
+function loadCachedPackages(
+  trackedPackages: string[],
+): Map<string, TrackedPackage> {
+  const cache = readCache();
+  const map = new Map<string, TrackedPackage>();
+
+  for (const name of trackedPackages) {
+    const entry = cache[name];
+    if (entry && entry.results.length > 0) {
+      map.set(name, {
+        name,
+        results: entry.results,
+        loading: false,
+        error: null,
+        lastRefresh: new Date(entry.timestamp),
+      });
+    } else {
+      map.set(name, {
+        name,
+        results: [],
+        loading: false,
+        error: null,
+        lastRefresh: null,
+      });
+    }
+  }
+
+  return map;
+}
 
 export function useDependencySearch(
   token: string,
   orgs: string[],
   trackedPackages: string[],
 ) {
-  const [packages, setPackages] = useState<Map<string, TrackedPackage>>(
-    new Map(),
+  const [packages, setPackages] = useState<Map<string, TrackedPackage>>(() =>
+    loadCachedPackages(trackedPackages),
   );
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Stabilize orgs reference to prevent effect cascades
   const orgsKey = orgs.join(",");
   const stableOrgs = useMemo(() => orgs, [orgsKey]);
 
   const fetchPackage = useCallback(
-    async (packageName: string) => {
+    async (packageName: string, force = false) => {
       if (stableOrgs.length === 0) return;
+
+      // Skip if cache is fresh enough (unless forced)
+      if (!force) {
+        const cache = readCache();
+        const entry = cache[packageName];
+        if (entry && Date.now() - entry.timestamp < CACHE_MAX_AGE) {
+          return;
+        }
+      }
 
       setPackages((prev) => {
         const next = new Map(prev);
@@ -41,6 +109,12 @@ export function useDependencySearch(
           stableOrgs,
           packageName,
         );
+
+        // Write to disk cache
+        const cache = readCache();
+        cache[packageName] = { results, timestamp: Date.now() };
+        writeCache(cache);
+
         setPackages((prev) => {
           const next = new Map(prev);
           next.set(packageName, {
@@ -70,67 +144,42 @@ export function useDependencySearch(
     [token, stableOrgs],
   );
 
-  const fetchAll = useCallback(async () => {
-    // Fetch sequentially to avoid rate limits
-    for (const pkg of trackedPackages) {
-      await fetchPackage(pkg);
-    }
-  }, [trackedPackages, fetchPackage]);
-
-  // Sync tracked packages with state
+  // Sync tracked packages with state (add new / remove old)
   useEffect(() => {
     setPackages((prev) => {
       const next = new Map(prev);
-      // Remove untracked
+      const cache = readCache();
       for (const key of next.keys()) {
         if (!trackedPackages.includes(key)) next.delete(key);
       }
-      // Add new (will be fetched below)
       for (const pkg of trackedPackages) {
         if (!next.has(pkg)) {
-          next.set(pkg, {
-            name: pkg,
-            results: [],
-            loading: false,
-            error: null,
-            lastRefresh: null,
-          });
+          const entry = cache[pkg];
+          if (entry && entry.results.length > 0) {
+            next.set(pkg, {
+              name: pkg,
+              results: entry.results,
+              loading: false,
+              error: null,
+              lastRefresh: new Date(entry.timestamp),
+            });
+          } else {
+            next.set(pkg, {
+              name: pkg,
+              results: [],
+              loading: false,
+              error: null,
+              lastRefresh: null,
+            });
+          }
         }
       }
       return next;
     });
   }, [trackedPackages]);
 
-  // Fetch new packages that haven't been fetched yet
-  useEffect(() => {
-    setPackages((prev) => {
-      for (const pkg of trackedPackages) {
-        const existing = prev.get(pkg);
-        if (!existing?.lastRefresh && !existing?.loading) {
-          fetchPackage(pkg);
-        }
-      }
-      return prev;
-    });
-  }, [trackedPackages, fetchPackage]);
-
-  // Polling
-  useEffect(() => {
-    if (trackedPackages.length === 0) return;
-
-    timerRef.current = setInterval(fetchAll, POLL_INTERVAL);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [fetchAll, trackedPackages.length]);
-
-  const refetch = useCallback(() => {
-    fetchAll();
-  }, [fetchAll]);
-
   return {
     packages,
-    refetch,
     fetchPackage,
   };
 }
