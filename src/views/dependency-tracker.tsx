@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
-import type { FocusArea, TrackedPackage } from "../api/types.ts";
+import type { AppView, FocusArea, TrackedPackage } from "../api/types.ts";
 import { PackageList } from "../components/package-list.tsx";
 import { DepResults } from "../components/dep-results.tsx";
 import { DepStatusBar } from "../components/dep-status-bar.tsx";
@@ -9,11 +9,11 @@ import { HelpOverlay } from "../components/help-overlay.tsx";
 
 interface Props {
   packages: Map<string, TrackedPackage>;
-  refetch: () => void;
+  fetchPackage: (name: string, force?: boolean) => void;
   trackedPackages: string[];
   addPackage: (pkg: string) => void;
   removePackage: (pkg: string) => void;
-  onSwitchView: () => void;
+  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
@@ -21,7 +21,7 @@ interface Props {
 
 export function DependencyTracker({
   packages,
-  refetch,
+  fetchPackage,
   trackedPackages,
   addPackage,
   removePackage,
@@ -52,10 +52,18 @@ export function DependencyTracker({
   );
 
   const selectedPackage = packageList[packageIndex] ?? null;
+  const selectedName = selectedPackage?.name ?? null;
   const selectedResults = useMemo(
     () => selectedPackage?.results ?? [],
     [selectedPackage],
   );
+
+  // Fetch the selected package when it changes (respects cache)
+  React.useEffect(() => {
+    if (selectedName) {
+      fetchPackage(selectedName);
+    }
+  }, [selectedName, fetchPackage]);
 
   const openInBrowser = useCallback(async (url: string) => {
     const { default: open } = await import("open");
@@ -76,7 +84,19 @@ export function DependencyTracker({
     }
 
     if (key.tab) {
-      onSwitchView();
+      onSwitchView(undefined, key.shift);
+      return;
+    }
+    if (input === "1") {
+      onSwitchView("prs");
+      return;
+    }
+    if (input === "2") {
+      onSwitchView("dependencies");
+      return;
+    }
+    if (input === "3") {
+      onSwitchView("config");
       return;
     }
 
@@ -86,7 +106,7 @@ export function DependencyTracker({
     }
 
     if (input === "R") {
-      refetch();
+      if (selectedName) fetchPackage(selectedName, true);
       return;
     }
 
@@ -148,9 +168,8 @@ export function DependencyTracker({
     setResultIndex(0);
   }, [packageIndex]);
 
-  const headerHeight = 2;
   const statusBarHeight = 3;
-  const mainHeight = height - headerHeight - statusBarHeight;
+  const mainHeight = height - statusBarHeight;
 
   // Sidebar width adapts to longest package name (min 20, max 40% of screen)
   const longestName = Math.max(
@@ -173,16 +192,6 @@ export function DependencyTracker({
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Header */}
-      <Box
-        width={width}
-        height={headerHeight}
-        flexDirection="column"
-        paddingX={1}
-      >
-        <Text dimColor>+ Add d Remove R Refresh o Open / Enter ? Help</Text>
-      </Box>
-
       {/* Main area */}
       <Box flexGrow={1} height={mainHeight}>
         <PackageList

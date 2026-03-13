@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import type { PullRequest } from "../api/types.ts";
-import type { PRDetail, CheckContext } from "../hooks/use-pr-detail.ts";
+import type { PRDetail, CheckContext, PRFile } from "../hooks/use-pr-detail.ts";
 import { relativeTime } from "../utils/time.ts";
 import { renderMarkdown } from "../utils/markdown.ts";
+
+type DetailTab = "overview" | "files";
 
 interface Props {
   pr: PullRequest;
@@ -47,36 +49,32 @@ function getCheckIcon(check: CheckContext): { icon: string; color: string } {
   return { icon: "●", color: "yellow" };
 }
 
-export function PRDetailPanel({
-  pr,
-  detail,
-  loading,
-  error,
-  height,
-  width,
-  onClose,
-  onOpenInBrowser,
-}: Props) {
-  const [scrollOffset, setScrollOffset] = useState(0);
+function getChangeTypeIcon(changeType: string): {
+  icon: string;
+  color: string;
+} {
+  switch (changeType) {
+    case "ADDED":
+      return { icon: "A", color: "green" };
+    case "DELETED":
+      return { icon: "D", color: "red" };
+    case "RENAMED":
+      return { icon: "R", color: "yellow" };
+    case "COPIED":
+      return { icon: "C", color: "cyan" };
+    default:
+      return { icon: "M", color: "yellow" };
+  }
+}
 
-  useInput((input, key) => {
-    if (key.escape) {
-      onClose();
-      return;
-    }
-    if (input === "o") {
-      onOpenInBrowser(pr.url);
-      return;
-    }
-    if (key.upArrow) {
-      setScrollOffset((s) => Math.max(0, s - 1));
-    }
-    if (key.downArrow) {
-      setScrollOffset((s) => s + 1);
-    }
-  });
+function buildOverviewLines(
+  pr: PullRequest,
+  detail: PRDetail | null,
+  loading: boolean,
+  error: string | null,
+): Array<{ key: string; node: React.ReactNode }> {
+  const lines: Array<{ key: string; node: React.ReactNode }> = [];
 
-  const contentWidth = Math.min(width - 4, 100);
   const labels = pr.labels?.nodes ?? [];
   const mergeStatus =
     pr.mergeable === "CONFLICTING"
@@ -84,9 +82,6 @@ export function PRDetailPanel({
       : pr.mergeable === "MERGEABLE"
         ? "Mergeable"
         : "Unknown";
-
-  // Build content lines
-  const lines: Array<{ key: string; node: React.ReactNode }> = [];
 
   lines.push({
     key: "title",
@@ -104,7 +99,7 @@ export function PRDetailPanel({
     node: (
       <Text>
         <Text dimColor>Author: </Text>
-        <Text>{pr.author.login}</Text>
+        <Text>{pr.author.name || pr.author.login}</Text>
         <Text dimColor> │ Branch: </Text>
         <Text color="cyan">{pr.headRefName}</Text>
       </Text>
@@ -176,7 +171,6 @@ export function PRDetailPanel({
       node: <Text color="red">Error: {error}</Text>,
     });
   } else if (detail) {
-    // Description
     lines.push({
       key: "desc-header",
       node: (
@@ -197,7 +191,6 @@ export function PRDetailPanel({
 
     lines.push({ key: "spacer3", node: <Text> </Text> });
 
-    // Checks
     if (detail.checks.length > 0) {
       lines.push({
         key: "checks-header",
@@ -223,7 +216,6 @@ export function PRDetailPanel({
       lines.push({ key: "spacer4", node: <Text> </Text> });
     }
 
-    // Reviews
     if (detail.reviews.length > 0) {
       lines.push({
         key: "reviews-header",
@@ -263,11 +255,239 @@ export function PRDetailPanel({
     }
   }
 
-  // Viewport window for scrolling
-  const viewportHeight = height - 4;
+  return lines;
+}
+
+function buildFilesLines(
+  files: PRFile[],
+  expandedFile: number | null,
+  contentWidth: number,
+): Array<{ key: string; node: React.ReactNode }> {
+  const lines: Array<{ key: string; node: React.ReactNode }> = [];
+
+  lines.push({
+    key: "files-header",
+    node: (
+      <Text bold dimColor>
+        Changed files ({files.length})
+      </Text>
+    ),
+  });
+
+  lines.push({ key: "files-spacer", node: <Text> </Text> });
+
+  files.forEach((file, i) => {
+    const { icon, color } = getChangeTypeIcon(file.changeType);
+    const isExpanded = expandedFile === i;
+    const arrow = isExpanded ? "▼" : "▶";
+
+    lines.push({
+      key: `file-${i}`,
+      node: (
+        <Text>
+          <Text color={isExpanded ? "cyan" : undefined}>
+            {isExpanded ? "> " : "  "}
+          </Text>
+          <Text color={color as any}>{icon}</Text>
+          {"  "}
+          <Text bold={isExpanded}>{file.path}</Text>
+          {"  "}
+          <Text color="green">+{file.additions}</Text>
+          <Text dimColor> </Text>
+          <Text color="red">-{file.deletions}</Text>
+          {"  "}
+          <Text dimColor>{arrow}</Text>
+        </Text>
+      ),
+    });
+
+    if (isExpanded && file.patch) {
+      lines.push({ key: `file-${i}-sep`, node: <Text> </Text> });
+      const patchLines = file.patch.split("\n");
+      patchLines.forEach((patchLine, j) => {
+        const truncated =
+          patchLine.length > contentWidth - 4
+            ? patchLine.slice(0, contentWidth - 5) + "…"
+            : patchLine;
+
+        let color: string | undefined;
+        if (patchLine.startsWith("@@")) {
+          color = "cyan";
+        } else if (patchLine.startsWith("+")) {
+          color = "green";
+        } else if (patchLine.startsWith("-")) {
+          color = "red";
+        }
+
+        lines.push({
+          key: `file-${i}-patch-${j}`,
+          node: (
+            <Text>
+              {"    "}
+              <Text color={color as any}>{truncated}</Text>
+            </Text>
+          ),
+        });
+      });
+      lines.push({ key: `file-${i}-end`, node: <Text> </Text> });
+    } else if (isExpanded && !file.patch) {
+      lines.push({
+        key: `file-${i}-nopatch`,
+        node: (
+          <Text>
+            {"    "}
+            <Text dimColor>(binary file or no diff available)</Text>
+          </Text>
+        ),
+      });
+      lines.push({ key: `file-${i}-end`, node: <Text> </Text> });
+    }
+  });
+
+  return lines;
+}
+
+export function PRDetailPanel({
+  pr,
+  detail,
+  loading,
+  error,
+  height,
+  width,
+  onClose,
+  onOpenInBrowser,
+}: Props) {
+  const [tab, setTab] = useState<DetailTab>("overview");
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const [fileIndex, setFileIndex] = useState(0);
+  const [expandedFile, setExpandedFile] = useState<number | null>(null);
+
+  const contentWidth = Math.min(width - 4, 120);
+  const files = detail?.files ?? [];
+
+  const overviewLines = useMemo(
+    () => buildOverviewLines(pr, detail, loading, error),
+    [pr, detail, loading, error],
+  );
+
+  const filesLines = useMemo(
+    () => buildFilesLines(files, expandedFile, contentWidth),
+    [files, expandedFile, contentWidth],
+  );
+
+  const lines = tab === "overview" ? overviewLines : filesLines;
+
+  const tabBarLines = 2;
+  const footerLines = 1;
+  const viewportHeight = height - 2 - tabBarLines - footerLines;
   const maxScroll = Math.max(0, lines.length - viewportHeight);
+
+  useInput((input, key) => {
+    // When diff is expanded, Escape collapses it instead of closing panel
+    if (key.escape) {
+      if (tab === "files" && expandedFile !== null) {
+        const row = findFileRow(filesLines, expandedFile);
+        setExpandedFile(null);
+        if (row >= 0) setScrollOffset(Math.max(0, row - 2));
+        return;
+      }
+      onClose();
+      return;
+    }
+    if (input === "o") {
+      onOpenInBrowser(pr.url);
+      return;
+    }
+
+    // Tab switching
+    if (input === "f") {
+      setTab("files");
+      setScrollOffset(0);
+      return;
+    }
+    if (input === "d") {
+      setTab("overview");
+      setScrollOffset(0);
+      return;
+    }
+    if (key.tab) {
+      setTab((t) => (t === "overview" ? "files" : "overview"));
+      setScrollOffset(0);
+      return;
+    }
+
+    if (tab === "files" && files.length > 0) {
+      // When a diff is expanded, ↑/↓ scrolls the content
+      if (expandedFile !== null) {
+        if (key.upArrow) {
+          setScrollOffset((s) => Math.max(0, s - 1));
+          return;
+        }
+        if (key.downArrow) {
+          setScrollOffset((s) => Math.min(maxScroll, s + 1));
+          return;
+        }
+        // Enter or Escape collapses back to file list
+        if (key.return || key.escape) {
+          const row = findFileRow(filesLines, expandedFile);
+          setExpandedFile(null);
+          if (row >= 0) setScrollOffset(Math.max(0, row - 2));
+          return;
+        }
+        return;
+      }
+
+      // File list navigation
+      if (key.upArrow) {
+        const next = Math.max(0, fileIndex - 1);
+        setFileIndex(next);
+        const targetRow = findFileRow(filesLines, next);
+        if (targetRow >= 0) {
+          setScrollOffset((s) => {
+            if (targetRow < s) return targetRow;
+            if (targetRow >= s + viewportHeight)
+              return targetRow - viewportHeight + 1;
+            return s;
+          });
+        }
+        return;
+      }
+      if (key.downArrow) {
+        const next = Math.min(files.length - 1, fileIndex + 1);
+        setFileIndex(next);
+        const targetRow = findFileRow(filesLines, next);
+        if (targetRow >= 0) {
+          setScrollOffset((s) => {
+            if (targetRow < s) return targetRow;
+            if (targetRow >= s + viewportHeight)
+              return targetRow - viewportHeight + 1;
+            return s;
+          });
+        }
+        return;
+      }
+      if (key.return) {
+        setExpandedFile(fileIndex);
+        // Scroll so the file header is near the top
+        const targetRow = findFileRow(filesLines, fileIndex);
+        if (targetRow >= 0) setScrollOffset(Math.max(0, targetRow - 1));
+        return;
+      }
+    } else {
+      if (key.upArrow) {
+        setScrollOffset((s) => Math.max(0, s - 1));
+      }
+      if (key.downArrow) {
+        setScrollOffset((s) => Math.min(maxScroll, s + 1));
+      }
+    }
+  });
+
   const actualOffset = Math.min(scrollOffset, maxScroll);
   const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);
+
+  // For files tab, highlight the selected file row
+  const selectedFileKey = `file-${fileIndex}`;
 
   return (
     <Box
@@ -277,12 +497,72 @@ export function PRDetailPanel({
       paddingX={2}
       paddingY={1}
     >
+      {/* Tab bar */}
+      <Box>
+        <Text
+          backgroundColor={tab === "overview" ? "cyan" : undefined}
+          color={tab === "overview" ? "black" : undefined}
+          bold={tab === "overview"}
+          dimColor={tab !== "overview"}
+        >
+          {" d Overview "}
+        </Text>
+        <Text> </Text>
+        <Text
+          backgroundColor={tab === "files" ? "cyan" : undefined}
+          color={tab === "files" ? "black" : undefined}
+          bold={tab === "files"}
+          dimColor={tab !== "files"}
+        >
+          {" f Files"}
+          {files.length > 0 ? ` (${files.length})` : ""}{" "}
+        </Text>
+      </Box>
+      <Text dimColor>{"─".repeat(contentWidth)}</Text>
+
+      {/* Content */}
       {visibleLines.map((line) => (
-        <Box key={line.key}>{line.node}</Box>
+        <Box key={line.key}>
+          {tab === "files" && line.key === selectedFileKey ? (
+            <Text backgroundColor="blue" color="white">
+              {/* Re-render the file line with highlight */}
+              {(() => {
+                const file = files[fileIndex];
+                if (!file) return null;
+                const { icon, color: _color } = getChangeTypeIcon(
+                  file.changeType,
+                );
+                const isExpanded = expandedFile === fileIndex;
+                const arrow = isExpanded ? "▼" : "▶";
+                const lineText = `> ${icon}  ${file.path}  +${file.additions} -${file.deletions}  ${arrow}`;
+                return lineText;
+              })()}
+            </Text>
+          ) : (
+            line.node
+          )}
+        </Box>
       ))}
+
+      {/* Footer */}
       <Box position="absolute" marginTop={height - 2} marginLeft={2}>
-        <Text dimColor>Esc: close │ o: open in browser │ ↑↓: scroll</Text>
+        <Text dimColor>
+          {tab === "files" && expandedFile !== null
+            ? "↑↓: scroll diff │ Enter/Esc: collapse │ o: browser │ d/f: switch tab"
+            : tab === "files"
+              ? "↑↓: select file │ Enter: expand diff │ Esc: close │ o: browser │ d/f: switch tab"
+              : "↑↓: scroll │ Esc: close │ o: browser │ d/f: switch tab"}
+        </Text>
       </Box>
     </Box>
   );
+}
+
+/** Find the row index for a given file index in the flat lines array */
+function findFileRow(
+  lines: Array<{ key: string; node: React.ReactNode }>,
+  fileIdx: number,
+): number {
+  const key = `file-${fileIdx}`;
+  return lines.findIndex((l) => l.key === key);
 }

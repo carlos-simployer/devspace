@@ -17,6 +17,7 @@ export const PR_QUERY = `
           headRefName
           author {
             login
+            ... on User { name }
           }
           repository {
             name
@@ -34,8 +35,14 @@ export const PR_QUERY = `
               }
             }
           }
-          reviewRequests {
+          reviewRequests(first: 20) {
             totalCount
+            nodes {
+              requestedReviewer {
+                ... on User { login }
+                ... on Team { name }
+              }
+            }
           }
           commits(last: 1) {
             nodes {
@@ -128,6 +135,14 @@ export const PR_DETAIL_QUERY = `
               login
             }
             submittedAt
+          }
+        }
+        files(first: 100) {
+          nodes {
+            path
+            additions
+            deletions
+            changeType
           }
         }
       }

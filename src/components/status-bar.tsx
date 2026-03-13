@@ -20,7 +20,7 @@ interface Props {
 const FILTER_LABELS: Record<FilterMode, string> = {
   all: "All PRs",
   mine: "My PRs",
-  review: "Review requested",
+  review: "To Review",
   closed: "Closed/Merged",
 };
 
@@ -30,14 +30,36 @@ const SORT_LABELS: Record<SortMode, string> = {
   oldest: "Oldest First",
 };
 
-function getReviewers(pr: PullRequest): string[] {
-  const reviewers = new Set<string>();
+interface ReviewerInfo {
+  name: string;
+  state: "approved" | "changes" | "reviewed" | "pending";
+}
+
+function getReviewers(pr: PullRequest): ReviewerInfo[] {
+  const map = new Map<string, ReviewerInfo>();
+
+  // Submitted reviews
   for (const review of pr.latestReviews.nodes) {
-    if (review.author.login !== pr.author.login) {
-      reviewers.add(review.author.login);
+    if (review.author.login === pr.author.login) continue;
+    const state =
+      review.state === "APPROVED"
+        ? "approved"
+        : review.state === "CHANGES_REQUESTED"
+          ? "changes"
+          : "reviewed";
+    map.set(review.author.login, { name: review.author.login, state });
+  }
+
+  // Requested reviewers (pending)
+  for (const req of pr.reviewRequests.nodes) {
+    const login = req.requestedReviewer?.login ?? req.requestedReviewer?.name;
+    if (!login) continue;
+    if (!map.has(login)) {
+      map.set(login, { name: login, state: "pending" });
     }
   }
-  return [...reviewers];
+
+  return [...map.values()];
 }
 
 function hexToAnsiColor(hex: string): string {
@@ -137,9 +159,36 @@ export function StatusBar({
               </Text>
             </>
           )}
-          <Text dimColor> │ Reviewers: </Text>
+        </Box>
+      )}
+      {selectedPR && (
+        <Box>
+          <Text dimColor> Reviewers: </Text>
           {reviewers.length > 0 ? (
-            <Text>{reviewers.join(", ")}</Text>
+            reviewers.map((r, i) => {
+              const color =
+                r.state === "approved"
+                  ? "green"
+                  : r.state === "changes"
+                    ? "red"
+                    : r.state === "pending"
+                      ? "yellow"
+                      : undefined;
+              const icon =
+                r.state === "approved"
+                  ? "✓"
+                  : r.state === "changes"
+                    ? "✗"
+                    : r.state === "pending"
+                      ? "◌"
+                      : "●";
+              return (
+                <Text key={r.name}>
+                  {i > 0 ? ", " : ""}
+                  <Text color={color as any}>{icon}</Text> {r.name}
+                </Text>
+              );
+            })
           ) : (
             <Text dimColor>none</Text>
           )}

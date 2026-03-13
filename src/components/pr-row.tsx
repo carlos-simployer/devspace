@@ -39,7 +39,8 @@ export function PRRow({ pr, isSelected, width, hasNewActivity }: Props) {
   const repo = pr.repository.name.slice(0, COL.repo - 1).padEnd(COL.repo);
   const num = `#${String(pr.number)}`.padEnd(COL.num);
   const title = truncTitle.padEnd(titleWidth);
-  const author = pr.author.login.slice(0, COL.author - 1).padEnd(COL.author);
+  const authorName = pr.author.name || pr.author.login;
+  const author = authorName.slice(0, COL.author - 1).padEnd(COL.author);
   const rv = review.icon.padEnd(COL.review);
   const ciText = ci.icon.padEnd(COL.ci);
   const mgText = merge.icon.padEnd(COL.merge);

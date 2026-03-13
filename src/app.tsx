@@ -1,5 +1,12 @@
-import React, { useState, useCallback, useRef } from "react";
-import { Box, Text, useInput, useApp } from "ink";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
+import { Box, Text, useInput, useApp, measureElement } from "ink";
+import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
 import type { GraphQLClient } from "./api/client.ts";
 import type { AppView, FilterMode, FocusArea, SortMode } from "./api/types.ts";
@@ -18,8 +25,10 @@ import { PRDetailPanel } from "./components/pr-detail.tsx";
 import { NotificationsView } from "./components/notifications-view.tsx";
 import { DependencyTracker } from "./views/dependency-tracker.tsx";
 import { ConfigView } from "./views/config-view.tsx";
+import { Shortcuts } from "./components/shortcuts.tsx";
 import { TabBar } from "./components/tab-bar.tsx";
 import { copyToClipboard } from "./utils/clipboard.ts";
+import { orderByTimeBucket } from "./utils/time-buckets.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "./api/mutations.ts";
 
 interface Props {
@@ -48,11 +57,8 @@ export function App({ client, org, token }: Props) {
     client,
     config.orgs,
   );
-  const { packages: depPackages, refetch: depRefetch } = useDependencySearch(
-    token,
-    config.orgs,
-    config.trackedPackages,
-  );
+  const { packages: depPackages, fetchPackage: depFetchPackage } =
+    useDependencySearch(token, config.orgs, config.trackedPackages);
 
   const [view, setView] = useState<AppView>("prs");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
@@ -82,25 +88,66 @@ export function App({ client, org, token }: Props) {
   const sidebarItems: (string | null)[] = [null, ...config.repos];
   const selectedRepo = sidebarItems[sidebarIndex] ?? null;
 
-  const { prs, allPRs, loading, error, lastRefresh, refetch } = usePullRequests(
-    client,
-    config.repos,
-    filterMode,
-    selectedRepo,
-    sortMode,
-  );
+  const {
+    prs: rawPrs,
+    allPRs,
+    loading,
+    error,
+    lastRefresh,
+    refetch,
+  } = usePullRequests(client, config.repos, filterMode, selectedRepo, sortMode);
 
+  // Reorder PRs to match time-bucket display order
+  const prs = useMemo(() => orderByTimeBucket(rawPrs), [rawPrs]);
+
+  const selectedPRForDetail = showDetail ? prs[listIndex] : null;
+  const prRefForDetail = useMemo(
+    () =>
+      selectedPRForDetail
+        ? {
+            owner: selectedPRForDetail.repository.owner.login,
+            repo: selectedPRForDetail.repository.name,
+            number: selectedPRForDetail.number,
+          }
+        : null,
+    [selectedPRForDetail],
+  );
   const {
     detail: prDetail,
     loading: detailLoading,
     error: detailError,
-  } = usePRDetail(client, showDetail ? (prs[listIndex]?.id ?? null) : null);
+  } = usePRDetail(
+    client,
+    selectedPRForDetail?.id ?? null,
+    token,
+    prRefForDetail,
+  );
 
   const {
     notifications,
     loading: notifLoading,
     unreadCount,
   } = useNotifications(token);
+
+  // Layout measurement refs (must be before any early returns)
+  const viewHeaderRef = useRef<DOMElement>(null);
+  const headerRef = useRef<DOMElement>(null);
+  const statusRef = useRef<DOMElement>(null);
+  const [measuredViewHeader, setMeasuredViewHeader] = useState(2);
+  const [measuredHeader, setMeasuredHeader] = useState(4);
+  const [measuredStatus, setMeasuredStatus] = useState(3);
+
+  useEffect(() => {
+    if (viewHeaderRef.current) {
+      setMeasuredViewHeader(measureElement(viewHeaderRef.current).height);
+    }
+    if (headerRef.current) {
+      setMeasuredHeader(measureElement(headerRef.current).height);
+    }
+    if (statusRef.current) {
+      setMeasuredStatus(measureElement(statusRef.current).height);
+    }
+  });
 
   const showStatus = useCallback((msg: string) => {
     setStatusMessage(msg);
@@ -232,11 +279,19 @@ export function App({ client, org, token }: Props) {
       return;
     }
     if (key.tab) {
-      setView((v) => {
-        const views: AppView[] = ["prs", "dependencies", "config"];
-        const idx = views.indexOf(v);
-        return views[(idx + 1) % views.length]!;
-      });
+      switchView(undefined, key.shift);
+      return;
+    }
+    if (input === "1") {
+      setView("prs");
+      return;
+    }
+    if (input === "2") {
+      setView("dependencies");
+      return;
+    }
+    if (input === "3") {
+      setView("config");
       return;
     }
     if (input === "?") {
@@ -392,31 +447,55 @@ export function App({ client, org, token }: Props) {
     }
   });
 
-  const tabBarHeight = 1;
+  const VIEWS: AppView[] = ["prs", "dependencies", "config"];
 
-  const nextView = () => {
-    setView((v) => {
-      const views: AppView[] = ["prs", "dependencies", "config"];
-      const idx = views.indexOf(v);
-      return views[(idx + 1) % views.length]!;
-    });
+  const switchView = (target?: AppView, reverse?: boolean) => {
+    if (target) {
+      setView(target);
+    } else {
+      setView((v) => {
+        const idx = VIEWS.indexOf(v);
+        const next = reverse
+          ? (idx - 1 + VIEWS.length) % VIEWS.length
+          : (idx + 1) % VIEWS.length;
+        return VIEWS[next]!;
+      });
+    }
   };
 
   // Dependency tracker view
   if (view === "dependencies") {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <Box paddingX={1}>
+        <Box
+          ref={viewHeaderRef}
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
           <TabBar activeView={view} />
+          <Shortcuts
+            items={[
+              { key: "+", label: "Add" },
+              { key: "d", label: "Remove" },
+              { key: "R", label: "Refresh" },
+              { key: "o", label: "Open" },
+              { key: "?", label: "Help" },
+            ]}
+          />
         </Box>
         <DependencyTracker
           packages={depPackages}
-          refetch={depRefetch}
+          fetchPackage={depFetchPackage}
           trackedPackages={config.trackedPackages}
           addPackage={addPackage}
           removePackage={removePackage}
-          onSwitchView={nextView}
-          height={height - tabBarHeight}
+          onSwitchView={switchView}
+          height={height - measuredViewHeader}
           width={width}
           onQuit={exit}
         />
@@ -428,15 +507,32 @@ export function App({ client, org, token }: Props) {
   if (view === "config") {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <Box paddingX={1}>
+        <Box
+          ref={viewHeaderRef}
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
           <TabBar activeView={view} />
+          <Shortcuts
+            items={[
+              { key: "+", label: "Add" },
+              { key: "d", label: "Remove" },
+              { key: "↵", label: "Select" },
+              { key: "?", label: "Help" },
+            ]}
+          />
         </Box>
         <ConfigView
           orgs={config.orgs}
           addOrg={addOrg}
           removeOrg={removeOrg}
-          onSwitchView={nextView}
-          height={height - tabBarHeight}
+          onSwitchView={switchView}
+          height={height - measuredViewHeader}
           width={width}
           onQuit={exit}
         />
@@ -445,11 +541,9 @@ export function App({ client, org, token }: Props) {
   }
 
   // PR dashboard view
-  const headerHeight = 3;
   const selectedPR = prs[listIndex] ?? null;
-  const hasLabels = (selectedPR?.labels?.nodes?.length ?? 0) > 0;
-  const statusBarHeight = 3 + (hasLabels ? 1 : 0);
-  const mainHeight = height - tabBarHeight - headerHeight - statusBarHeight;
+
+  const mainHeight = Math.max(1, height - measuredHeader - measuredStatus);
   const multiOrg = config.orgs.length > 1;
   // Sidebar width adapts to longest repo name (min 20, max 40% of screen)
   const displayRepoNames = config.repos.map((r) => {
@@ -512,10 +606,15 @@ export function App({ client, org, token }: Props) {
     <Box height={height} width={width} flexDirection="column">
       {/* Tab bar + Header */}
       <Box
+        ref={headerRef}
         width={width}
-        height={tabBarHeight + headerHeight}
         flexDirection="column"
         paddingX={1}
+        borderStyle="single"
+        borderTop={false}
+        borderLeft={false}
+        borderRight={false}
+        borderBottom
       >
         <Box>
           <TabBar activeView={view} />
@@ -525,9 +624,19 @@ export function App({ client, org, token }: Props) {
             </Text>
           )}
         </Box>
-        <Text dimColor>
-          o Open p Detail y Copy S Sort n Notif m Mine s Review t All ? Help
-        </Text>
+        <Shortcuts
+          items={[
+            { key: "o", label: "Open" },
+            { key: "p", label: "Detail" },
+            { key: "y", label: "Copy" },
+            { key: "S", label: "Sort" },
+            { key: "n", label: "Notif" },
+            { key: "m", label: "My PRs" },
+            { key: "s", label: "To Review" },
+            { key: "t", label: "All" },
+            { key: "?", label: "Help" },
+          ]}
+        />
         {error && <Text color="red">Error: {error}</Text>}
       </Box>
 
@@ -556,19 +665,21 @@ export function App({ client, org, token }: Props) {
       </Box>
 
       {/* Status bar */}
-      <StatusBar
-        filterMode={filterMode}
-        prCount={prs.length}
-        totalCount={allPRs.length}
-        lastRefresh={lastRefresh}
-        loading={loading}
-        searchText={searchMode ? searchText : ""}
-        selectedPR={selectedPR}
-        width={width}
-        sortMode={sortMode}
-        statusMessage={statusMessage}
-        commentInput={commentMode ? commentText : ""}
-      />
+      <Box ref={statusRef} flexDirection="column">
+        <StatusBar
+          filterMode={filterMode}
+          prCount={prs.length}
+          totalCount={allPRs.length}
+          lastRefresh={lastRefresh}
+          loading={loading}
+          searchText={searchMode ? searchText : ""}
+          selectedPR={selectedPR}
+          width={width}
+          sortMode={sortMode}
+          statusMessage={statusMessage}
+          commentInput={commentMode ? commentText : ""}
+        />
+      </Box>
 
       {/* Repo search overlay */}
       {showRepoSearch && (

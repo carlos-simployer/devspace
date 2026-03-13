@@ -9,6 +9,7 @@ export interface PullRequest {
   headRefName: string;
   author: {
     login: string;
+    name?: string;
   };
   repository: {
     name: string;
@@ -31,6 +32,12 @@ export interface PullRequest {
   };
   reviewRequests: {
     totalCount: number;
+    nodes: Array<{
+      requestedReviewer: {
+        login?: string;
+        name?: string;
+      } | null;
+    }>;
   };
   commits: {
     nodes: Array<{

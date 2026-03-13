@@ -46,6 +46,7 @@ export function getMergeableStatus(pr: PullRequest): StatusInfo {
     case "UNKNOWN":
       return { icon: "?", color: "gray" };
     case "MERGEABLE":
+      return { icon: "✓", color: "green" };
     default:
       return { icon: " ", color: "gray" };
   }

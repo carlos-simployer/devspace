@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
+import type { AppView } from "../api/types.ts";
 
 interface Props {
   orgs: string[];
   addOrg: (org: string) => void;
   removeOrg: (org: string) => void;
-  onSwitchView: () => void;
+  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
@@ -41,7 +42,19 @@ export function ConfigView({
     }
 
     if (key.tab) {
-      onSwitchView();
+      onSwitchView(undefined, key.shift);
+      return;
+    }
+    if (input === "1") {
+      onSwitchView("prs");
+      return;
+    }
+    if (input === "2") {
+      onSwitchView("dependencies");
+      return;
+    }
+    if (input === "3") {
+      onSwitchView("config");
       return;
     }
 
@@ -75,21 +88,8 @@ export function ConfigView({
     }
   });
 
-  const headerHeight = 2;
-  const statusBarHeight = 3;
-
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Header */}
-      <Box
-        width={width}
-        height={headerHeight}
-        flexDirection="column"
-        paddingX={1}
-      >
-        <Text dimColor>+ Add d Remove Enter Select ? Help</Text>
-      </Box>
-
       {/* Organizations */}
       <Box flexGrow={1} flexDirection="column" paddingX={2}>
         <Text bold>Organizations</Text>
@@ -118,7 +118,6 @@ export function ConfigView({
       {/* Status bar */}
       <Box
         width={width}
-        height={statusBarHeight}
         flexDirection="column"
         borderStyle="single"
         borderTop
