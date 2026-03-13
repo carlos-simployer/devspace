@@ -10,7 +10,7 @@ interface Props {
   totalCount: number;
   lastRefresh: Date | null;
   secondsUntilRefresh: number;
-  loading: boolean;
+  fetching: boolean;
   searchText: string;
   selectedPR: PullRequest | null;
   width: number;
@@ -38,7 +38,7 @@ export function StatusBar({
   totalCount,
   lastRefresh,
   secondsUntilRefresh,
-  loading,
+  fetching,
   searchText,
   selectedPR,
   width,
@@ -46,7 +46,7 @@ export function StatusBar({
   statusMessage,
   commentInput,
 }: Props) {
-  const refreshText = loading
+  const refreshText = fetching
     ? "Refreshing..."
     : lastRefresh
       ? `Refresh in ${secondsUntilRefresh}s`

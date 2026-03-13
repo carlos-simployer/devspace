@@ -1,55 +1,49 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { GraphQLClient } from "../api/client.ts";
 import type { RepoNode } from "../api/types.ts";
 import { ORG_REPOS_QUERY } from "../api/queries.ts";
 
-export function useRepos(client: GraphQLClient | null, orgs: string[]) {
-  const [repos, setRepos] = useState<RepoNode[]>([]);
-  const [loading, setLoading] = useState(false);
+async function fetchRepos(
+  client: GraphQLClient,
+  orgs: string[],
+): Promise<RepoNode[]> {
+  const allRepos: RepoNode[] = [];
 
-  const fetchRepos = useCallback(async () => {
-    if (!client || orgs.length === 0) return;
-    setLoading(true);
-    setRepos([]);
+  await Promise.all(
+    orgs.map(async (org) => {
+      try {
+        let cursor: string | null = null;
+        let hasMore = true;
 
-    let pending = orgs.length;
-
-    await Promise.all(
-      orgs.map(async (org) => {
-        try {
-          const orgRepos: RepoNode[] = [];
-          let cursor: string | null = null;
-          let hasMore = true;
-
-          while (hasMore) {
-            const data: any = await client(ORG_REPOS_QUERY, { org, cursor });
-            const repos = data.organization.repositories;
-            orgRepos.push(
-              ...repos.nodes
-                .filter((r: any) => !r.isArchived)
-                .map((r: any) => ({ ...r, owner: org })),
-            );
-            hasMore = repos.pageInfo.hasNextPage;
-            cursor = repos.pageInfo.endCursor;
-          }
-
-          // Merge this org's repos into state immediately
-          setRepos((prev) =>
-            [...prev, ...orgRepos].sort((a, b) => a.name.localeCompare(b.name)),
+        while (hasMore) {
+          const data: any = await client(ORG_REPOS_QUERY, { org, cursor });
+          const repos = data.organization.repositories;
+          allRepos.push(
+            ...repos.nodes
+              .filter((r: any) => !r.isArchived)
+              .map((r: any) => ({ ...r, owner: org })),
           );
-        } catch {
-          // Skip failed orgs
-        } finally {
-          pending--;
-          if (pending === 0) setLoading(false);
+          hasMore = repos.pageInfo.hasNextPage;
+          cursor = repos.pageInfo.endCursor;
         }
-      }),
-    );
-  }, [client, orgs.join(",")]);
+      } catch {
+        // Skip failed orgs
+      }
+    }),
+  );
 
-  useEffect(() => {
-    fetchRepos();
-  }, [fetchRepos]);
+  return allRepos.sort((a, b) => a.name.localeCompare(b.name));
+}
 
-  return { repos, loading, refetch: fetchRepos };
+export function useRepos(client: GraphQLClient | null, orgs: string[]) {
+  const orgsKey = orgs.join(",");
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["repos", orgsKey],
+    queryFn: () => fetchRepos(client!, orgs),
+    enabled: !!client && orgs.length > 0,
+    staleTime: 5 * 60_000,
+  });
+
+  return { repos: data ?? [], loading: isLoading, refetch };
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { render } from "ink";
 import { execSync } from "child_process";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createClient } from "./api/client.ts";
 import { App } from "./app.tsx";
 import { createPatchedStdout } from "./patched-stdout.ts";
@@ -63,10 +64,26 @@ process.on("SIGTERM", () => {
 // Use patched stdout to avoid fullscreen flicker
 const patchedStdout = createPatchedStdout();
 
-const instance = render(<App client={client} org={org} token={token} />, {
-  exitOnCtrlC: true,
-  stdout: patchedStdout,
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 10 * 60_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
+
+const instance = render(
+  <QueryClientProvider client={queryClient}>
+    <App client={client} org={org} token={token} />
+  </QueryClientProvider>,
+  {
+    exitOnCtrlC: true,
+    stdout: patchedStdout,
+  },
+);
 
 await instance.waitUntilExit();
 cleanup();

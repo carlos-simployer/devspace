@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { GraphQLClient } from "../api/client.ts";
 import { PR_DETAIL_QUERY } from "../api/queries.ts";
 
@@ -71,71 +71,58 @@ async function fetchFilePatches(
   return patches;
 }
 
+async function fetchPRDetail(
+  client: GraphQLClient,
+  nodeId: string,
+  token?: string,
+  prRef?: PRRef | null,
+): Promise<PRDetail> {
+  const [data, patches] = await Promise.all([
+    client(PR_DETAIL_QUERY, { nodeId }) as Promise<any>,
+    token && prRef
+      ? fetchFilePatches(token, prRef)
+      : Promise.resolve(new Map<string, string>()),
+  ]);
+
+  const pr = data.node;
+  const rollup = pr.commits?.nodes?.[0]?.commit?.statusCheckRollup ?? null;
+  const checks: CheckContext[] = rollup?.contexts?.nodes ?? [];
+  const reviews: ReviewDetail[] = pr.reviews?.nodes ?? [];
+
+  const files: PRFile[] = (pr.files?.nodes ?? []).map((f: any) => ({
+    path: f.path,
+    additions: f.additions ?? 0,
+    deletions: f.deletions ?? 0,
+    changeType: f.changeType ?? "MODIFIED",
+    patch: patches.get(f.path) ?? null,
+  }));
+
+  return {
+    body: pr.body ?? "",
+    commentsCount: pr.comments?.totalCount ?? 0,
+    checks,
+    reviews,
+    rollupState: rollup?.state ?? null,
+    files,
+  };
+}
+
 export function usePRDetail(
   client: GraphQLClient | null,
   nodeId: string | null,
   token?: string,
   prRef?: PRRef | null,
 ) {
-  const [detail, setDetail] = useState<PRDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["pr-detail", nodeId],
+    queryFn: () => fetchPRDetail(client!, nodeId!, token, prRef),
+    enabled: !!client && !!nodeId,
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    if (!client || !nodeId) {
-      setDetail(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    (async () => {
-      try {
-        const [data, patches] = await Promise.all([
-          client(PR_DETAIL_QUERY, { nodeId }) as Promise<any>,
-          token && prRef
-            ? fetchFilePatches(token, prRef)
-            : Promise.resolve(new Map<string, string>()),
-        ]);
-        if (cancelled) return;
-
-        const pr = data.node;
-        const rollup =
-          pr.commits?.nodes?.[0]?.commit?.statusCheckRollup ?? null;
-        const checks: CheckContext[] = rollup?.contexts?.nodes ?? [];
-        const reviews: ReviewDetail[] = pr.reviews?.nodes ?? [];
-
-        const files: PRFile[] = (pr.files?.nodes ?? []).map((f: any) => ({
-          path: f.path,
-          additions: f.additions ?? 0,
-          deletions: f.deletions ?? 0,
-          changeType: f.changeType ?? "MODIFIED",
-          patch: patches.get(f.path) ?? null,
-        }));
-
-        setDetail({
-          body: pr.body ?? "",
-          commentsCount: pr.comments?.totalCount ?? 0,
-          checks,
-          reviews,
-          rollupState: rollup?.state ?? null,
-          files,
-        });
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err.message || "Failed to fetch PR details");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [client, nodeId, token, prRef?.owner, prRef?.repo, prRef?.number]);
-
-  return { detail, loading, error };
+  return {
+    detail: data ?? null,
+    loading: isLoading,
+    error: error?.message ?? null,
+  };
 }

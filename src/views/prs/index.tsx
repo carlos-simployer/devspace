@@ -104,6 +104,7 @@ export function PRView({
     prs: rawPrs,
     allPRs,
     loading,
+    fetching,
     error,
     lastRefresh,
     secondsUntilRefresh,
@@ -569,7 +570,7 @@ export function PRView({
           totalCount={allPRs.length}
           lastRefresh={lastRefresh}
           secondsUntilRefresh={secondsUntilRefresh}
-          loading={loading}
+          fetching={fetching}
           searchText={searchMode ? searchText : ""}
           selectedPR={selectedPR}
           width={width}
