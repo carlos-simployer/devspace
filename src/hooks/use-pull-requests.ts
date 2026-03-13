@@ -49,7 +49,8 @@ export function usePullRequests(
   sortMode: SortMode,
   refreshIntervalSec: number,
 ) {
-  const pollInterval = refreshIntervalSec * 1000;
+  const intervalRef = useRef(refreshIntervalSec);
+  intervalRef.current = refreshIntervalSec;
   const [prs, setPrs] = useState<PullRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +140,7 @@ export function usePullRequests(
       // Only update state if data actually changed to avoid re-renders
       setPrs((prev) => (prListChanged(prev, finalPRs) ? finalPRs : prev));
       setLastRefresh(new Date());
-      setSecondsUntilRefresh(refreshIntervalSec);
+      setSecondsUntilRefresh(intervalRef.current);
       isFirstFetch.current = false;
     } catch (err: any) {
       setError(err.message || "Failed to fetch PRs");
@@ -156,7 +157,8 @@ export function usePullRequests(
   const startPolling = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (countdownRef.current) clearInterval(countdownRef.current);
-    timerRef.current = setInterval(fetchPRs, pollInterval);
+    setSecondsUntilRefresh(intervalRef.current);
+    timerRef.current = setInterval(fetchPRs, intervalRef.current * 1000);
     countdownRef.current = setInterval(() => {
       setSecondsUntilRefresh((s) => Math.max(0, s - 1));
     }, 1000);
@@ -165,7 +167,6 @@ export function usePullRequests(
   // Manual refresh: show loading, reset countdown, restart poll timer
   const manualRefetch = useCallback(() => {
     setLoading(true);
-    setSecondsUntilRefresh(refreshIntervalSec);
     startPolling();
     fetchPRs();
   }, [fetchPRs, startPolling]);
@@ -179,6 +180,11 @@ export function usePullRequests(
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [fetchPRs, startPolling]);
+
+  // Restart polling when interval changes
+  useEffect(() => {
+    startPolling();
+  }, [refreshIntervalSec]); // startPolling intentionally omitted — ref handles current value
 
   // Filter by selected repo (client-side)
   const filteredPRs =
