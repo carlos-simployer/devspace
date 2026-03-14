@@ -46,6 +46,7 @@ export function App({ client, org, token }: Props) {
     removePinnedReleaseDefinition,
     addLocalProject,
     removeLocalProject,
+    setPersistCache,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
@@ -197,6 +198,8 @@ export function App({ client, org, token }: Props) {
             azureProject={config.azureProject}
             setAzureOrg={setAzureOrg}
             setAzureProject={setAzureProject}
+            persistCache={config.persistCache}
+            setPersistCache={setPersistCache}
             onSwitchView={switchView}
             height={contentHeight}
             width={width}

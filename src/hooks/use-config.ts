@@ -55,6 +55,7 @@ export function useConfig(orgArg?: string) {
         pinnedPipelines: [],
         pinnedReleaseDefinitions: [],
         localProjects: [],
+        persistCache: true,
       };
     }
 
@@ -91,6 +92,7 @@ export function useConfig(orgArg?: string) {
       pinnedPipelines: raw.pinnedPipelines || [],
       pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
       localProjects: raw.localProjects || [],
+      persistCache: raw.persistCache !== false, // default true
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -314,6 +316,13 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setPersistCache = useCallback(
+    (enabled: boolean) => {
+      setConfig((prev) => ({ ...prev, persistCache: enabled }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -345,6 +354,7 @@ export function useConfig(orgArg?: string) {
     addLocalProject,
     removeLocalProject,
     updateLocalProject,
+    setPersistCache,
     isFirstLaunch,
   };
 }

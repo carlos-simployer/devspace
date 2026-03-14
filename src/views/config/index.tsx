@@ -6,6 +6,10 @@ import { join } from "path";
 import { homedir } from "os";
 import type { AppView } from "../../api/types.ts";
 import { REFRESH_PRESETS } from "../../api/types.ts";
+import {
+  clearQueryCache,
+  getQueryCacheSize,
+} from "../../utils/query-persister.ts";
 import { useShortcuts } from "../../hooks/use-shortcuts.ts";
 import { useView } from "../../ui/view-context.ts";
 import {
@@ -27,6 +31,8 @@ interface Props {
   azureProject: string;
   setAzureOrg: (org: string) => void;
   setAzureProject: (project: string) => void;
+  persistCache: boolean;
+  setPersistCache: (enabled: boolean) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
@@ -38,8 +44,8 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "settings" | "theme" | "azure";
-const SECTIONS: Section[] = ["orgs", "settings", "theme", "azure"];
+type Section = "orgs" | "settings" | "theme" | "azure" | "cache";
+const SECTIONS: Section[] = ["orgs", "settings", "theme", "azure", "cache"];
 
 export function ConfigView({
   orgs,
@@ -53,6 +59,8 @@ export function ConfigView({
   azureProject,
   setAzureOrg,
   setAzureProject,
+  persistCache,
+  setPersistCache,
   onSwitchView: _onSwitchView,
   height,
   width,
@@ -110,6 +118,24 @@ export function ConfigView({
     },
   ];
 
+  const cacheSize = getQueryCacheSize();
+  const cacheSizeStr =
+    cacheSize > 1024 * 1024
+      ? `${(cacheSize / 1024 / 1024).toFixed(1)} MB`
+      : cacheSize > 1024
+        ? `${(cacheSize / 1024).toFixed(0)} KB`
+        : cacheSize > 0
+          ? `${cacheSize} B`
+          : "empty";
+
+  const cacheItems = [
+    {
+      label: persistCache ? "● Enabled" : "○ Disabled",
+      action: "toggle" as const,
+    },
+    { label: `Clear cache (${cacheSizeStr})`, action: "clear" as const },
+  ];
+
   const items =
     section === "orgs"
       ? orgItems
@@ -117,7 +143,9 @@ export function ConfigView({
         ? refreshPresetItems
         : section === "theme"
           ? themeItems
-          : azureItems;
+          : section === "cache"
+            ? cacheItems
+            : azureItems;
 
   // Handle escape in overlay sub-views via a minimal useInput
   // (TextInput captures most keys; we only need escape to close)
@@ -163,6 +191,10 @@ export function ConfigView({
       } else if (section === "azure") {
         if (selectedIndex === 0) setShowEditAzureOrg(true);
         if (selectedIndex === 1) setShowEditAzureProject(true);
+      } else if (section === "cache") {
+        const item = cacheItems[selectedIndex];
+        if (item?.action === "toggle") setPersistCache(!persistCache);
+        if (item?.action === "clear") clearQueryCache();
       }
     },
     editConfig: () => {
@@ -202,7 +234,7 @@ export function ConfigView({
     <Box height={height} width={width} flexDirection="column">
       <Box flexGrow={1} flexDirection="row">
         {/* Organizations */}
-        <Box flexDirection="column" paddingX={2} width="25%">
+        <Box flexDirection="column" paddingX={2} width="20%">
           <Text bold inverse={section === "orgs"}>
             {" "}
             Organizations{" "}
@@ -236,7 +268,7 @@ export function ConfigView({
         </Box>
 
         {/* Settings */}
-        <Box flexDirection="column" paddingX={2} width="25%">
+        <Box flexDirection="column" paddingX={2} width="20%">
           <Text bold inverse={section === "settings"}>
             {" "}
             Settings{" "}
@@ -269,7 +301,7 @@ export function ConfigView({
         </Box>
 
         {/* Theme */}
-        <Box flexDirection="column" paddingX={2} width="25%">
+        <Box flexDirection="column" paddingX={2} width="20%">
           <Text bold inverse={section === "theme"}>
             {" "}
             Theme{" "}
@@ -312,7 +344,7 @@ export function ConfigView({
         </Box>
 
         {/* Azure DevOps */}
-        <Box flexDirection="column" paddingX={2} width="25%">
+        <Box flexDirection="column" paddingX={2} width="20%">
           <Text bold inverse={section === "azure"}>
             {" "}
             Azure DevOps{" "}
@@ -325,6 +357,40 @@ export function ConfigView({
             return (
               <Box key={item.field}>
                 <Text inverse={isActive} bold={isActive}>
+                  {isActive ? "> " : "  "}
+                  {item.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
+        {/* Cache */}
+        <Box flexDirection="column" paddingX={2} width="20%">
+          <Text bold inverse={section === "cache"}>
+            {" "}
+            Cache{" "}
+          </Text>
+          <Text dimColor>Persist data across restarts.</Text>
+          <Box height={1} />
+          {cacheItems.map((item, i) => {
+            const isActive = section === "cache" && i === selectedIndex;
+
+            return (
+              <Box key={item.action}>
+                <Text
+                  inverse={isActive}
+                  bold={isActive}
+                  color={
+                    isActive
+                      ? undefined
+                      : item.action === "toggle" && persistCache
+                        ? getTheme().ui.activeIndicator
+                        : item.action === "clear"
+                          ? getTheme().status.failure
+                          : undefined
+                  }
+                >
                   {isActive ? "> " : "  "}
                   {item.label}
                 </Text>
@@ -358,6 +424,9 @@ export function ConfigView({
               ? `${azureOrg}/${azureProject}`
               : "[not set]"}
           </Text>
+          <Text dimColor> │ Cache: </Text>
+          <Text bold>{persistCache ? "on" : "off"}</Text>
+          <Text dimColor> ({cacheSizeStr})</Text>
           <Text dimColor> │ e: edit config │ ←/→ switch section</Text>
         </Text>
       </Box>

@@ -1,10 +1,12 @@
 import React from "react";
 import { render } from "ink";
 import { execSync } from "child_process";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createClient } from "./api/client.ts";
 import { App } from "./app.tsx";
 import { createPatchedStdout } from "./patched-stdout.ts";
+import { createFilePersister } from "./utils/query-persister.ts";
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -60,17 +62,26 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      gcTime: 10 * 60_000,
+      gcTime: 24 * 60 * 60_000, // 24h — persist across restarts
       retry: 1,
       refetchOnWindowFocus: false,
     },
   },
 });
 
+const persister = createFilePersister();
+
 const instance = render(
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{
+      persister,
+      maxAge: 24 * 60 * 60_000, // 24h
+      buster: "", // cache version — change to invalidate all cached data
+    }}
+  >
     <App client={client} org={org} token={token} />
-  </QueryClientProvider>,
+  </PersistQueryClientProvider>,
   {
     exitOnCtrlC: true,
     stdout: patchedStdout,

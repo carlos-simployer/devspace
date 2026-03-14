@@ -112,6 +112,7 @@ export interface Config {
   pinnedPipelines: number[]; // pipeline definition IDs
   pinnedReleaseDefinitions: number[]; // release definition IDs
   localProjects: LocalProject[]; // local dev projects to start/stop
+  persistCache: boolean; // persist React Query cache to disk
 }
 
 // --- Azure DevOps types ---
