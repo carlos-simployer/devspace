@@ -1,8 +1,8 @@
 import React from "react";
 import { render } from "ink";
 import { execSync } from "child_process";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createClient } from "./api/client.ts";
 import { App } from "./app.tsx";
 import { createPatchedStdout } from "./patched-stdout.ts";
@@ -71,17 +71,17 @@ const queryClient = new QueryClient({
 
 const persister = createFilePersister();
 
+// Use non-blocking persistence — doesn't pause queries during restore
+persistQueryClient({
+  queryClient,
+  persister,
+  maxAge: 24 * 60 * 60_000, // 24h
+});
+
 const instance = render(
-  <PersistQueryClientProvider
-    client={queryClient}
-    persistOptions={{
-      persister,
-      maxAge: 24 * 60 * 60_000, // 24h
-      buster: "", // cache version — change to invalidate all cached data
-    }}
-  >
+  <QueryClientProvider client={queryClient}>
     <App client={client} org={org} token={token} />
-  </PersistQueryClientProvider>,
+  </QueryClientProvider>,
   {
     exitOnCtrlC: true,
     stdout: patchedStdout,
