@@ -121,7 +121,6 @@ export function App({ client, org, token }: Props) {
           notifications={notifications}
           notifLoading={notifLoading}
           unreadCount={unreadCount}
-          onSwitchView={switchView}
           onQuit={exit}
           height={height}
           width={width}

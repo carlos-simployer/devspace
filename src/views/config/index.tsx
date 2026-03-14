@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
 import { exec } from "child_process";
@@ -6,7 +6,8 @@ import { join } from "path";
 import { homedir } from "os";
 import type { AppView } from "../../api/types.ts";
 import { REFRESH_PRESETS } from "../../api/types.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useView } from "../../ui/view-context.ts";
 import {
   getTheme,
   getThemeNames,
@@ -52,16 +53,34 @@ export function ConfigView({
   azureProject,
   setAzureOrg,
   setAzureProject,
-  onSwitchView,
+  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
+  const { view, setView } = useView();
   const [section, setSection] = useState<Section>("orgs");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAddOrg, setShowAddOrg] = useState(false);
   const [showEditAzureOrg, setShowEditAzureOrg] = useState(false);
   const [showEditAzureProject, setShowEditAzureProject] = useState(false);
+
+  // Sync overlay state → ViewContext so shortcuts are scoped correctly
+  useEffect(() => {
+    if (showAddOrg) {
+      setView("config.addOrg");
+    } else if (showEditAzureOrg) {
+      setView("config.editAzureOrg");
+    } else if (showEditAzureProject) {
+      setView("config.editAzureProject");
+    } else if (
+      view === "config.addOrg" ||
+      view === "config.editAzureOrg" ||
+      view === "config.editAzureProject"
+    ) {
+      setView("config");
+    }
+  }, [showAddOrg, showEditAzureOrg, showEditAzureProject]);
 
   const orgItems = [
     ...orgs.map((org) => ({ label: org, isAdd: false })),
@@ -100,96 +119,53 @@ export function ConfigView({
           ? themeItems
           : azureItems;
 
-  useInput((input, key) => {
-    if (showAddOrg) {
-      if (key.escape) setShowAddOrg(false);
-      return;
-    }
-    if (showEditAzureOrg) {
-      if (key.escape) setShowEditAzureOrg(false);
-      return;
-    }
-    if (showEditAzureProject) {
-      if (key.escape) setShowEditAzureProject(false);
-      return;
-    }
-
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => {},
-      })
-    )
-      return;
-
-    // Switch between sections with left/right
-    if (key.leftArrow || key.rightArrow) {
-      setSection((s) => {
-        const idx = SECTIONS.indexOf(s);
-        const next = key.rightArrow
-          ? (idx + 1) % SECTIONS.length
-          : (idx - 1 + SECTIONS.length) % SECTIONS.length;
-        return SECTIONS[next]!;
-      });
-      setSelectedIndex(0);
-      return;
-    }
-
-    if (key.upArrow) {
-      setSelectedIndex((i) => Math.max(0, i - 1));
-      return;
-    }
-    if (key.downArrow) {
-      setSelectedIndex((i) => Math.min(items.length - 1, i + 1));
-      return;
-    }
-
-    if (section === "orgs") {
-      if (input === "+") {
-        setShowAddOrg(true);
-        return;
+  // Handle escape in overlay sub-views via a minimal useInput
+  // (TextInput captures most keys; we only need escape to close)
+  useInput(
+    (_input, key) => {
+      if (key.escape) {
+        if (showAddOrg) setShowAddOrg(false);
+        else if (showEditAzureOrg) setShowEditAzureOrg(false);
+        else if (showEditAzureProject) setShowEditAzureProject(false);
       }
+    },
+    {
+      isActive: showAddOrg || showEditAzureOrg || showEditAzureProject,
+    },
+  );
 
-      if (key.return) {
-        if (selectedIndex === orgs.length) {
-          setShowAddOrg(true);
-        }
-        return;
-      }
-
-      if ((input === "d" || input === "-") && selectedIndex < orgs.length) {
+  // Main view shortcuts (only active when no overlay is open)
+  useShortcuts({
+    quit: onQuit,
+    add: () => {
+      if (section === "orgs") setShowAddOrg(true);
+    },
+    remove: () => {
+      if (section === "orgs" && selectedIndex < orgs.length) {
         const org = orgs[selectedIndex];
         if (org) {
           removeOrg(org);
           setSelectedIndex((i) => Math.max(0, i - 1));
         }
       }
-    }
-
-    if (section === "settings") {
-      if (key.return) {
+    },
+    select: () => {
+      if (section === "orgs") {
+        if (selectedIndex === orgs.length) {
+          setShowAddOrg(true);
+        }
+      } else if (section === "settings") {
         const preset = refreshPresetItems[selectedIndex];
         if (preset) setRefreshInterval(preset.value);
-      }
-    }
-
-    if (section === "theme") {
-      if (key.return) {
+      } else if (section === "theme") {
         const item = themeItems[selectedIndex];
         if (item) setThemeName(item.name);
-      }
-    }
-
-    if (section === "azure") {
-      if (key.return) {
+      } else if (section === "azure") {
         if (selectedIndex === 0) setShowEditAzureOrg(true);
         if (selectedIndex === 1) setShowEditAzureProject(true);
       }
-    }
-
-    // Open config file in editor
-    if (input === "e") {
+    },
+    editConfig: () => {
       const configPath = join(
         homedir(),
         ".config",
@@ -201,7 +177,25 @@ export function ConfigView({
       } catch {
         // ignore
       }
-    }
+    },
+    up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+    down: () => setSelectedIndex((i) => Math.min(items.length - 1, i + 1)),
+    left: () => {
+      setSection((s) => {
+        const idx = SECTIONS.indexOf(s);
+        const next = (idx - 1 + SECTIONS.length) % SECTIONS.length;
+        return SECTIONS[next]!;
+      });
+      setSelectedIndex(0);
+    },
+    right: () => {
+      setSection((s) => {
+        const idx = SECTIONS.indexOf(s);
+        const next = (idx + 1) % SECTIONS.length;
+        return SECTIONS[next]!;
+      });
+      setSelectedIndex(0);
+    },
   });
 
   return (

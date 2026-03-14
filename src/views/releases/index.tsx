@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import type { AppView, Config, FocusArea } from "../../api/types.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useView } from "../../ui/view-context.ts";
 import {
   useReleaseDefinitions,
   useReleases,
@@ -27,16 +28,18 @@ export function ReleasesView({
   config,
   addPinnedReleaseDefinition,
   removePinnedReleaseDefinition,
-  onSwitchView,
+  onSwitchView: _onSwitchView,
   onQuit,
   height,
   width,
 }: Props) {
+  const { view, setView } = useView();
+  const showHelp = view === "releases.help";
+  const showSearch = view === "releases.search";
+
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [sidebarIndex, setSidebarIndex] = useState(0);
   const [listIndex, setListIndex] = useState(0);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
 
   const { definitions, fetching } = useReleaseDefinitions(
     config.azureOrg,
@@ -61,81 +64,65 @@ export function ReleasesView({
     await open(url);
   }, []);
 
-  useInput((input, key) => {
-    if (showSearch) return;
-
-    if (showHelp) {
-      if (input === "?" || key.escape) setShowHelp(false);
-      return;
-    }
-
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => setShowHelp(true),
-      })
-    )
-      return;
-
-    if (input === "R") {
-      return;
-    }
-
-    if (input === "+") {
-      setShowSearch(true);
-      return;
-    }
-
-    // Focus switching
-    if (key.leftArrow) {
-      setFocus("sidebar");
-      return;
-    }
-    if (key.rightArrow) {
-      setFocus("list");
-      return;
-    }
-
-    // Navigation
-    if (focus === "sidebar") {
-      const maxIdx = definitions.length; // +1 for "[+] Add"
-      if (key.upArrow) setSidebarIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setSidebarIndex((i) => Math.min(maxIdx, i + 1));
-
-      if (key.return) {
-        if (sidebarIndex === definitions.length) {
-          setShowSearch(true);
-          return;
+  useShortcuts(
+    {
+      quit: onQuit,
+      refresh: () => {
+        // No-op for now (definitions auto-refresh)
+      },
+      add: () => setView("releases.search"),
+      remove: () => {
+        if (focus === "sidebar" && sidebarIndex < definitions.length) {
+          const def = definitions[sidebarIndex];
+          if (def) {
+            removePinnedReleaseDefinition(def.id);
+            setSidebarIndex((i) => Math.max(0, i - 1));
+          }
         }
-      }
-
-      if (
-        (input === "d" || input === "-") &&
-        sidebarIndex < definitions.length
-      ) {
-        const def = definitions[sidebarIndex];
-        if (def) {
-          removePinnedReleaseDefinition(def.id);
-          setSidebarIndex((i) => Math.max(0, i - 1));
+      },
+      open: () => {
+        if (focus === "list" && releases.length > 0) {
+          const release = releases[listIndex];
+          if (release && config.azureOrg && config.azureProject) {
+            openInBrowser(
+              `https://dev.azure.com/${config.azureOrg}/${config.azureProject}/_releaseProgress?_a=release-pipeline-progress&releaseId=${release.id}`,
+            );
+          }
         }
-      }
-    }
-
-    if (focus === "list" && releases.length > 0) {
-      const maxIdx = releases.length - 1;
-      if (key.upArrow) setListIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setListIndex((i) => Math.min(maxIdx, i + 1));
-      if (key.return || input === "o") {
-        const release = releases[listIndex];
-        if (release && config.azureOrg && config.azureProject) {
-          openInBrowser(
-            `https://dev.azure.com/${config.azureOrg}/${config.azureProject}/_releaseProgress?_a=release-pipeline-progress&releaseId=${release.id}`,
-          );
+      },
+      select: () => {
+        if (focus === "sidebar") {
+          if (sidebarIndex === definitions.length) {
+            setView("releases.search");
+          }
+        } else if (focus === "list" && releases.length > 0) {
+          const release = releases[listIndex];
+          if (release && config.azureOrg && config.azureProject) {
+            openInBrowser(
+              `https://dev.azure.com/${config.azureOrg}/${config.azureProject}/_releaseProgress?_a=release-pipeline-progress&releaseId=${release.id}`,
+            );
+          }
         }
-      }
-    }
-  });
+      },
+      left: () => setFocus("sidebar"),
+      right: () => setFocus("list"),
+    },
+    {
+      onUnhandled: (_input, key) => {
+        // Navigation depends on focus area
+        if (focus === "sidebar") {
+          const maxIdx = definitions.length; // +1 for "[+] Add"
+          if (key.upArrow) setSidebarIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setSidebarIndex((i) => Math.min(maxIdx, i + 1));
+        }
+        if (focus === "list" && releases.length > 0) {
+          const maxIdx = releases.length - 1;
+          if (key.upArrow) setListIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setListIndex((i) => Math.min(maxIdx, i + 1));
+        }
+      },
+    },
+  );
 
   // Reset list index when switching definitions
   React.useEffect(() => {
@@ -226,7 +213,7 @@ export function ReleasesView({
             onRemove={(id) => {
               removePinnedReleaseDefinition(id);
             }}
-            onClose={() => setShowSearch(false)}
+            onClose={() => setView("releases")}
             height={height}
             width={width}
           />

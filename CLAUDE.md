@@ -37,14 +37,19 @@ src/
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
 │   ├── theme.ts                 # Centralized color + icon constants
+│   ├── shortcut-registry.ts     # Single source of truth for all keyboard shortcuts
+│   ├── shortcut-registry.test.ts # Tests for shortcut registry
+│   ├── view-config.ts           # ViewId type system, view definitions, tab/bar config
+│   ├── view-context.ts          # React context for current view + setView navigation
 │   ├── selectable-list-item.tsx # Blue-bg selected row component
+│   ├── tab-item.tsx             # Single tab label component
 │   ├── use-list-viewport.ts     # Viewport windowing hook for scrollable lists
 │   ├── overlay.tsx              # Overlay wrapper component
 │   ├── status-bar-layout.tsx    # Status bar wrapper
 │   └── keyboard-hint.tsx        # Dim hint text component
-├── views/                       # View modules (each owns its state + input handling)
+├── views/                       # View modules (each owns its state + shortcuts)
 │   ├── prs/                     # PR dashboard view
-│   │   ├── index.tsx            # PRView — owns all PR state and useInput
+│   │   ├── index.tsx            # PRView — owns all PR state and useShortcuts
 │   │   ├── sidebar.tsx          # Pinned repos sidebar
 │   │   ├── pr-list.tsx          # Scrollable PR list
 │   │   ├── pr-row.tsx           # Single PR row
@@ -62,6 +67,21 @@ src/
 │   │   ├── package-search.tsx   # Package name search overlay
 │   │   ├── dep-results.tsx      # Repos using a tracked package
 │   │   └── dep-status-bar.tsx   # Dep view status bar
+│   ├── pipelines/               # Azure DevOps pipelines view
+│   │   ├── index.tsx            # PipelinesView — pipeline monitoring
+│   │   ├── pipeline-sidebar.tsx # Pinned pipelines sidebar
+│   │   ├── pipeline-list.tsx    # Pipeline build list
+│   │   ├── pipeline-row.tsx     # Single pipeline row
+│   │   ├── pipeline-runs.tsx    # Pipeline runs detail panel
+│   │   ├── pipeline-search.tsx  # Pipeline search overlay
+│   │   └── status-bar.tsx       # Pipeline status bar
+│   ├── releases/                # Azure DevOps releases view
+│   │   ├── index.tsx            # ReleasesView — release tracking
+│   │   ├── definition-sidebar.tsx # Release definitions sidebar
+│   │   ├── definition-search.tsx  # Definition search overlay
+│   │   ├── release-list.tsx     # Release list
+│   │   ├── release-row.tsx      # Single release row
+│   │   └── status-bar.tsx       # Release status bar
 │   ├── projects/                # Local projects runner view
 │   │   ├── index.tsx            # ProjectsView — process start/stop, log panel
 │   │   ├── project-list.tsx     # Project list with status indicators
@@ -70,8 +90,9 @@ src/
 │   └── config/                  # Configuration view
 │       └── index.tsx            # Org management, refresh interval, edit config
 ├── components/                  # Shared cross-view components
-│   ├── help-overlay.tsx         # Keyboard shortcut help overlay
-│   ├── tab-bar.tsx              # View switcher tab bar (1-6)
+│   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar)
+│   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from registry)
+│   ├── tab-bar.tsx              # View switcher tab bar (reads from view-config)
 │   └── shortcuts.tsx            # Bottom shortcut hint bar
 ├── hooks/                       # React hooks
 │   ├── use-config.ts            # Config read/write (~/.config/github-pr-dash/)
@@ -82,8 +103,13 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   ├── use-global-keys.ts       # handleGlobalKeys() shared across views
-│   └── use-local-processes.ts   # Child process management for local projects
+│   ├── use-shortcuts.ts         # Shortcut hook (replaces useInput in views)
+│   ├── use-global-keys.ts       # handleGlobalKeys() (legacy, being replaced by useShortcuts)
+│   ├── use-local-processes.ts   # Child process management for local projects
+│   ├── use-pipelines.ts         # Azure DevOps pipeline data
+│   ├── use-pipeline-runs.ts     # Pipeline run history
+│   ├── use-releases.ts          # Azure DevOps release data
+│   └── use-theme.ts             # Theme state management
 ├── utils/                       # Pure utility functions (each has *.test.ts)
 │   ├── time.ts                  # Relative time formatting
 │   ├── time-buckets.ts          # Group PRs by time period
@@ -95,7 +121,7 @@ src/
 │   ├── config-migration.ts      # Config v1 → v2 migration
 │   ├── reviewers.ts             # Reviewer info + hex color conversion
 │   └── fuzzy.ts                 # Fuzzy match/score for search
-├── app.tsx                      # Thin shell: config, view switching (prs/deps/config)
+├── app.tsx                      # ViewContext.Provider + ViewHeader, view switching
 ├── index.tsx                    # Entry point: auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
@@ -106,7 +132,7 @@ src/
 
 ### View Architecture
 
-`src/app.tsx` is a thin shell that manages view switching between six views and provides shared state (config, repos, notifications, dependency data) to each view.
+`src/app.tsx` wraps views in a `ViewContext.Provider` and renders a shared `ViewHeader` component (TabBar + Shortcuts bar). View switching and sub-view navigation use the `ViewId` type from `src/ui/view-config.ts`.
 
 Each view in `src/views/` is self-contained:
 - **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, input handling, and sub-components (sidebar, list, detail panel, overlays)
@@ -116,7 +142,9 @@ Each view in `src/views/` is self-contained:
 - **ProjectsView** (`views/projects/index.tsx`) — local dev project runner with process management, log panel, dependency-aware start/stop
 - **ConfigView** (`views/config/index.tsx`) — org management, refresh interval, theme, Azure DevOps settings, open config in VS Code (e)
 
-Views call `handleGlobalKeys()` from `src/hooks/use-global-keys.ts` inside their `useInput` handlers to share global key bindings (q, Tab, 1-6, ?).
+Views use `useShortcuts` from `src/hooks/use-shortcuts.ts` instead of raw `useInput`. This hook reads the current `ViewId` from `ViewContext`, matches keyboard input against the shortcut registry, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-6) are handled automatically.
+
+Sub-view navigation uses `setView` from the context (e.g., `setView("prs.detail")`, `setView("prs.help")`). Views derive boolean state from the current ViewId (e.g., `showHelp = view === "prs.help"`).
 
 ### State & Data
 
@@ -169,13 +197,33 @@ Fields:
 
 Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **theme.ts** — `colors` and `icons` constants used throughout the app
+- **shortcut-registry.ts** — single source of truth for all keyboard shortcuts (see Shortcut System below)
+- **view-config.ts** — `ViewId` type (includes sub-views like `"prs.detail"`, `"prs.help"`), `BaseView` type, `VIEW_CONFIG` with tab labels and bar action lists, plus helpers: `getBaseView()`, `getTabViews()`, `getTabNumberKeys()`
+- **view-context.ts** — React context providing `{ view, setView, baseView }` to the component tree; consumed via `useView()` hook
 - **SelectableListItem** — row with blue background when selected
+- **TabItem** — single tab label component
 - **useListViewport** — handles viewport windowing for scrollable lists
 - **Overlay** — renders content as a floating panel over the main UI
 - **StatusBarLayout** — consistent status bar wrapper
 - **KeyboardHint** — dim hint text for keyboard shortcuts
 
 Import these via `from "../ui/index.ts"` or `from "../ui/theme.ts"`.
+
+### Shortcut System
+
+All keyboard shortcuts are defined once in `src/ui/shortcut-registry.ts` as a flat `SHORTCUTS` array. Each entry has:
+- `action` — action name (e.g. `"open"`, `"filterMine"`)
+- `key` — trigger key (character or special: `"tab"`, `"return"`, `"escape"`, `"up"`, `"down"`, etc.)
+- `view` — `ViewId` this shortcut is active in; `undefined` = global (always active)
+- `label` — short label for the bottom bar (optional; only entries with a label appear in the bar)
+- `help` — description for the help overlay
+
+Query helpers derive UI from the registry:
+- `getBarShortcuts(viewId)` — returns `[{key, label}]` for the bottom bar, filtered by `VIEW_CONFIG[viewId].bar` action names
+- `getHelpShortcuts(viewId)` — returns `[key, help]` pairs for the help overlay (view-specific + globals)
+- `matchShortcut(input, key, viewId)` — matches Ink's `useInput` args against the registry; view-specific shortcuts take precedence over globals
+
+**Adding a new shortcut:** Add one entry to the `SHORTCUTS` array in `shortcut-registry.ts`, then add a handler for that action name in the view's `useShortcuts` call. If it should appear in the bottom bar, also add its action name to `VIEW_CONFIG[viewId].bar` in `view-config.ts`.
 
 ### Status Mapping
 
@@ -190,7 +238,7 @@ Import these via `from "../ui/index.ts"` or `from "../ui/theme.ts"`.
 - Unused variables prefixed with `_` are permitted
 - Prettier: double quotes, semicolons, trailing commas, 80-char width
 - Volta pins Node 20.20.0 / npm 10.8.2
-- Tests co-located with source files as `*.test.ts` in `src/utils/`
+- Tests co-located with source files as `*.test.ts(x)` in `src/utils/`, `src/ui/`, and `src/views/`
 - View components organized by feature: `views/<name>/index.tsx` as entry point
 - Shared UI primitives go in `src/ui/`, shared cross-view components go in `src/components/`
 - Pure functions go in `src/utils/` with corresponding test files

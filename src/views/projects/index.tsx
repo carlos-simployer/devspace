@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import { exec } from "child_process";
 import type { AppView, LocalProject } from "../../api/types.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
 import {
   useLocalProcesses,
   type ProcessState,
 } from "../../hooks/use-local-processes.ts";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useView } from "../../ui/view-context.ts";
 import { getTheme } from "../../ui/index.ts";
+import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { ProjectList } from "./project-list.tsx";
 import { LogPanel } from "./log-panel.tsx";
 import { AddProjectOverlay } from "./add-project.tsx";
@@ -26,17 +28,19 @@ export function ProjectsView({
   localProjects,
   addLocalProject,
   removeLocalProject,
-  onSwitchView,
+  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
+  const { view, setView } = useView();
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [logScroll, setLogScroll] = useState<number | null>(null); // null = auto-follow
   const [confirmKill, setConfirmKill] = useState<string | null>(null);
   const [uptimeTick, setUptimeTick] = useState(0);
+
+  const showHelp = view === "projects.help";
+  const showAdd = view === "projects.add";
 
   const { states, start, stop, restart, clearLogs, getDependents } =
     useLocalProcesses(localProjects);
@@ -59,142 +63,104 @@ export function ProjectsView({
     ? (states[selected.name] ?? { status: "stopped", logs: [] })
     : { status: "stopped", logs: [] };
 
-  useInput((input, key) => {
-    if (showAdd) return;
+  // Log scroll helper
+  const currentOffset = () =>
+    logScroll ?? Math.max(0, logState.logs.length - (height - 4));
 
-    if (showHelp) {
-      if (key.escape || input === "?") setShowHelp(false);
-      return;
-    }
+  useShortcuts(
+    {
+      quit: () => onQuit(),
 
-    if (confirmKill) {
-      if (input === "y" || input === "Y") {
-        stop(confirmKill);
-        setConfirmKill(null);
-      } else {
-        setConfirmKill(null);
-      }
-      return;
-    }
+      // Project list navigation
+      up: () => {
+        setSelectedIndex((i) => Math.max(0, i - 1));
+        setLogScroll(null);
+      },
+      down: () => {
+        setSelectedIndex((i) => Math.min(localProjects.length - 1, i + 1));
+        setLogScroll(null);
+      },
 
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => setShowHelp(true),
-      })
-    )
-      return;
-
-    // Project list navigation
-    if (key.upArrow) {
-      setSelectedIndex((i) => Math.max(0, i - 1));
-      setLogScroll(null); // reset to auto-follow for new project
-      return;
-    }
-    if (key.downArrow) {
-      setSelectedIndex((i) => Math.min(localProjects.length - 1, i + 1));
-      setLogScroll(null);
-      return;
-    }
-
-    // Log scrolling: [ up, ] down
-    // When null (auto-follow), start from the bottom (maxOffset)
-    const currentOffset = () =>
-      logScroll ?? Math.max(0, logState.logs.length - (height - 4));
-    if (input === "[") {
-      setLogScroll(Math.max(0, currentOffset() - 1));
-      return;
-    }
-    if (input === "]") {
-      setLogScroll(currentOffset() + 1);
-      return;
-    }
-    if (input === "{") {
-      setLogScroll(Math.max(0, currentOffset() - 10));
-      return;
-    }
-    if (input === "}") {
-      setLogScroll(currentOffset() + 10);
-      return;
-    }
-
-    if (input === "g") {
-      setLogScroll(0);
-      return;
-    }
-    if (input === "G") {
-      setLogScroll(null); // back to auto-follow (bottom)
-      return;
-    }
-    if (input === "c" && selected) {
-      clearLogs(selectedName);
-      setLogScroll(null);
-      return;
-    }
-
-    // Project actions
-    if (input === "s" && selected) {
-      if (selectedState.status !== "running") {
-        start(selected.name);
-      }
-      return;
-    }
-
-    if (input === "K" && selected) {
-      if (
-        selectedState.status !== "running" &&
-        selectedState.status !== "starting"
-      )
-        return;
-      const dependents = getDependents(selected.name).filter(
-        (d) => states[d]?.status === "running",
-      );
-      if (dependents.length > 0) {
-        setConfirmKill(selected.name);
-      } else {
-        stop(selected.name);
-      }
-      return;
-    }
-
-    if (input === "R" && selected) {
-      restart(selected.name);
-      return;
-    }
-
-    if (input === "o" && selected?.url) {
-      try {
-        exec(`open "${selected.url}"`);
-      } catch {
-        // ignore
-      }
-      return;
-    }
-
-    if (input === "+") {
-      setShowAdd(true);
-      return;
-    }
-
-    if (input === "d" && selected) {
-      if (selectedState.status === "running") {
-        stop(selected.name);
-      }
-      removeLocalProject(selected.name);
-      setSelectedIndex((i) => Math.max(0, i - 1));
-      return;
-    }
-
-    if (input === "S") {
-      for (const p of localProjects) {
-        if (states[p.name]?.status !== "running") {
-          start(p.name);
+      // Log scrolling
+      scrollUp: () => setLogScroll(Math.max(0, currentOffset() - 1)),
+      scrollDown: () => setLogScroll(currentOffset() + 1),
+      pageUp: () => setLogScroll(Math.max(0, currentOffset() - 10)),
+      pageDown: () => setLogScroll(currentOffset() + 10),
+      logTop: () => setLogScroll(0),
+      logBottom: () => setLogScroll(null),
+      clearLogs: () => {
+        if (selected) {
+          clearLogs(selectedName);
+          setLogScroll(null);
         }
-      }
-      return;
-    }
-  });
+      },
+
+      // Project actions
+      start: () => {
+        if (selected && selectedState.status !== "running") {
+          start(selected.name);
+        }
+      },
+      kill: () => {
+        if (!selected) return;
+        if (
+          selectedState.status !== "running" &&
+          selectedState.status !== "starting"
+        )
+          return;
+        const dependents = getDependents(selected.name).filter(
+          (d) => states[d]?.status === "running",
+        );
+        if (dependents.length > 0) {
+          setConfirmKill(selected.name);
+          setView("projects.confirm");
+        } else {
+          stop(selected.name);
+        }
+      },
+      restart: () => {
+        if (selected) restart(selected.name);
+      },
+      open: () => {
+        if (selected?.url) {
+          try {
+            exec(`open "${selected.url}"`);
+          } catch {
+            // ignore
+          }
+        }
+      },
+      add: () => setView("projects.add"),
+      remove: () => {
+        if (selected) {
+          if (selectedState.status === "running") {
+            stop(selected.name);
+          }
+          removeLocalProject(selected.name);
+          setSelectedIndex((i) => Math.max(0, i - 1));
+        }
+      },
+      startAll: () => {
+        for (const p of localProjects) {
+          if (states[p.name]?.status !== "running") {
+            start(p.name);
+          }
+        }
+      },
+    },
+    {
+      onUnhandled: (input, _key) => {
+        // Handle confirmKill dialog — captures all input
+        if (confirmKill) {
+          if (input === "y" || input === "Y") {
+            stop(confirmKill);
+          }
+          setConfirmKill(null);
+          setView("projects");
+        }
+      },
+    },
+  );
 
   const runningCount = Object.values(states).filter(
     (s) => s.status === "running",
@@ -210,45 +176,8 @@ export function ProjectsView({
 
   if (showHelp) {
     return (
-      <Box
-        height={height}
-        width={width}
-        flexDirection="column"
-        paddingX={2}
-        paddingY={1}
-      >
-        <Box justifyContent="center" marginBottom={1}>
-          <Text bold color={theme.ui.heading}>
-            Projects Shortcuts
-          </Text>
-        </Box>
-        {(
-          [
-            ["s", "Start project (with deps)"],
-            ["K", "Kill project"],
-            ["R", "Restart project"],
-            ["[ and ]", "Scroll logs up/down"],
-            ["{ and }", "Page up/down logs"],
-            ["o", "Open URL in browser"],
-            ["+", "Add project"],
-            ["d", "Remove project"],
-            ["S", "Start all"],
-            ["Tab/1-6", "Switch view"],
-            ["?", "Toggle this help"],
-            ["q", "Quit"],
-          ] as [string, string][]
-        ).map(([key, desc]) => (
-          <Box key={key}>
-            <Text bold color={theme.ui.shortcutKey}>
-              {"  "}
-              {key.padEnd(12)}
-            </Text>
-            <Text>{desc}</Text>
-          </Box>
-        ))}
-        <Box marginTop={1} justifyContent="center">
-          <Text dimColor>Press ? to close</Text>
-        </Box>
+      <Box height={height} width={width}>
+        <HelpOverlay height={height} width={width} view="projects" />
       </Box>
     );
   }
@@ -330,9 +259,9 @@ export function ProjectsView({
           existingNames={localProjects.map((p) => p.name)}
           onSubmit={(project) => {
             addLocalProject(project);
-            setShowAdd(false);
+            setView("projects");
           }}
-          onCancel={() => setShowAdd(false)}
+          onCancel={() => setView("projects")}
           width={width}
           height={height}
         />

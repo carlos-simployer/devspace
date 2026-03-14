@@ -9,7 +9,6 @@ import { Box, Text, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import type { GraphQLClient } from "../../api/client.ts";
 import type {
-  AppView,
   Config,
   FilterMode,
   FocusArea,
@@ -19,7 +18,10 @@ import type {
 import type { GitHubNotification } from "../../hooks/use-notifications.ts";
 import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { useView } from "../../ui/view-context.ts";
+import { matchShortcut, getBarShortcuts } from "../../ui/shortcut-registry.ts";
+import type { ViewId } from "../../ui/view-config.ts";
+import { getTabNumberKeys } from "../../ui/view-config.ts";
 import { Sidebar } from "./sidebar.tsx";
 import { PRList } from "./pr-list.tsx";
 import { StatusBar } from "./status-bar.tsx";
@@ -27,6 +29,7 @@ import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { RepoSearch } from "./repo-search.tsx";
 import { PRDetailPanel } from "./pr-detail/index.tsx";
 import { NotificationsView } from "./notifications-view.tsx";
+import { ViewHeader } from "../../components/view-header.tsx";
 import { Shortcuts } from "../../components/shortcuts.tsx";
 import { TabBar } from "../../components/tab-bar.tsx";
 import { copyToClipboard } from "../../utils/clipboard.ts";
@@ -47,7 +50,6 @@ interface Props {
   notifications: GitHubNotification[];
   notifLoading: boolean;
   unreadCount: number;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   onQuit: () => void;
   height: number;
   width: number;
@@ -68,22 +70,34 @@ export function PRView({
   notifications,
   notifLoading,
   unreadCount,
-  onSwitchView,
   onQuit,
   height,
   width,
 }: Props) {
+  const { view, setView } = useView();
+
+  // Derive sub-view state from view context
+  const showHelp = view === "prs.help";
+  const showDetail = view === "prs.detail";
+  const showNotifications = view === "prs.notifications";
+  const showRepoSearch = view === "prs.search";
+
+  // Open search overlay on first launch
+  const firstLaunchHandled = useRef(false);
+  useEffect(() => {
+    if (isFirstLaunch && !firstLaunchHandled.current && view === "prs") {
+      firstLaunchHandled.current = true;
+      setView("prs.search");
+    }
+  }, [isFirstLaunch, view, setView]);
+
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [focus, setFocus] = useState<FocusArea>("list");
   const [sidebarIndex, setSidebarIndex] = useState(0);
   const [listIndex, setListIndex] = useState(0);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showRepoSearch, setShowRepoSearch] = useState(isFirstLaunch);
   const [searchMode, setSearchMode] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("repo-updated");
-  const [showDetail, setShowDetail] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [pendingApprove, setPendingApprove] = useState<{
     prId: string;
     prNumber: number;
@@ -199,17 +213,17 @@ export function PRView({
   );
 
   useInput((input, key) => {
-    // Overlays capture input
+    // Overlays capture input — sub-views have their own useInput
     if (showRepoSearch) return;
     if (showDetail) return;
     if (showNotifications) return;
 
     if (showHelp) {
-      if (input === "?" || key.escape) setShowHelp(false);
+      if (input === "?" || key.escape) setView("prs");
       return;
     }
 
-    // Comment input mode
+    // Comment input mode — raw text entry, bypass shortcut matching
     if (commentMode) {
       if (key.escape) {
         setCommentMode(false);
@@ -234,7 +248,7 @@ export function PRView({
       return;
     }
 
-    // Search mode
+    // Search mode — raw text entry, bypass shortcut matching
     if (searchMode) {
       if (key.escape) {
         setSearchMode(false);
@@ -280,57 +294,94 @@ export function PRView({
       if (key.escape) return;
     }
 
-    // Global shortcuts
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => setShowHelp(true),
-      })
-    )
-      return;
+    // Match against shortcut registry (view-specific + global)
+    const action = matchShortcut(input, key, view);
 
-    if (input === "/") {
+    // Global shortcuts
+    if (action === "quit") {
+      onQuit();
+      return;
+    }
+    if (action === "help") {
+      setView("prs.help");
+      return;
+    }
+    if (action === "nextView") {
+      const VIEWS: ViewId[] = [
+        "prs",
+        "dependencies",
+        "pipelines",
+        "releases",
+        "projects",
+        "config",
+      ];
+      const idx = VIEWS.indexOf("prs");
+      setView(VIEWS[(idx + 1) % VIEWS.length]!);
+      return;
+    }
+    if (action === "prevView") {
+      const VIEWS: ViewId[] = [
+        "prs",
+        "dependencies",
+        "pipelines",
+        "releases",
+        "projects",
+        "config",
+      ];
+      const idx = VIEWS.indexOf("prs");
+      setView(VIEWS[(idx - 1 + VIEWS.length) % VIEWS.length]!);
+      return;
+    }
+
+    // Tab number keys (1-6)
+    const tabKeys = getTabNumberKeys();
+    if (tabKeys[input]) {
+      setView(tabKeys[input]!);
+      return;
+    }
+
+    // PR view-specific shortcuts
+    if (action === "search") {
       setSearchMode(true);
       setSearchText("");
       return;
     }
-    if (input === "m") {
+    if (action === "filterMine") {
       setFilterMode("mine");
       return;
     }
-    if (input === "s") {
+    if (action === "filterReview") {
       setFilterMode("review");
       return;
     }
-    if (input === "t") {
+    if (action === "filterAll") {
       setFilterMode("all");
       return;
     }
-    if (input === "c") {
+    if (action === "filterClosed") {
       setFilterMode("closed");
       return;
     }
-    if (input === "R") {
+    if (action === "refresh") {
       refetch();
       return;
     }
-    if (input === "+") {
-      setShowRepoSearch(true);
+    if (action === "add") {
+      setView("prs.search");
       return;
     }
-    if (input === "S") {
+    if (action === "sort") {
       setSortMode((prev) => {
         const idx = SORT_MODES.indexOf(prev);
         return SORT_MODES[(idx + 1) % SORT_MODES.length]!;
       });
       return;
     }
-    if (input === "n") {
-      setShowNotifications(true);
+    if (action === "notifications") {
+      setView("prs.notifications");
       return;
     }
-    if (key.escape) {
+    if (action === "clearSearch") {
       if (searchText) {
         setSearchText("");
         return;
@@ -338,11 +389,11 @@ export function PRView({
     }
 
     // Focus switching
-    if (key.leftArrow) {
+    if (action === "left") {
       setFocus("sidebar");
       return;
     }
-    if (key.rightArrow) {
+    if (action === "right") {
       setFocus("list");
       return;
     }
@@ -350,73 +401,72 @@ export function PRView({
     // Navigation
     if (focus === "sidebar") {
       const maxIdx = sidebarItems.length;
-      if (key.upArrow) setSidebarIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setSidebarIndex((i) => Math.min(maxIdx, i + 1));
-      if (key.return || input === "o") {
+      if (action === "up") setSidebarIndex((i) => Math.max(0, i - 1));
+      if (action === "down") setSidebarIndex((i) => Math.min(maxIdx, i + 1));
+      if (action === "select" || action === "open") {
         if (sidebarIndex === sidebarItems.length) {
-          setShowRepoSearch(true);
+          setView("prs.search");
           return;
         }
       }
-      if (
-        (input === "d" || input === "-") &&
-        sidebarIndex > 0 &&
-        sidebarIndex < sidebarItems.length
-      ) {
-        const repo = sidebarItems[sidebarIndex];
-        if (repo) {
-          removeRepo(repo);
-          setSidebarIndex((i) => Math.max(0, i - 1));
+      if (action === "remove") {
+        if (sidebarIndex > 0 && sidebarIndex < sidebarItems.length) {
+          const repo = sidebarItems[sidebarIndex];
+          if (repo) {
+            removeRepo(repo);
+            setSidebarIndex((i) => Math.max(0, i - 1));
+          }
         }
       }
     }
 
     if (focus === "list") {
-      if (key.upArrow) setListIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setListIndex((i) => Math.min(prs.length - 1, i + 1));
-      if (key.return || input === "p") {
+      if (action === "up") setListIndex((i) => Math.max(0, i - 1));
+      if (action === "down")
+        setListIndex((i) => Math.min(prs.length - 1, i + 1));
+      if (action === "select" || action === "detail") {
         if (prs[listIndex]) {
           markViewed(prs[listIndex]!.id);
-          setShowDetail(true);
+          setView("prs.detail");
         }
       }
-      if (input === "o") {
+      if (action === "open") {
         const pr = prs[listIndex];
         if (pr) {
           markViewed(pr.id);
           openInBrowser(pr.url);
         }
       }
-      if (input === "r") {
+      if (action === "openRepo") {
         const pr = prs[listIndex];
         if (pr) openInBrowser(pr.repository.url);
       }
-      if (input === "a") {
+      if (action === "openActions") {
         const pr = prs[listIndex];
         if (pr) openInBrowser(`${pr.repository.url}/actions`);
       }
-      if (input === "y") {
+      if (action === "copyUrl") {
         const pr = prs[listIndex];
         if (pr) {
           const ok = copyToClipboard(pr.url);
           showStatus(ok ? "Copied PR URL" : "Clipboard failed");
         }
       }
-      if (input === "Y") {
+      if (action === "copyBranch") {
         const pr = prs[listIndex];
         if (pr) {
           const ok = copyToClipboard(pr.headRefName);
           showStatus(ok ? "Copied branch name" : "Clipboard failed");
         }
       }
-      if (input === "A") {
+      if (action === "approve") {
         const pr = prs[listIndex];
         if (pr) {
           setPendingApprove({ prId: pr.id, prNumber: pr.number });
           showStatus(`Press A again to approve PR #${pr.number}`);
         }
       }
-      if (input === "C") {
+      if (action === "comment") {
         const pr = prs[listIndex];
         if (pr) {
           setCommentType("comment");
@@ -425,7 +475,7 @@ export function PRView({
           showStatus(`Type comment for PR #${pr.number}, Enter to submit`);
         }
       }
-      if (input === "X") {
+      if (action === "requestChanges") {
         const pr = prs[listIndex];
         if (pr) {
           setCommentType("request-changes");
@@ -460,17 +510,7 @@ export function PRView({
   );
   const listWidth = width - sidebarWidth;
 
-  const prShortcuts = [
-    { key: "o", label: "Open" },
-    { key: "p", label: "Detail" },
-    { key: "y", label: "Copy" },
-    { key: "S", label: "Sort" },
-    { key: "n", label: "Notif" },
-    { key: "m", label: "My PRs" },
-    { key: "s", label: "To Review" },
-    { key: "t", label: "All" },
-    { key: "?", label: "Help" },
-  ];
+  const barShortcuts = getBarShortcuts(view);
 
   // Height of the shared header (TabBar + Shortcuts + border)
   const sharedHeaderHeight = 3;
@@ -478,18 +518,7 @@ export function PRView({
   if (showHelp) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView="prs" />
-          <Shortcuts items={prShortcuts} />
-        </Box>
+        <ViewHeader view={view} />
         <HelpOverlay
           height={height - sharedHeaderHeight}
           width={width}
@@ -502,18 +531,7 @@ export function PRView({
   if (showDetail && prs[listIndex]) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView="prs" />
-          <Shortcuts items={prShortcuts} />
-        </Box>
+        <ViewHeader view={view} />
         <PRDetailPanel
           pr={prs[listIndex]!}
           detail={prDetail}
@@ -521,7 +539,7 @@ export function PRView({
           error={detailError}
           height={height - sharedHeaderHeight}
           width={width}
-          onClose={() => setShowDetail(false)}
+          onClose={() => setView("prs")}
           onOpenInBrowser={openInBrowser}
         />
       </Box>
@@ -531,24 +549,13 @@ export function PRView({
   if (showNotifications) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <Box
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView="prs" />
-          <Shortcuts items={prShortcuts} />
-        </Box>
+        <ViewHeader view={view} />
         <NotificationsView
           notifications={notifications}
           loading={notifLoading}
           height={height - sharedHeaderHeight}
           width={width}
-          onClose={() => setShowNotifications(false)}
+          onClose={() => setView("prs")}
           onOpenInBrowser={openInBrowser}
         />
       </Box>
@@ -577,19 +584,7 @@ export function PRView({
             </Text>
           )}
         </Box>
-        <Shortcuts
-          items={[
-            { key: "o", label: "Open" },
-            { key: "p", label: "Detail" },
-            { key: "y", label: "Copy" },
-            { key: "S", label: "Sort" },
-            { key: "n", label: "Notif" },
-            { key: "m", label: "My PRs" },
-            { key: "s", label: "To Review" },
-            { key: "t", label: "All" },
-            { key: "?", label: "Help" },
-          ]}
-        />
+        <Shortcuts items={barShortcuts} />
         {error && <Text color={getTheme().status.failure}>Error: {error}</Text>}
       </Box>
 
@@ -652,7 +647,7 @@ export function PRView({
             onRemove={(repo) => {
               removeRepo(repo);
             }}
-            onClose={() => setShowRepoSearch(false)}
+            onClose={() => setView("prs")}
             height={height}
             width={width}
           />

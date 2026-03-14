@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import type { AppView, FocusArea, TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useView } from "../../ui/view-context.ts";
 import { PackageList } from "./package-list.tsx";
 import { DepResults } from "./dep-results.tsx";
 import { DepStatusBar } from "./dep-status-bar.tsx";
@@ -27,16 +28,18 @@ export function DependencyTracker({
   trackedPackages,
   addPackage,
   removePackage,
-  onSwitchView,
+  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
+  const { view, setView } = useView();
+  const showHelp = view === "dependencies.help";
+  const showPackageSearch = view === "dependencies.search";
+
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [packageIndex, setPackageIndex] = useState(0);
   const [resultIndex, setResultIndex] = useState(0);
-  const [showPackageSearch, setShowPackageSearch] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
 
   const packageList: TrackedPackage[] = useMemo(
     () =>
@@ -73,80 +76,69 @@ export function DependencyTracker({
     await open(url);
   }, []);
 
-  useInput((input, key) => {
-    if (showPackageSearch) return;
-
-    if (showHelp) {
-      if (input === "?" || key.escape) setShowHelp(false);
-      return;
-    }
-
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => setShowHelp(true),
-      })
-    )
-      return;
-
-    if (input === "R") {
-      if (selectedName) fetchPackage(selectedName, true);
-      return;
-    }
-
-    if (input === "+") {
-      setShowPackageSearch(true);
-      return;
-    }
-
-    // Focus switching
-    if (key.leftArrow) {
-      setFocus("sidebar");
-      return;
-    }
-    if (key.rightArrow) {
-      setFocus("list");
-      return;
-    }
-
-    // Navigation
-    if (focus === "sidebar") {
-      const maxIdx = trackedPackages.length; // +1 for "[+] Add"
-      if (key.upArrow) setPackageIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setPackageIndex((i) => Math.min(maxIdx, i + 1));
-
-      if (key.return || input === "o") {
-        if (packageIndex === trackedPackages.length) {
-          setShowPackageSearch(true);
-          return;
+  useShortcuts(
+    {
+      quit: onQuit,
+      refresh: () => {
+        if (selectedName) fetchPackage(selectedName, true);
+      },
+      add: () => setView("dependencies.search"),
+      remove: () => {
+        if (focus === "sidebar" && packageIndex < trackedPackages.length) {
+          const pkg = trackedPackages[packageIndex];
+          if (pkg) {
+            removePackage(pkg);
+            setPackageIndex((i) => Math.max(0, i - 1));
+          }
         }
-      }
-
-      if (
-        (input === "d" || input === "-") &&
-        packageIndex < trackedPackages.length
-      ) {
-        const pkg = trackedPackages[packageIndex];
-        if (pkg) {
-          removePackage(pkg);
-          setPackageIndex((i) => Math.max(0, i - 1));
+      },
+      open: () => {
+        if (focus === "sidebar") {
+          if (packageIndex === trackedPackages.length) {
+            setView("dependencies.search");
+          }
+        } else if (focus === "list" && selectedPackage) {
+          const result = selectedPackage.results[resultIndex];
+          if (result) {
+            openInBrowser(
+              `${result.repoUrl}/blob/${result.branch}/package.json`,
+            );
+          }
         }
-      }
-    }
-
-    if (focus === "list" && selectedPackage) {
-      const maxIdx = selectedPackage.results.length - 1;
-      if (key.upArrow) setResultIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setResultIndex((i) => Math.min(maxIdx, i + 1));
-      if (key.return || input === "o") {
-        const result = selectedPackage.results[resultIndex];
-        if (result) {
-          openInBrowser(`${result.repoUrl}/blob/${result.branch}/package.json`);
+      },
+      select: () => {
+        if (focus === "sidebar") {
+          if (packageIndex === trackedPackages.length) {
+            setView("dependencies.search");
+          }
+        } else if (focus === "list" && selectedPackage) {
+          const result = selectedPackage.results[resultIndex];
+          if (result) {
+            openInBrowser(
+              `${result.repoUrl}/blob/${result.branch}/package.json`,
+            );
+          }
         }
-      }
-    }
-  });
+      },
+      left: () => setFocus("sidebar"),
+      right: () => setFocus("list"),
+    },
+    {
+      onUnhandled: (_input, key) => {
+        // Navigation depends on focus area
+        if (focus === "sidebar") {
+          const maxIdx = trackedPackages.length; // +1 for "[+] Add"
+          if (key.upArrow) setPackageIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setPackageIndex((i) => Math.min(maxIdx, i + 1));
+        }
+        if (focus === "list" && selectedPackage) {
+          const maxIdx = selectedPackage.results.length - 1;
+          if (key.upArrow) setResultIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setResultIndex((i) => Math.min(maxIdx, i + 1));
+        }
+      },
+    },
+  );
 
   // Reset result index when switching packages
   React.useEffect(() => {
@@ -212,7 +204,7 @@ export function DependencyTracker({
             onSelect={(pkg) => {
               addPackage(pkg);
             }}
-            onClose={() => setShowPackageSearch(false)}
+            onClose={() => setView("dependencies")}
             height={height}
             width={width}
           />

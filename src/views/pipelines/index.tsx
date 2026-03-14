@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import type { AppView, Config, FocusArea } from "../../api/types.ts";
-import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useView } from "../../ui/view-context.ts";
 import { usePipelines } from "../../hooks/use-pipelines.ts";
 import { useAllPipelineDefinitions } from "../../hooks/use-pipelines.ts";
 import { usePipelineRuns } from "../../hooks/use-pipeline-runs.ts";
@@ -26,17 +27,19 @@ export function PipelinesView({
   config,
   addPinnedPipeline,
   removePinnedPipeline,
-  onSwitchView,
+  onSwitchView: _onSwitchView,
   onQuit,
   height,
   width,
 }: Props) {
+  const { view, setView } = useView();
+  const showHelp = view === "pipelines.help";
+  const showSearch = view === "pipelines.search";
+  const showRuns = view === "pipelines.runs";
+
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [sidebarIndex, setSidebarIndex] = useState(0);
   const [listIndex, setListIndex] = useState(0);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showRuns, setShowRuns] = useState(false);
 
   const isConfigured = !!config.azureOrg && !!config.azureProject;
 
@@ -69,89 +72,63 @@ export function PipelinesView({
     await open(url);
   }, []);
 
-  useInput((input, key) => {
-    if (showSearch) return;
-    if (showRuns) return;
-
-    if (showHelp) {
-      if (input === "?" || key.escape) setShowHelp(false);
-      return;
-    }
-
-    if (
-      handleGlobalKeys(input, key, {
-        onQuit,
-        onSwitchView,
-        onHelp: () => setShowHelp(true),
-      })
-    )
-      return;
-
-    if (input === "R") {
-      refetch();
-      return;
-    }
-
-    if (input === "+") {
-      setShowSearch(true);
-      return;
-    }
-
-    if (input === "o" && selectedPipeline) {
-      const url = `https://dev.azure.com/${config.azureOrg}/${config.azureProject}/_build?definitionId=${selectedPipeline.id}`;
-      openInBrowser(url);
-      return;
-    }
-
-    if ((key.return || input === "p") && selectedPipeline) {
-      setShowRuns(true);
-      return;
-    }
-
-    // Focus switching
-    if (key.leftArrow) {
-      setFocus("sidebar");
-      return;
-    }
-    if (key.rightArrow) {
-      setFocus("list");
-      return;
-    }
-
-    // Navigation
-    if (focus === "sidebar") {
-      const maxIdx = config.pinnedPipelines.length; // +1 for "[+] Add"
-      if (key.upArrow) setSidebarIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setSidebarIndex((i) => Math.min(maxIdx, i + 1));
-
-      if (key.return || input === "o") {
-        if (sidebarIndex === config.pinnedPipelines.length) {
-          setShowSearch(true);
-          return;
+  useShortcuts(
+    {
+      quit: onQuit,
+      refresh: () => refetch(),
+      add: () => setView("pipelines.search"),
+      remove: () => {
+        if (
+          focus === "sidebar" &&
+          sidebarIndex < config.pinnedPipelines.length
+        ) {
+          const id = config.pinnedPipelines[sidebarIndex];
+          if (id !== undefined) {
+            removePinnedPipeline(id);
+            setSidebarIndex((i) => Math.max(0, i - 1));
+          }
         }
-        // Sync list selection with sidebar
-        setListIndex(sidebarIndex);
-        setFocus("list");
-      }
-
-      if (
-        (input === "d" || input === "-") &&
-        sidebarIndex < config.pinnedPipelines.length
-      ) {
-        const id = config.pinnedPipelines[sidebarIndex];
-        if (id !== undefined) {
-          removePinnedPipeline(id);
-          setSidebarIndex((i) => Math.max(0, i - 1));
+      },
+      open: () => {
+        if (selectedPipeline) {
+          const url = `https://dev.azure.com/${config.azureOrg}/${config.azureProject}/_build?definitionId=${selectedPipeline.id}`;
+          openInBrowser(url);
         }
-      }
-    }
-
-    if (focus === "list") {
-      const maxIdx = pipelines.length - 1;
-      if (key.upArrow) setListIndex((i) => Math.max(0, i - 1));
-      if (key.downArrow) setListIndex((i) => Math.min(maxIdx, i + 1));
-    }
-  });
+      },
+      runs: () => {
+        if (selectedPipeline) setView("pipelines.runs");
+      },
+      select: () => {
+        if (focus === "sidebar") {
+          if (sidebarIndex === config.pinnedPipelines.length) {
+            setView("pipelines.search");
+          } else {
+            setListIndex(sidebarIndex);
+            setFocus("list");
+          }
+        } else if (selectedPipeline) {
+          setView("pipelines.runs");
+        }
+      },
+      left: () => setFocus("sidebar"),
+      right: () => setFocus("list"),
+    },
+    {
+      onUnhandled: (_input, key) => {
+        // Navigation depends on focus area
+        if (focus === "sidebar") {
+          const maxIdx = config.pinnedPipelines.length; // +1 for "[+] Add"
+          if (key.upArrow) setSidebarIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setSidebarIndex((i) => Math.min(maxIdx, i + 1));
+        }
+        if (focus === "list") {
+          const maxIdx = pipelines.length - 1;
+          if (key.upArrow) setListIndex((i) => Math.max(0, i - 1));
+          if (key.downArrow) setListIndex((i) => Math.min(maxIdx, i + 1));
+        }
+      },
+    },
+  );
 
   // Reset list index when pipelines change
   React.useEffect(() => {
@@ -194,7 +171,7 @@ export function PipelinesView({
         width={width}
         azureOrg={config.azureOrg}
         azureProject={config.azureProject}
-        onClose={() => setShowRuns(false)}
+        onClose={() => setView("pipelines")}
         onOpenInBrowser={openInBrowser}
       />
     );
@@ -259,7 +236,7 @@ export function PipelinesView({
             onRemove={(id) => {
               removePinnedPipeline(id);
             }}
-            onClose={() => setShowSearch(false)}
+            onClose={() => setView("pipelines")}
             height={height}
             width={width}
           />
