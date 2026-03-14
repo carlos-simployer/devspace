@@ -1,24 +1,13 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { AppView } from "../api/types.ts";
+import type { BaseView } from "../ui/view-config.ts";
+import { getTabViews } from "../ui/view-config.ts";
 import { TabItem } from "../ui/tab-item.tsx";
 
-interface Tab {
-  key: AppView;
-  label: string;
-}
-
-const TABS: Tab[] = [
-  { key: "prs", label: "1 PRs" },
-  { key: "dependencies", label: "2 Deps" },
-  { key: "pipelines", label: "3 Pipelines" },
-  { key: "releases", label: "4 Releases" },
-  { key: "projects", label: "5 Projects" },
-  { key: "config", label: "6 Config" },
-];
+const TABS = getTabViews();
 
 interface Props {
-  activeView: AppView;
+  activeView: BaseView | string;
 }
 
 export function TabBar({ activeView }: Props) {
@@ -31,7 +20,7 @@ export function TabBar({ activeView }: Props) {
           isActive={tab.key === activeView}
         />
       ))}
-      <Text dimColor> Tab/1-6: switch</Text>
+      <Text dimColor> Tab/1-{TABS.length}: switch</Text>
     </Box>
   );
 }

@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Box, useApp, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
 import type { GraphQLClient } from "./api/client.ts";
-import type { AppView } from "./api/types.ts";
 import { useConfig } from "./hooks/use-config.ts";
 import { useRepos } from "./hooks/use-repos.ts";
 import { useNotifications } from "./hooks/use-notifications.ts";
@@ -14,8 +13,10 @@ import { ConfigView } from "./views/config/index.tsx";
 import { PipelinesView } from "./views/pipelines/index.tsx";
 import { ReleasesView } from "./views/releases/index.tsx";
 import { ProjectsView } from "./views/projects/index.tsx";
-import { Shortcuts } from "./components/shortcuts.tsx";
-import { TabBar } from "./components/tab-bar.tsx";
+import { ViewHeader } from "./components/view-header.tsx";
+import type { ViewId, BaseView } from "./ui/view-config.ts";
+import { getBaseView } from "./ui/view-config.ts";
+import { ViewContext } from "./ui/view-context.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -59,11 +60,36 @@ export function App({ client, org, token }: Props) {
     unreadCount,
   } = useNotifications(token);
 
-  const [view, setView] = useState<AppView>("prs");
+  const [view, setViewRaw] = useState<ViewId>("prs");
+  const baseView = getBaseView(view);
 
-  // Layout measurement for view headers
+  // When switching base views, reset to the base
+  const setView = (v: ViewId) => setViewRaw(v);
+
+  // Legacy switchView for views not yet migrated
+  const switchView = (target?: string, reverse?: boolean) => {
+    if (target) {
+      setViewRaw(target as ViewId);
+    } else {
+      const VIEWS: BaseView[] = [
+        "prs",
+        "dependencies",
+        "pipelines",
+        "releases",
+        "projects",
+        "config",
+      ];
+      const idx = VIEWS.indexOf(baseView);
+      const next = reverse
+        ? (idx - 1 + VIEWS.length) % VIEWS.length
+        : (idx + 1) % VIEWS.length;
+      setViewRaw(VIEWS[next]!);
+    }
+  };
+
+  // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
-  const [measuredViewHeader, setMeasuredViewHeader] = useState(2);
+  const [measuredViewHeader, setMeasuredViewHeader] = useState(3);
 
   useEffect(() => {
     if (viewHeaderRef.current) {
@@ -71,247 +97,114 @@ export function App({ client, org, token }: Props) {
     }
   });
 
-  const VIEWS: AppView[] = [
-    "prs",
-    "dependencies",
-    "pipelines",
-    "releases",
-    "projects",
-    "config",
-  ];
+  const viewCtx = useMemo(
+    () => ({ view, setView, baseView }),
+    [view, baseView],
+  );
 
-  const switchView = (target?: AppView, reverse?: boolean) => {
-    if (target) {
-      setView(target);
-    } else {
-      setView((v) => {
-        const idx = VIEWS.indexOf(v);
-        const next = reverse
-          ? (idx - 1 + VIEWS.length) % VIEWS.length
-          : (idx + 1) % VIEWS.length;
-        return VIEWS[next]!;
-      });
-    }
-  };
+  const contentHeight = height - measuredViewHeader;
 
-  if (view === "prs") {
+  // PRView still manages its own header (will be migrated later)
+  if (baseView === "prs") {
     return (
-      <PRView
-        client={client}
-        token={token}
-        config={config}
-        addRepo={addRepo}
-        removeRepo={removeRepo}
-        markViewed={markViewed}
-        isFirstLaunch={isFirstLaunch}
-        orgRepos={orgRepos}
-        reposLoading={reposLoading}
-        notifications={notifications}
-        notifLoading={notifLoading}
-        unreadCount={unreadCount}
-        onSwitchView={switchView}
-        onQuit={exit}
-        height={height}
-        width={width}
-      />
-    );
-  }
-
-  if (view === "dependencies") {
-    return (
-      <Box height={height} width={width} flexDirection="column">
-        <Box
-          ref={viewHeaderRef}
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView={view} />
-          <Shortcuts
-            items={[
-              { key: "+", label: "Add" },
-              { key: "d", label: "Remove" },
-              { key: "R", label: "Refresh" },
-              { key: "o", label: "Open" },
-              { key: "?", label: "Help" },
-            ]}
-          />
-        </Box>
-        <DependencyTracker
-          packages={depPackages}
-          fetchPackage={depFetchPackage}
-          trackedPackages={config.trackedPackages}
-          addPackage={addPackage}
-          removePackage={removePackage}
-          onSwitchView={switchView}
-          height={height - measuredViewHeader}
-          width={width}
-          onQuit={exit}
-        />
-      </Box>
-    );
-  }
-
-  if (view === "pipelines") {
-    return (
-      <Box height={height} width={width} flexDirection="column">
-        <Box
-          ref={viewHeaderRef}
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView={view} />
-          <Shortcuts
-            items={[
-              { key: "+", label: "Add" },
-              { key: "d", label: "Remove" },
-              { key: "p", label: "Runs" },
-              { key: "o", label: "Open" },
-              { key: "R", label: "Refresh" },
-              { key: "?", label: "Help" },
-            ]}
-          />
-        </Box>
-        <PipelinesView
+      <ViewContext.Provider value={viewCtx}>
+        <PRView
+          client={client}
+          token={token}
           config={config}
-          addPinnedPipeline={addPinnedPipeline}
-          removePinnedPipeline={removePinnedPipeline}
+          addRepo={addRepo}
+          removeRepo={removeRepo}
+          markViewed={markViewed}
+          isFirstLaunch={isFirstLaunch}
+          orgRepos={orgRepos}
+          reposLoading={reposLoading}
+          notifications={notifications}
+          notifLoading={notifLoading}
+          unreadCount={unreadCount}
           onSwitchView={switchView}
-          height={height - measuredViewHeader}
-          width={width}
           onQuit={exit}
+          height={height}
+          width={width}
         />
-      </Box>
+      </ViewContext.Provider>
     );
   }
 
-  if (view === "releases") {
-    return (
-      <Box height={height} width={width} flexDirection="column">
-        <Box
-          ref={viewHeaderRef}
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView={view} />
-          <Shortcuts
-            items={[
-              { key: "+", label: "Add" },
-              { key: "d", label: "Remove" },
-              { key: "o", label: "Open" },
-              { key: "R", label: "Refresh" },
-              { key: "?", label: "Help" },
-            ]}
-          />
-        </Box>
-        <ReleasesView
-          config={config}
-          addPinnedReleaseDefinition={addPinnedReleaseDefinition}
-          removePinnedReleaseDefinition={removePinnedReleaseDefinition}
-          onSwitchView={switchView}
-          height={height - measuredViewHeader}
-          width={width}
-          onQuit={exit}
-        />
-      </Box>
-    );
-  }
-
-  if (view === "projects") {
-    return (
-      <Box height={height} width={width} flexDirection="column">
-        <Box
-          ref={viewHeaderRef}
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <TabBar activeView={view} />
-          <Shortcuts
-            items={[
-              { key: "s", label: "Start" },
-              { key: "K", label: "Kill" },
-              { key: "R", label: "Restart" },
-              { key: "o", label: "Open" },
-              { key: "+", label: "Add" },
-              { key: "d", label: "Remove" },
-              { key: "[ ]", label: "Scroll Logs" },
-              { key: "S", label: "Start All" },
-              { key: "?", label: "Help" },
-            ]}
-          />
-        </Box>
-        <ProjectsView
-          localProjects={config.localProjects}
-          addLocalProject={addLocalProject}
-          removeLocalProject={removeLocalProject}
-          onSwitchView={switchView}
-          height={height - measuredViewHeader}
-          width={width}
-          onQuit={exit}
-        />
-      </Box>
-    );
-  }
-
-  // Config view
   return (
-    <Box height={height} width={width} flexDirection="column">
-      <Box
-        ref={viewHeaderRef}
-        flexDirection="column"
-        paddingX={1}
-        borderStyle="single"
-        borderTop={false}
-        borderLeft={false}
-        borderRight={false}
-        borderBottom
-      >
-        <TabBar activeView={view} />
-        <Shortcuts
-          items={[
-            { key: "+", label: "Add" },
-            { key: "d", label: "Remove" },
-            { key: "↵", label: "Select" },
-            { key: "?", label: "Help" },
-          ]}
-        />
+    <ViewContext.Provider value={viewCtx}>
+      <Box height={height} width={width} flexDirection="column">
+        <ViewHeader view={view} headerRef={viewHeaderRef} />
+
+        {baseView === "dependencies" && (
+          <DependencyTracker
+            packages={depPackages}
+            fetchPackage={depFetchPackage}
+            trackedPackages={config.trackedPackages}
+            addPackage={addPackage}
+            removePackage={removePackage}
+            onSwitchView={switchView}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
+
+        {baseView === "pipelines" && (
+          <PipelinesView
+            config={config}
+            addPinnedPipeline={addPinnedPipeline}
+            removePinnedPipeline={removePinnedPipeline}
+            onSwitchView={switchView}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
+
+        {baseView === "releases" && (
+          <ReleasesView
+            config={config}
+            addPinnedReleaseDefinition={addPinnedReleaseDefinition}
+            removePinnedReleaseDefinition={removePinnedReleaseDefinition}
+            onSwitchView={switchView}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
+
+        {baseView === "projects" && (
+          <ProjectsView
+            localProjects={config.localProjects}
+            addLocalProject={addLocalProject}
+            removeLocalProject={removeLocalProject}
+            onSwitchView={switchView}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
+
+        {baseView === "config" && (
+          <ConfigView
+            orgs={config.orgs}
+            addOrg={addOrg}
+            removeOrg={removeOrg}
+            refreshInterval={config.refreshInterval}
+            setRefreshInterval={setRefreshInterval}
+            themeName={config.theme}
+            setThemeName={setThemeName}
+            azureOrg={config.azureOrg}
+            azureProject={config.azureProject}
+            setAzureOrg={setAzureOrg}
+            setAzureProject={setAzureProject}
+            onSwitchView={switchView}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
       </Box>
-      <ConfigView
-        orgs={config.orgs}
-        addOrg={addOrg}
-        removeOrg={removeOrg}
-        refreshInterval={config.refreshInterval}
-        setRefreshInterval={setRefreshInterval}
-        themeName={config.theme}
-        setThemeName={setThemeName}
-        azureOrg={config.azureOrg}
-        azureProject={config.azureProject}
-        setAzureOrg={setAzureOrg}
-        setAzureProject={setAzureProject}
-        onSwitchView={switchView}
-        height={height - measuredViewHeader}
-        width={width}
-        onQuit={exit}
-      />
-    </Box>
+    </ViewContext.Provider>
   );
 }
