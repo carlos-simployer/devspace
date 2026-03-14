@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
+import { exec } from "child_process";
+import { join } from "path";
+import { homedir } from "os";
 import type { AppView } from "../../api/types.ts";
 import { REFRESH_PRESETS } from "../../api/types.ts";
 import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
@@ -184,6 +187,21 @@ export function ConfigView({
         if (selectedIndex === 1) setShowEditAzureProject(true);
       }
     }
+
+    // Open config file in editor
+    if (input === "e") {
+      const configPath = join(
+        homedir(),
+        ".config",
+        "github-pr-dash",
+        "config.json",
+      );
+      try {
+        exec(`code "${configPath}"`);
+      } catch {
+        // ignore
+      }
+    }
   });
 
   return (
@@ -346,7 +364,7 @@ export function ConfigView({
               ? `${azureOrg}/${azureProject}`
               : "[not set]"}
           </Text>
-          <Text dimColor> │ ←/→ switch section</Text>
+          <Text dimColor> │ e: edit config │ ←/→ switch section</Text>
         </Text>
       </Box>
 

@@ -62,11 +62,16 @@ src/
 │   │   ├── package-search.tsx   # Package name search overlay
 │   │   ├── dep-results.tsx      # Repos using a tracked package
 │   │   └── dep-status-bar.tsx   # Dep view status bar
+│   ├── projects/                # Local projects runner view
+│   │   ├── index.tsx            # ProjectsView — process start/stop, log panel
+│   │   ├── project-list.tsx     # Project list with status indicators
+│   │   ├── log-panel.tsx        # Live log detail panel (right side)
+│   │   └── add-project.tsx      # Multi-step add project wizard
 │   └── config/                  # Configuration view
-│       └── index.tsx            # Org management, refresh interval
+│       └── index.tsx            # Org management, refresh interval, edit config
 ├── components/                  # Shared cross-view components
 │   ├── help-overlay.tsx         # Keyboard shortcut help overlay
-│   ├── tab-bar.tsx              # View switcher tab bar (PRs/Deps/Config)
+│   ├── tab-bar.tsx              # View switcher tab bar (1-6)
 │   └── shortcuts.tsx            # Bottom shortcut hint bar
 ├── hooks/                       # React hooks
 │   ├── use-config.ts            # Config read/write (~/.config/github-pr-dash/)
@@ -77,7 +82,8 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   └── use-global-keys.ts       # handleGlobalKeys() shared across views
+│   ├── use-global-keys.ts       # handleGlobalKeys() shared across views
+│   └── use-local-processes.ts   # Child process management for local projects
 ├── utils/                       # Pure utility functions (each has *.test.ts)
 │   ├── time.ts                  # Relative time formatting
 │   ├── time-buckets.ts          # Group PRs by time period
@@ -100,20 +106,23 @@ src/
 
 ### View Architecture
 
-`src/app.tsx` (~176 lines) is a thin shell that manages view switching between three views and provides shared state (config, repos, notifications, dependency data) to each view.
+`src/app.tsx` is a thin shell that manages view switching between six views and provides shared state (config, repos, notifications, dependency data) to each view.
 
 Each view in `src/views/` is self-contained:
 - **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, input handling, and sub-components (sidebar, list, detail panel, overlays)
 - **DependencyTracker** (`views/dependencies/index.tsx`) — owns dependency search state and layout
-- **ConfigView** (`views/config/index.tsx`) — org management and refresh interval settings
+- **PipelinesView** (`views/pipelines/index.tsx`) — Azure DevOps pipeline monitoring
+- **ReleasesView** (`views/releases/index.tsx`) — Azure DevOps release tracking
+- **ProjectsView** (`views/projects/index.tsx`) — local dev project runner with process management, log panel, dependency-aware start/stop
+- **ConfigView** (`views/config/index.tsx`) — org management, refresh interval, theme, Azure DevOps settings, open config in VS Code (e)
 
-Views call `handleGlobalKeys()` from `src/hooks/use-global-keys.ts` inside their `useInput` handlers to share global key bindings (q, Tab, 1/2/3, ?).
+Views call `handleGlobalKeys()` from `src/hooks/use-global-keys.ts` inside their `useInput` handlers to share global key bindings (q, Tab, 1-6, ?).
 
 ### State & Data
 
 No external state management. Each view manages its own state via React hooks.
 
-- **useConfig** — reads/writes `~/.config/github-pr-dash/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval). Auto-saves on mutation. Handles v1 → v2 migration.
+- **useConfig** — reads/writes `~/.config/github-pr-dash/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects). Auto-saves on mutation. Handles v1 → v2 migration.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.
 - **usePRDetail** — fetches full PR data (body, files, checks) for the detail panel.
 - **useDependencySearch** — searches org repos for package usage with disk caching.
@@ -121,6 +130,40 @@ No external state management. Each view manages its own state via React hooks.
 - **useRepos** — fetches all org repos (for the repo search overlay only).
 
 PR search query pattern: `is:pr is:open repo:org/repo1 repo:org/repo2 ...` with optional `author:` or `review-requested:` modifiers based on filter mode.
+
+- **useLocalProcesses** — manages child processes for local projects. Event-driven status tracking (spawn/close/error events), log capture (last 500 lines per process), dependency-aware start (auto-starts deps), cleanup on unmount.
+
+### Local Projects Config
+
+Projects are configured in `~/.config/github-pr-dash/config.json` under the `localProjects` array. Can be added via the TUI (+) or by editing the config file directly (press **e** in Config tab).
+
+```json
+{
+  "localProjects": [
+    {
+      "name": "api",
+      "path": "/Users/you/projects/my-api",
+      "command": "npm run dev",
+      "dependencies": [],
+      "url": "http://localhost:3000"
+    },
+    {
+      "name": "frontend",
+      "path": "/Users/you/projects/my-frontend",
+      "command": "npm run dev",
+      "dependencies": ["api"],
+      "url": "http://localhost:5173"
+    }
+  ]
+}
+```
+
+Fields:
+- **name** — display name (unique identifier)
+- **path** — absolute path to project directory (used as cwd for the command)
+- **command** — shell command to start the project (e.g. `npm run dev`, `dotnet run`)
+- **dependencies** — array of other project names that must be running first
+- **url** — (optional) URL to open in browser with **o** key
 
 ### UI Primitives (`src/ui/`)
 

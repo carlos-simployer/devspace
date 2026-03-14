@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-import type { Config, ConfigV1 } from "../api/types.ts";
+import type { Config, ConfigV1, LocalProject } from "../api/types.ts";
 import {
   DEFAULT_REFRESH_INTERVAL,
   migrateV1toV2,
@@ -54,6 +54,7 @@ export function useConfig(orgArg?: string) {
         azureProject: "",
         pinnedPipelines: [],
         pinnedReleaseDefinitions: [],
+        localProjects: [],
       };
     }
 
@@ -89,6 +90,7 @@ export function useConfig(orgArg?: string) {
       azureProject: raw.azureProject || "",
       pinnedPipelines: raw.pinnedPipelines || [],
       pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
+      localProjects: raw.localProjects || [],
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -271,6 +273,47 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const addLocalProject = useCallback(
+    (project: LocalProject) => {
+      setConfig((prev) => {
+        if (prev.localProjects.some((p) => p.name === project.name))
+          return prev;
+        return {
+          ...prev,
+          localProjects: [...prev.localProjects, project],
+        };
+      });
+    },
+    [setConfig],
+  );
+
+  const removeLocalProject = useCallback(
+    (name: string) => {
+      setConfig((prev) => ({
+        ...prev,
+        localProjects: prev.localProjects
+          .filter((p) => p.name !== name)
+          .map((p) => ({
+            ...p,
+            dependencies: p.dependencies.filter((d) => d !== name),
+          })),
+      }));
+    },
+    [setConfig],
+  );
+
+  const updateLocalProject = useCallback(
+    (name: string, updates: Partial<LocalProject>) => {
+      setConfig((prev) => ({
+        ...prev,
+        localProjects: prev.localProjects.map((p) =>
+          p.name === name ? { ...p, ...updates } : p,
+        ),
+      }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -299,6 +342,9 @@ export function useConfig(orgArg?: string) {
     removePinnedPipeline,
     addPinnedReleaseDefinition,
     removePinnedReleaseDefinition,
+    addLocalProject,
+    removeLocalProject,
+    updateLocalProject,
     isFirstLaunch,
   };
 }

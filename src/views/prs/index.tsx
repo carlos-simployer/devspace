@@ -460,23 +460,66 @@ export function PRView({
   );
   const listWidth = width - sidebarWidth;
 
+  const prShortcuts = [
+    { key: "o", label: "Open" },
+    { key: "p", label: "Detail" },
+    { key: "y", label: "Copy" },
+    { key: "S", label: "Sort" },
+    { key: "n", label: "Notif" },
+    { key: "m", label: "My PRs" },
+    { key: "s", label: "To Review" },
+    { key: "t", label: "All" },
+    { key: "?", label: "Help" },
+  ];
+
+  // Height of the shared header (TabBar + Shortcuts + border)
+  const sharedHeaderHeight = 3;
+
   if (showHelp) {
     return (
-      <Box height={height} width={width}>
-        <HelpOverlay height={height} width={width} view="prs" />
+      <Box height={height} width={width} flexDirection="column">
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
+          <TabBar activeView="prs" />
+          <Shortcuts items={prShortcuts} />
+        </Box>
+        <HelpOverlay
+          height={height - sharedHeaderHeight}
+          width={width}
+          view="prs"
+        />
       </Box>
     );
   }
 
   if (showDetail && prs[listIndex]) {
     return (
-      <Box height={height} width={width}>
+      <Box height={height} width={width} flexDirection="column">
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
+          <TabBar activeView="prs" />
+          <Shortcuts items={prShortcuts} />
+        </Box>
         <PRDetailPanel
           pr={prs[listIndex]!}
           detail={prDetail}
           loading={detailLoading}
           error={detailError}
-          height={height}
+          height={height - sharedHeaderHeight}
           width={width}
           onClose={() => setShowDetail(false)}
           onOpenInBrowser={openInBrowser}
@@ -487,11 +530,23 @@ export function PRView({
 
   if (showNotifications) {
     return (
-      <Box height={height} width={width}>
+      <Box height={height} width={width} flexDirection="column">
+        <Box
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
+          <TabBar activeView="prs" />
+          <Shortcuts items={prShortcuts} />
+        </Box>
         <NotificationsView
           notifications={notifications}
           loading={notifLoading}
-          height={height}
+          height={height - sharedHeaderHeight}
           width={width}
           onClose={() => setShowNotifications(false)}
           onOpenInBrowser={openInBrowser}

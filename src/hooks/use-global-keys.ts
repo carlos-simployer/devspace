@@ -47,6 +47,10 @@ export function handleGlobalKeys(
     return true;
   }
   if (input === "5") {
+    options.onSwitchView("projects");
+    return true;
+  }
+  if (input === "6") {
     options.onSwitchView("config");
     return true;
   }

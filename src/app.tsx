@@ -13,6 +13,7 @@ import { DependencyTracker } from "./views/dependencies/index.tsx";
 import { ConfigView } from "./views/config/index.tsx";
 import { PipelinesView } from "./views/pipelines/index.tsx";
 import { ReleasesView } from "./views/releases/index.tsx";
+import { ProjectsView } from "./views/projects/index.tsx";
 import { Shortcuts } from "./components/shortcuts.tsx";
 import { TabBar } from "./components/tab-bar.tsx";
 
@@ -42,6 +43,8 @@ export function App({ client, org, token }: Props) {
     removePinnedPipeline,
     addPinnedReleaseDefinition,
     removePinnedReleaseDefinition,
+    addLocalProject,
+    removeLocalProject,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
@@ -73,6 +76,7 @@ export function App({ client, org, token }: Props) {
     "dependencies",
     "pipelines",
     "releases",
+    "projects",
     "config",
   ];
 
@@ -218,6 +222,47 @@ export function App({ client, org, token }: Props) {
           config={config}
           addPinnedReleaseDefinition={addPinnedReleaseDefinition}
           removePinnedReleaseDefinition={removePinnedReleaseDefinition}
+          onSwitchView={switchView}
+          height={height - measuredViewHeader}
+          width={width}
+          onQuit={exit}
+        />
+      </Box>
+    );
+  }
+
+  if (view === "projects") {
+    return (
+      <Box height={height} width={width} flexDirection="column">
+        <Box
+          ref={viewHeaderRef}
+          flexDirection="column"
+          paddingX={1}
+          borderStyle="single"
+          borderTop={false}
+          borderLeft={false}
+          borderRight={false}
+          borderBottom
+        >
+          <TabBar activeView={view} />
+          <Shortcuts
+            items={[
+              { key: "s", label: "Start" },
+              { key: "K", label: "Kill" },
+              { key: "R", label: "Restart" },
+              { key: "o", label: "Open" },
+              { key: "+", label: "Add" },
+              { key: "d", label: "Remove" },
+              { key: "[ ]", label: "Scroll Logs" },
+              { key: "S", label: "Start All" },
+              { key: "?", label: "Help" },
+            ]}
+          />
+        </Box>
+        <ProjectsView
+          localProjects={config.localProjects}
+          addLocalProject={addLocalProject}
+          removeLocalProject={removeLocalProject}
           onSwitchView={switchView}
           height={height - measuredViewHeader}
           width={width}

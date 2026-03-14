@@ -111,6 +111,7 @@ export interface Config {
   azureProject: string; // Azure DevOps project
   pinnedPipelines: number[]; // pipeline definition IDs
   pinnedReleaseDefinitions: number[]; // release definition IDs
+  localProjects: LocalProject[]; // local dev projects to start/stop
 }
 
 // --- Azure DevOps types ---
@@ -197,7 +198,16 @@ export type AppView =
   | "dependencies"
   | "config"
   | "pipelines"
-  | "releases";
+  | "releases"
+  | "projects";
+
+export interface LocalProject {
+  name: string;
+  path: string;
+  command: string;
+  dependencies: string[];
+  url?: string;
+}
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
 
