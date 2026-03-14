@@ -64,11 +64,18 @@ export const DepResults = React.memo(function DepResults({
           {"Type".padEnd(COL.depType)}
         </Text>
       </Box>
+      {error && results.length > 0 ? (
+        <Box paddingLeft={2}>
+          <Text color={getTheme().status.failure}>
+            {error} — showing cached results
+          </Text>
+        </Box>
+      ) : null}
       {loading && results.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
           <Spinner label={"Searching for " + packageName + "..."} />
         </Box>
-      ) : error ? (
+      ) : error && results.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
           <Text color={getTheme().status.failure}>{error}</Text>
         </Box>

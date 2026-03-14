@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import type { AppView, FocusArea, TrackedPackage } from "../../api/types.ts";
+import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
 import { handleGlobalKeys } from "../../hooks/use-global-keys.ts";
 import { PackageList } from "./package-list.tsx";
 import { DepResults } from "./dep-results.tsx";
@@ -55,7 +56,8 @@ export function DependencyTracker({
   const selectedPackage = packageList[packageIndex] ?? null;
   const selectedName = selectedPackage?.name ?? null;
   const selectedResults = useMemo(
-    () => selectedPackage?.results ?? [],
+    () =>
+      [...(selectedPackage?.results ?? [])].sort(compareDependencyByVersion),
     [selectedPackage],
   );
 

@@ -1,5 +1,23 @@
 import type { DependencyResult } from "./types.ts";
 
+const CONCURRENCY = 5; // max parallel requests to avoid secondary rate limits
+
+async function throttledAll<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency: number,
+): Promise<T[]> {
+  const results: T[] = [];
+  let i = 0;
+  async function next(): Promise<void> {
+    while (i < tasks.length) {
+      const idx = i++;
+      results[idx] = await tasks[idx]!();
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, () => next()));
+  return results;
+}
+
 interface CodeSearchItem {
   name: string;
   path: string;
@@ -83,29 +101,29 @@ async function searchPackageInOrg(
 
   const results: DependencyResult[] = [];
 
-  await Promise.all(
-    unique.map(async (item) => {
-      try {
-        let branch = branchCache.get(item.repository.full_name);
-        if (!branch) {
-          branch = await getDefaultBranch(token, item.repository.full_name);
-          branchCache.set(item.repository.full_name, branch);
-        }
-
-        const result = await fetchPackageVersion(
-          token,
-          item.repository.full_name,
-          item.path,
-          branch,
-          item.repository.html_url,
-          packageName,
-        );
-        if (result) results.push(result);
-      } catch {
-        // Skip repos where we can't read the file
+  const tasks = unique.map((item) => async () => {
+    try {
+      let branch = branchCache.get(item.repository.full_name);
+      if (!branch) {
+        branch = await getDefaultBranch(token, item.repository.full_name);
+        branchCache.set(item.repository.full_name, branch);
       }
-    }),
-  );
+
+      const result = await fetchPackageVersion(
+        token,
+        item.repository.full_name,
+        item.path,
+        branch,
+        item.repository.html_url,
+        packageName,
+      );
+      if (result) results.push(result);
+    } catch {
+      // Skip repos where we can't read the file
+    }
+  });
+
+  await throttledAll(tasks, CONCURRENCY);
 
   return results;
 }
@@ -115,13 +133,42 @@ export async function searchPackageUsage(
   orgs: string[],
   packageName: string,
 ): Promise<DependencyResult[]> {
-  const orgResults = await Promise.all(
-    orgs.map((org) => searchPackageInOrg(token, org, packageName)),
-  );
+  // Search orgs sequentially — code search API has a 10 req/min limit
+  const orgResults: DependencyResult[][] = [];
+  for (const org of orgs) {
+    orgResults.push(await searchPackageInOrg(token, org, packageName));
+  }
 
-  const results = orgResults.flat();
-  results.sort((a, b) => a.repo.localeCompare(b.repo));
-  return results;
+  return orgResults.flat();
+}
+
+/** Strip semver range prefixes (^, ~, >=, etc.) and parse into [major, minor, patch] */
+function parseSemver(version: string): [number, number, number] | null {
+  const cleaned = version.replace(/^[^0-9]*/, "");
+  const match = cleaned.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!match) return null;
+  return [
+    parseInt(match[1]!, 10),
+    parseInt(match[2] ?? "0", 10),
+    parseInt(match[3] ?? "0", 10),
+  ];
+}
+
+export function compareDependencyByVersion(
+  a: DependencyResult,
+  b: DependencyResult,
+): number {
+  const va = parseSemver(a.version);
+  const vb = parseSemver(b.version);
+  // Non-parseable versions sink to bottom, sorted by repo name
+  if (!va && !vb) return a.repo.localeCompare(b.repo);
+  if (!va) return 1;
+  if (!vb) return -1;
+  // Sort descending (newest first), then by repo name
+  for (let i = 0; i < 3; i++) {
+    if (va[i]! !== vb[i]!) return vb[i]! - va[i]!;
+  }
+  return a.repo.localeCompare(b.repo);
 }
 
 async function fetchPackageVersion(
