@@ -20,6 +20,19 @@ export function migrateV1toV2(v1: ConfigV1): Config {
     pinnedReleaseDefinitions: [],
     localProjects: [],
     persistCache: true,
+    jiraSite: "",
+    jiraEmail: "",
+    jiraToken: "",
+    jiraProject: "",
+    jiraStatusOrder: [
+      "In Progress",
+      "Blocked",
+      "In Review",
+      "Ready for Test",
+      "To Do",
+      "Done",
+    ],
+    jiraAccountId: "",
   };
 }
 

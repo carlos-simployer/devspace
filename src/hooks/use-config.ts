@@ -56,6 +56,19 @@ export function useConfig(orgArg?: string) {
         pinnedReleaseDefinitions: [],
         localProjects: [],
         persistCache: true,
+        jiraSite: "",
+        jiraEmail: "",
+        jiraToken: "",
+        jiraProject: "",
+        jiraStatusOrder: [
+          "In Progress",
+          "Blocked",
+          "In Review",
+          "Ready for Test",
+          "To Do",
+          "Done",
+        ],
+        jiraAccountId: "",
       };
     }
 
@@ -93,6 +106,19 @@ export function useConfig(orgArg?: string) {
       pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
       localProjects: raw.localProjects || [],
       persistCache: raw.persistCache !== false, // default true
+      jiraSite: raw.jiraSite || "",
+      jiraEmail: raw.jiraEmail || "",
+      jiraToken: raw.jiraToken || "",
+      jiraProject: raw.jiraProject || "",
+      jiraStatusOrder: raw.jiraStatusOrder || [
+        "In Progress",
+        "Blocked",
+        "In Review",
+        "Ready for Test",
+        "To Do",
+        "Done",
+      ],
+      jiraAccountId: raw.jiraAccountId || "",
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -323,6 +349,41 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setJiraSite = useCallback(
+    (jiraSite: string) => {
+      setConfig((prev) => ({ ...prev, jiraSite }));
+    },
+    [setConfig],
+  );
+
+  const setJiraEmail = useCallback(
+    (jiraEmail: string) => {
+      setConfig((prev) => ({ ...prev, jiraEmail }));
+    },
+    [setConfig],
+  );
+
+  const setJiraToken = useCallback(
+    (jiraToken: string) => {
+      setConfig((prev) => ({ ...prev, jiraToken }));
+    },
+    [setConfig],
+  );
+
+  const setJiraProject = useCallback(
+    (jiraProject: string) => {
+      setConfig((prev) => ({ ...prev, jiraProject }));
+    },
+    [setConfig],
+  );
+
+  const setJiraAccountId = useCallback(
+    (jiraAccountId: string) => {
+      setConfig((prev) => ({ ...prev, jiraAccountId }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -355,6 +416,11 @@ export function useConfig(orgArg?: string) {
     removeLocalProject,
     updateLocalProject,
     setPersistCache,
+    setJiraSite,
+    setJiraEmail,
+    setJiraToken,
+    setJiraProject,
+    setJiraAccountId,
     isFirstLaunch,
   };
 }

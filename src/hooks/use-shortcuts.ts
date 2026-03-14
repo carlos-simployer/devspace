@@ -79,6 +79,7 @@ const VIEW_ORDER: BaseView[] = [
   "pipelines",
   "releases",
   "projects",
+  "jira",
   "config",
 ];
 

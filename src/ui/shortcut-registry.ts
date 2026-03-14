@@ -436,6 +436,100 @@ export const SHORTCUTS: ShortcutDef[] = [
   { action: "up", key: "up", view: "projects", help: "Navigate up" },
   { action: "down", key: "down", view: "projects", help: "Navigate down" },
 
+  // ── Jira ────────────────────────────────────────────────────────────
+  {
+    action: "open",
+    key: "o",
+    view: "jira",
+    label: "Open",
+    help: "Open issue in browser",
+  },
+  { action: "detail", key: "return", view: "jira", help: "Open issue detail" },
+  {
+    action: "filterMine",
+    key: "m",
+    view: "jira",
+    label: "Mine",
+    help: "Filter: my issues",
+  },
+  {
+    action: "filterTeam",
+    key: "t",
+    view: "jira",
+    label: "Team",
+    help: "Filter: all team",
+  },
+  {
+    action: "filterPerson",
+    key: "u",
+    view: "jira",
+    label: "Person",
+    help: "Filter: select person",
+  },
+  { action: "search", key: "/", view: "jira", help: "Search/filter issues" },
+  {
+    action: "refresh",
+    key: "R",
+    view: "jira",
+    label: "Refresh",
+    help: "Force refresh",
+  },
+  { action: "up", key: "up", view: "jira", help: "Navigate up" },
+  { action: "down", key: "down", view: "jira", help: "Navigate down" },
+  {
+    action: "clearSearch",
+    key: "escape",
+    view: "jira",
+    help: "Clear search / close",
+  },
+
+  // ── Jira Detail ─────────────────────────────────────────────────────
+  {
+    action: "close",
+    key: "escape",
+    view: "jira.detail",
+    label: "Close",
+    help: "Close detail",
+  },
+  {
+    action: "open",
+    key: "o",
+    view: "jira.detail",
+    label: "Open",
+    help: "Open in browser",
+  },
+  { action: "overviewTab", key: "d", view: "jira.detail", help: "Details tab" },
+  {
+    action: "commentsTab",
+    key: "c",
+    view: "jira.detail",
+    help: "Comments tab",
+  },
+  {
+    action: "subtasksTab",
+    key: "s",
+    view: "jira.detail",
+    help: "Subtasks tab",
+  },
+  { action: "up", key: "up", view: "jira.detail", help: "Scroll up" },
+  { action: "down", key: "down", view: "jira.detail", help: "Scroll down" },
+
+  // ── Jira Member Select ──────────────────────────────────────────────
+  { action: "close", key: "escape", view: "jira.memberSelect", help: "Cancel" },
+  {
+    action: "select",
+    key: "return",
+    view: "jira.memberSelect",
+    help: "Select member",
+  },
+  { action: "up", key: "up", view: "jira.memberSelect", help: "Navigate up" },
+  {
+    action: "down",
+    key: "down",
+    view: "jira.memberSelect",
+    help: "Navigate down",
+  },
+
   // ── Config ──────────────────────────────────────────────────────────
   {
     action: "add",

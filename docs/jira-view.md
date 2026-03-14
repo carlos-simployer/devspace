@@ -4,6 +4,8 @@
 
 Add a Jira issues view (Tab 6) that shows issues for a configured project, grouped by status like the PR view groups by time period. Supports filtering by assignee (my issues, team, selected people). Issue detail panel on Enter, open in browser on `o`.
 
+**Tab order:** PRs (1) → Deps (2) → Pipelines (3) → Releases (4) → Projects (5) → Jira (6) → Config (7, always last)
+
 ---
 
 ## Jira Cloud Details
@@ -94,36 +96,34 @@ https://simployer.atlassian.net/browse/{issueKey}
 No sidebar — single list view with status group headers (like PR time buckets).
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ 1 PRs  2 Deps  3 Pipelines  4 Releases  [5 Jira]  │
-│ +: Add project  m: Mine  t: Team  /: Search  ?: Help│
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│ ▶ In Progress (4)                                   │
-│   UUX-1629  Task  Manage app appearance settings    │
-│ > UUX-1351  Task  Implement new Colleague Hub v2.0  │
-│   UUX-1378  Story Track Navigation events in App... │
-│   UUX-1643  Task  Evaluate UI Library Strategy...   │
-│                                                     │
-│ ▶ In Review (2)                                     │
-│   UUX-1524  Task  Improve translation workflow...   │
-│   UUX-1617  Task  Display employee contact list     │
-│                                                     │
-│ ▶ To Do (12)                                        │
-│   UUX-1790  Bug   Datepicker clipped on mobile      │
-│   UUX-1621  Task  Search employees in contacts...   │
-│   UUX-1619  Task  Display employee contact details  │
-│   ...                                               │
-│                                                     │
-│ ▶ Done (20)                    ── last 20 shown ──  │
-│   UUX-1412  Task  Split hrm-dashboard-widgets...    │
-│   UUX-1552  Task  Unique Callback Scheme            │
-│   ...                                               │
-│                                                     │
-├─────────────────────────────────────────────────────┤
-│ Filter: Mine │ UUX │ 19 issues │ Refreshed 5s ago  │
-│ UUX-1629 │ Kamila Wozniak │ Medium │ MobileApp     │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ 1 PRs  2 Deps  3 Pipelines  4 Releases  5 Projects  [6 Jira]  7 Config │
+│ m: Mine  t: Team  u: Person  /: Search  R: Refresh  ?: Help │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│ ▶ In Progress (4)                                            │
+│   UUX-1629  Task  Manage app appearance settings             │
+│ > UUX-1351  Task  Implement new Colleague Hub v2.0           │
+│   UUX-1378  Story Track Navigation events in App...          │
+│   UUX-1643  Task  Evaluate UI Library Strategy...            │
+│                                                              │
+│ ▶ In Review (2)                                              │
+│   UUX-1524  Task  Improve translation workflow...            │
+│   UUX-1617  Task  Display employee contact list              │
+│                                                              │
+│ ▶ To Do (12)                                                 │
+│   UUX-1790  Bug   Datepicker clipped on mobile               │
+│   UUX-1621  Task  Search employees in contacts...            │
+│   ...                                                        │
+│                                                              │
+│ ▶ Done (20)                            ── last 20 shown ──  │
+│   UUX-1412  Task  Split hrm-dashboard-widgets...             │
+│   ...                                                        │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│ Filter: Mine │ UUX │ 19 issues │ Refreshed 5s ago            │
+│ UUX-1629 │ Kamila Wozniak │ Medium │ MobileApp                │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Row Columns
@@ -180,7 +180,7 @@ Full-screen overlay (follows PR detail pattern):
 ### Types
 | File | Changes |
 |---|---|
-| `src/api/types.ts` | Add `JiraIssue`, `JiraStatus`, `JiraUser`, `JiraComment` interfaces. Extend `AppView` with `"jira"`. Add Jira config fields. |
+| `src/api/types.ts` | Add `JiraIssue`, `JiraStatus`, `JiraUser`, `JiraComment` interfaces. Add Jira config fields. |
 
 ### Hooks
 | File | Description |
@@ -196,7 +196,7 @@ Full-screen overlay (follows PR detail pattern):
 ### View
 | File | Description |
 |---|---|
-| `src/views/jira/index.tsx` | JiraView — main component, input handling, filter state |
+| `src/views/jira/index.tsx` | JiraView — main component, useShortcuts, filter state |
 | `src/views/jira/issue-list.tsx` | Issue list with status group headers (follows `pr-list.tsx` bucket pattern) |
 | `src/views/jira/issue-row.tsx` | Single issue row |
 | `src/views/jira/issue-detail/index.tsx` | Full-screen detail panel with tabs |
@@ -209,12 +209,11 @@ Full-screen overlay (follows PR detail pattern):
 ### Modified Files
 | File | Changes |
 |---|---|
-| `src/api/types.ts` | Jira interfaces, extend AppView, extend Config |
-| `src/hooks/use-config.ts` | Add jira fields: `jiraSite`, `jiraEmail`, `jiraToken`, `jiraProject`, `jiraStatusOrder`, `jiraAccountId` + setters |
-| `src/hooks/use-global-keys.ts` | Add key `6` → `"jira"` (bump config to 7) |
-| `src/components/tab-bar.tsx` | Add `{ key: "jira", label: "6 Jira" }`, config becomes 7 |
-| `src/components/help-overlay.tsx` | Add jira shortcut list |
-| `src/app.tsx` | Add jira to VIEWS, render block, config props |
+| `src/api/types.ts` | Jira interfaces, extend Config with Jira fields |
+| `src/hooks/use-config.ts` | Add jira fields + setters |
+| `src/ui/view-config.ts` | Add `"jira"` to `BaseView`, add ViewId entries (`jira`, `jira.help`, `jira.detail`, `jira.search`, `jira.memberSelect`), add tab "6 Jira", bump Config to "7 Config" |
+| `src/ui/shortcut-registry.ts` | Add all Jira shortcuts (view: `"jira"`, `"jira.detail"`, etc.) |
+| `src/app.tsx` | Add JiraView rendering block, pass config props |
 | `src/views/config/index.tsx` | Add Jira section (site, email, token, project) |
 
 ---
@@ -233,37 +232,80 @@ jiraAccountId: string;     // for "my issues" filter, resolved on first auth
 
 ---
 
-## Keyboard Shortcuts
+## Shortcut Registry Entries
 
-| Key | Action |
-|---|---|
-| `↑/↓` | Navigate issues |
-| `Enter` | Open issue detail panel |
-| `o` | Open issue in browser |
-| `m` | Filter: my issues |
-| `t` | Filter: team (all) |
-| `u` | Filter: select person |
-| `/` | Search/filter issues by text |
-| `R` | Force refresh |
-| `Tab/1-7` | Switch view |
-| `Esc` | Clear search / close overlay |
-| `?` | Toggle help |
-| `q` | Quit |
+```typescript
+// src/ui/shortcut-registry.ts — add these entries
+
+// Jira main view
+{ action: "open", key: "o", view: "jira", label: "Open", help: "Open issue in browser" },
+{ action: "detail", key: "return", view: "jira", label: "Detail", help: "Open issue detail" },
+{ action: "filterMine", key: "m", view: "jira", label: "Mine", help: "Filter: my issues" },
+{ action: "filterTeam", key: "t", view: "jira", label: "Team", help: "Filter: all team" },
+{ action: "filterPerson", key: "u", view: "jira", label: "Person", help: "Filter: select person" },
+{ action: "search", key: "/", view: "jira", help: "Search/filter issues" },
+{ action: "refresh", key: "R", view: "jira", label: "Refresh", help: "Force refresh" },
+{ action: "up", key: "up", view: "jira", help: "Navigate up" },
+{ action: "down", key: "down", view: "jira", help: "Navigate down" },
+{ action: "clearSearch", key: "escape", view: "jira", help: "Clear search / close" },
+
+// Jira detail
+{ action: "close", key: "escape", view: "jira.detail", label: "Close", help: "Close detail" },
+{ action: "open", key: "o", view: "jira.detail", label: "Open", help: "Open in browser" },
+{ action: "overviewTab", key: "d", view: "jira.detail", help: "Details tab" },
+{ action: "commentsTab", key: "c", view: "jira.detail", help: "Comments tab" },
+{ action: "subtasksTab", key: "s", view: "jira.detail", help: "Subtasks tab" },
+{ action: "up", key: "up", view: "jira.detail", help: "Scroll up" },
+{ action: "down", key: "down", view: "jira.detail", help: "Scroll down" },
+
+// Jira member select
+{ action: "close", key: "escape", view: "jira.memberSelect", help: "Cancel" },
+{ action: "select", key: "return", view: "jira.memberSelect", help: "Select member" },
+{ action: "up", key: "up", view: "jira.memberSelect", help: "Navigate up" },
+{ action: "down", key: "down", view: "jira.memberSelect", help: "Navigate down" },
+```
+
+## View Config Entries
+
+```typescript
+// src/ui/view-config.ts — add these entries
+
+// In BaseView type: add "jira"
+// In ViewId type: add "jira", "jira.help", "jira.detail", "jira.search", "jira.memberSelect"
+
+// In VIEW_CONFIG:
+jira: {
+  tab: "6 Jira",
+  bar: ["open", "detail", "filterMine", "filterTeam", "filterPerson", "search", "refresh", "help"],
+},
+"jira.detail": {
+  bar: ["close", "open", "overviewTab", "commentsTab", "subtasksTab"],
+},
+"jira.help": { bar: [] },
+"jira.search": { bar: [] },
+"jira.memberSelect": { bar: [] },
+
+// Update existing:
+config: {
+  tab: "7 Config",  // bumped from 6 to 7
+  ...
+},
+```
 
 ---
 
 ## Implementation Order
 
-1. **Auth & API** — `jira-client.ts`, types, config fields
-2. **Data hooks** — `use-jira-issues.ts`, `use-jira-issue-detail.ts`
-3. **Status utils** — `jira-status.ts` with grouping + icons
-4. **Issue list view** — `index.tsx`, `issue-list.tsx`, `issue-row.tsx`, `status-bar.tsx`
-5. **Detail panel** — `issue-detail/` with tabs
-6. **Filtering** — Filter modes + member select overlay
-7. **Wiring** — app.tsx, tab-bar, global-keys, help-overlay, config view
-8. **Config section** — Jira settings in config view (site, email, token, project)
+1. **Types & Config** — Jira interfaces, config fields, view-config + shortcut-registry entries
+2. **Auth & API** — `jira-client.ts` with Basic auth
+3. **Data hooks** — `use-jira-issues.ts`, `use-jira-issue-detail.ts` (React Query)
+4. **Status utils** — `jira-status.ts` with grouping + icons
+5. **Issue list view** — `index.tsx`, `issue-list.tsx`, `issue-row.tsx`, `status-bar.tsx`
+6. **Detail panel** — `issue-detail/` with tabs
+7. **Filtering** — Filter modes + member select overlay
+8. **Wiring** — `app.tsx`, config view Jira section
 
-Each step produces a working app. Steps 4-6 can be parallelized.
+Each step produces a working app. Steps 5-7 can be parallelized.
 
 ---
 

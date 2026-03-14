@@ -18,10 +18,19 @@ export type ViewId =
   | "projects.help"
   | "projects.add"
   | "projects.confirm"
+  | "jira"
+  | "jira.help"
+  | "jira.detail"
+  | "jira.search"
+  | "jira.memberSelect"
   | "config"
   | "config.addOrg"
   | "config.editAzureOrg"
-  | "config.editAzureProject";
+  | "config.editAzureProject"
+  | "config.editJiraSite"
+  | "config.editJiraEmail"
+  | "config.editJiraToken"
+  | "config.editJiraProject";
 
 export type BaseView =
   | "prs"
@@ -29,6 +38,7 @@ export type BaseView =
   | "pipelines"
   | "releases"
   | "projects"
+  | "jira"
   | "config";
 
 export function getBaseView(viewId: ViewId): BaseView {
@@ -113,14 +123,38 @@ export const VIEW_CONFIG: Record<string, ViewDef> = {
   "projects.add": { bar: [] },
   "projects.confirm": { bar: [] },
 
-  // --- Config ---
+  // --- Jira ---
+  jira: {
+    tab: "6 Jira",
+    bar: [
+      "open",
+      "filterMine",
+      "filterTeam",
+      "filterPerson",
+      "search",
+      "refresh",
+      "help",
+    ],
+  },
+  "jira.detail": {
+    bar: ["close", "open"],
+  },
+  "jira.help": { bar: [] },
+  "jira.search": { bar: [] },
+  "jira.memberSelect": { bar: [] },
+
+  // --- Config (always last) ---
   config: {
-    tab: "6 Config",
+    tab: "7 Config",
     bar: ["add", "remove", "select", "editConfig", "help"],
   },
   "config.addOrg": { bar: [] },
   "config.editAzureOrg": { bar: [] },
   "config.editAzureProject": { bar: [] },
+  "config.editJiraSite": { bar: [] },
+  "config.editJiraEmail": { bar: [] },
+  "config.editJiraToken": { bar: [] },
+  "config.editJiraProject": { bar: [] },
 };
 
 /** Resolve tab label — walks up to parent if not defined. */

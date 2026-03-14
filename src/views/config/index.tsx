@@ -31,6 +31,14 @@ interface Props {
   azureProject: string;
   setAzureOrg: (org: string) => void;
   setAzureProject: (project: string) => void;
+  jiraSite: string;
+  jiraEmail: string;
+  jiraToken: string;
+  jiraProject: string;
+  setJiraSite: (site: string) => void;
+  setJiraEmail: (email: string) => void;
+  setJiraToken: (token: string) => void;
+  setJiraProject: (project: string) => void;
   persistCache: boolean;
   setPersistCache: (enabled: boolean) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
@@ -44,8 +52,15 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "settings" | "theme" | "azure" | "cache";
-const SECTIONS: Section[] = ["orgs", "settings", "theme", "azure", "cache"];
+type Section = "orgs" | "settings" | "theme" | "azure" | "jira" | "cache";
+const SECTIONS: Section[] = [
+  "orgs",
+  "settings",
+  "theme",
+  "azure",
+  "jira",
+  "cache",
+];
 
 export function ConfigView({
   orgs,
@@ -59,6 +74,14 @@ export function ConfigView({
   azureProject,
   setAzureOrg,
   setAzureProject,
+  jiraSite,
+  jiraEmail,
+  jiraToken,
+  jiraProject,
+  setJiraSite,
+  setJiraEmail,
+  setJiraToken,
+  setJiraProject,
   persistCache,
   setPersistCache,
   onSwitchView: _onSwitchView,
@@ -72,8 +95,12 @@ export function ConfigView({
   const [showAddOrg, setShowAddOrg] = useState(false);
   const [showEditAzureOrg, setShowEditAzureOrg] = useState(false);
   const [showEditAzureProject, setShowEditAzureProject] = useState(false);
+  const [showEditJiraSite, setShowEditJiraSite] = useState(false);
+  const [showEditJiraEmail, setShowEditJiraEmail] = useState(false);
+  const [showEditJiraToken, setShowEditJiraToken] = useState(false);
+  const [showEditJiraProject, setShowEditJiraProject] = useState(false);
 
-  // Sync overlay state → ViewContext so shortcuts are scoped correctly
+  // Sync overlay state -> ViewContext so shortcuts are scoped correctly
   useEffect(() => {
     if (showAddOrg) {
       setView("config.addOrg");
@@ -81,14 +108,34 @@ export function ConfigView({
       setView("config.editAzureOrg");
     } else if (showEditAzureProject) {
       setView("config.editAzureProject");
+    } else if (showEditJiraSite) {
+      setView("config.editJiraSite");
+    } else if (showEditJiraEmail) {
+      setView("config.editJiraEmail");
+    } else if (showEditJiraToken) {
+      setView("config.editJiraToken");
+    } else if (showEditJiraProject) {
+      setView("config.editJiraProject");
     } else if (
       view === "config.addOrg" ||
       view === "config.editAzureOrg" ||
-      view === "config.editAzureProject"
+      view === "config.editAzureProject" ||
+      view === "config.editJiraSite" ||
+      view === "config.editJiraEmail" ||
+      view === "config.editJiraToken" ||
+      view === "config.editJiraProject"
     ) {
       setView("config");
     }
-  }, [showAddOrg, showEditAzureOrg, showEditAzureProject]);
+  }, [
+    showAddOrg,
+    showEditAzureOrg,
+    showEditAzureProject,
+    showEditJiraSite,
+    showEditJiraEmail,
+    showEditJiraToken,
+    showEditJiraProject,
+  ]);
 
   const orgItems = [
     ...orgs.map((org) => ({ label: org, isAdd: false })),
@@ -118,6 +165,25 @@ export function ConfigView({
     },
   ];
 
+  const jiraItems = [
+    {
+      label: `Site: ${jiraSite || "[not set]"}`,
+      field: "site" as const,
+    },
+    {
+      label: `Email: ${jiraEmail || "[not set]"}`,
+      field: "email" as const,
+    },
+    {
+      label: `API Token: ${jiraToken ? "●●●●●●●●" : "[not set]"}`,
+      field: "token" as const,
+    },
+    {
+      label: `Project: ${jiraProject || "[not set]"}`,
+      field: "project" as const,
+    },
+  ];
+
   const cacheSize = getQueryCacheSize();
   const cacheSizeStr =
     cacheSize > 1024 * 1024
@@ -143,22 +209,39 @@ export function ConfigView({
         ? refreshPresetItems
         : section === "theme"
           ? themeItems
-          : section === "cache"
-            ? cacheItems
-            : azureItems;
+          : section === "azure"
+            ? azureItems
+            : section === "jira"
+              ? jiraItems
+              : section === "cache"
+                ? cacheItems
+                : azureItems;
 
   // Handle escape in overlay sub-views via a minimal useInput
   // (TextInput captures most keys; we only need escape to close)
+  const anyOverlayOpen =
+    showAddOrg ||
+    showEditAzureOrg ||
+    showEditAzureProject ||
+    showEditJiraSite ||
+    showEditJiraEmail ||
+    showEditJiraToken ||
+    showEditJiraProject;
+
   useInput(
     (_input, key) => {
       if (key.escape) {
         if (showAddOrg) setShowAddOrg(false);
         else if (showEditAzureOrg) setShowEditAzureOrg(false);
         else if (showEditAzureProject) setShowEditAzureProject(false);
+        else if (showEditJiraSite) setShowEditJiraSite(false);
+        else if (showEditJiraEmail) setShowEditJiraEmail(false);
+        else if (showEditJiraToken) setShowEditJiraToken(false);
+        else if (showEditJiraProject) setShowEditJiraProject(false);
       }
     },
     {
-      isActive: showAddOrg || showEditAzureOrg || showEditAzureProject,
+      isActive: anyOverlayOpen,
     },
   );
 
@@ -191,6 +274,11 @@ export function ConfigView({
       } else if (section === "azure") {
         if (selectedIndex === 0) setShowEditAzureOrg(true);
         if (selectedIndex === 1) setShowEditAzureProject(true);
+      } else if (section === "jira") {
+        if (selectedIndex === 0) setShowEditJiraSite(true);
+        if (selectedIndex === 1) setShowEditJiraEmail(true);
+        if (selectedIndex === 2) setShowEditJiraToken(true);
+        if (selectedIndex === 3) setShowEditJiraProject(true);
       } else if (section === "cache") {
         const item = cacheItems[selectedIndex];
         if (item?.action === "toggle") setPersistCache(!persistCache);
@@ -234,7 +322,7 @@ export function ConfigView({
     <Box height={height} width={width} flexDirection="column">
       <Box flexGrow={1} flexDirection="row">
         {/* Organizations */}
-        <Box flexDirection="column" paddingX={2} width="20%">
+        <Box flexDirection="column" paddingX={2} width="16%">
           <Text bold inverse={section === "orgs"}>
             {" "}
             Organizations{" "}
@@ -268,7 +356,7 @@ export function ConfigView({
         </Box>
 
         {/* Settings */}
-        <Box flexDirection="column" paddingX={2} width="20%">
+        <Box flexDirection="column" paddingX={2} width="16%">
           <Text bold inverse={section === "settings"}>
             {" "}
             Settings{" "}
@@ -301,7 +389,7 @@ export function ConfigView({
         </Box>
 
         {/* Theme */}
-        <Box flexDirection="column" paddingX={2} width="20%">
+        <Box flexDirection="column" paddingX={2} width="16%">
           <Text bold inverse={section === "theme"}>
             {" "}
             Theme{" "}
@@ -344,7 +432,7 @@ export function ConfigView({
         </Box>
 
         {/* Azure DevOps */}
-        <Box flexDirection="column" paddingX={2} width="20%">
+        <Box flexDirection="column" paddingX={2} width="16%">
           <Text bold inverse={section === "azure"}>
             {" "}
             Azure DevOps{" "}
@@ -365,8 +453,30 @@ export function ConfigView({
           })}
         </Box>
 
+        {/* Jira */}
+        <Box flexDirection="column" paddingX={2} width="16%">
+          <Text bold inverse={section === "jira"}>
+            {" "}
+            Jira{" "}
+          </Text>
+          <Text dimColor>Jira Cloud connection settings.</Text>
+          <Box height={1} />
+          {jiraItems.map((item, i) => {
+            const isActive = section === "jira" && i === selectedIndex;
+
+            return (
+              <Box key={item.field}>
+                <Text inverse={isActive} bold={isActive}>
+                  {isActive ? "> " : "  "}
+                  {item.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+
         {/* Cache */}
-        <Box flexDirection="column" paddingX={2} width="20%">
+        <Box flexDirection="column" paddingX={2} width="16%">
           <Text bold inverse={section === "cache"}>
             {" "}
             Cache{" "}
@@ -422,6 +532,12 @@ export function ConfigView({
           <Text bold>
             {azureOrg && azureProject
               ? `${azureOrg}/${azureProject}`
+              : "[not set]"}
+          </Text>
+          <Text dimColor> │ Jira: </Text>
+          <Text bold>
+            {jiraSite && jiraProject
+              ? `${jiraProject}@${jiraSite}`
               : "[not set]"}
           </Text>
           <Text dimColor> │ Cache: </Text>
@@ -525,6 +641,142 @@ export function ConfigView({
                     setAzureProject(val.trim());
                   }
                   setShowEditAzureProject(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Jira site overlay */}
+      {showEditJiraSite && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Jira Site
+            </Text>
+            <Box>
+              <Text>Site: </Text>
+              <TextInput
+                placeholder={jiraSite || "yourcompany.atlassian.net"}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setJiraSite(val.trim());
+                  }
+                  setShowEditJiraSite(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Jira email overlay */}
+      {showEditJiraEmail && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Jira Email
+            </Text>
+            <Box>
+              <Text>Email: </Text>
+              <TextInput
+                placeholder={jiraEmail || "user@company.com"}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setJiraEmail(val.trim());
+                  }
+                  setShowEditJiraEmail(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Jira API token overlay */}
+      {showEditJiraToken && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Jira API Token
+            </Text>
+            <Box>
+              <Text>Token: </Text>
+              <TextInput
+                placeholder="paste API token..."
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setJiraToken(val.trim());
+                  }
+                  setShowEditJiraToken(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Jira project overlay */}
+      {showEditJiraProject && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Jira Project Key
+            </Text>
+            <Box>
+              <Text>Project: </Text>
+              <TextInput
+                placeholder={jiraProject || "e.g. UUX"}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setJiraProject(val.trim());
+                  }
+                  setShowEditJiraProject(false);
                 }}
               />
             </Box>

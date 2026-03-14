@@ -13,6 +13,7 @@ import { ConfigView } from "./views/config/index.tsx";
 import { PipelinesView } from "./views/pipelines/index.tsx";
 import { ReleasesView } from "./views/releases/index.tsx";
 import { ProjectsView } from "./views/projects/index.tsx";
+import { JiraView } from "./views/jira/index.tsx";
 import { ViewHeader } from "./components/view-header.tsx";
 import type { ViewId, BaseView } from "./ui/view-config.ts";
 import { getBaseView } from "./ui/view-config.ts";
@@ -47,6 +48,11 @@ export function App({ client, org, token }: Props) {
     addLocalProject,
     removeLocalProject,
     setPersistCache,
+    setJiraSite,
+    setJiraEmail,
+    setJiraToken,
+    setJiraProject,
+    setJiraAccountId,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
@@ -78,6 +84,7 @@ export function App({ client, org, token }: Props) {
         "pipelines",
         "releases",
         "projects",
+        "jira",
         "config",
       ];
       const idx = VIEWS.indexOf(baseView);
@@ -185,6 +192,15 @@ export function App({ client, org, token }: Props) {
           />
         )}
 
+        {baseView === "jira" && (
+          <JiraView
+            config={config}
+            height={contentHeight}
+            width={width}
+            onQuit={exit}
+          />
+        )}
+
         {baseView === "config" && (
           <ConfigView
             orgs={config.orgs}
@@ -198,6 +214,14 @@ export function App({ client, org, token }: Props) {
             azureProject={config.azureProject}
             setAzureOrg={setAzureOrg}
             setAzureProject={setAzureProject}
+            jiraSite={config.jiraSite}
+            jiraEmail={config.jiraEmail}
+            jiraToken={config.jiraToken}
+            jiraProject={config.jiraProject}
+            setJiraSite={setJiraSite}
+            setJiraEmail={setJiraEmail}
+            setJiraToken={setJiraToken}
+            setJiraProject={setJiraProject}
             persistCache={config.persistCache}
             setPersistCache={setPersistCache}
             onSwitchView={switchView}

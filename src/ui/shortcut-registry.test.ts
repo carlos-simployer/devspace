@@ -551,8 +551,10 @@ describe("getTabViews", () => {
     expect(releasesTab?.label).toBe("4 Releases");
     const projectsTab = tabs.find((t) => t.key === "projects");
     expect(projectsTab?.label).toBe("5 Projects");
+    const jiraTab = tabs.find((t) => t.key === "jira");
+    expect(jiraTab?.label).toBe("6 Jira");
     const configTab = tabs.find((t) => t.key === "config");
-    expect(configTab?.label).toBe("6 Config");
+    expect(configTab?.label).toBe("7 Config");
   });
 
   it("should return objects with key and label properties", () => {
@@ -577,7 +579,8 @@ describe("getTabNumberKeys", () => {
     expect(map["3"]).toBe("pipelines");
     expect(map["4"]).toBe("releases");
     expect(map["5"]).toBe("projects");
-    expect(map["6"]).toBe("config");
+    expect(map["6"]).toBe("jira");
+    expect(map["7"]).toBe("config");
   });
 
   it("should derive numbers from tab labels", () => {
@@ -596,8 +599,8 @@ describe("getTabNumberKeys", () => {
 
   it("should not include keys for non-tabbed views", () => {
     const map = getTabNumberKeys();
-    // There should be no key "0" or "7" etc. beyond the defined tabs
+    // There should be no key "0" or "8" etc. beyond the defined tabs
     expect(map["0"]).toBeUndefined();
-    expect(map["7"]).toBeUndefined();
+    expect(map["8"]).toBeUndefined();
   });
 });

@@ -113,6 +113,12 @@ export interface Config {
   pinnedReleaseDefinitions: number[]; // release definition IDs
   localProjects: LocalProject[]; // local dev projects to start/stop
   persistCache: boolean; // persist React Query cache to disk
+  jiraSite: string; // e.g. "simployer.atlassian.net"
+  jiraEmail: string; // e.g. "user@company.com"
+  jiraToken: string; // Jira API token
+  jiraProject: string; // e.g. "UUX"
+  jiraStatusOrder: string[]; // e.g. ["In Progress", "In Review", "To Do", "Done"]
+  jiraAccountId: string; // for "my issues" filter
 }
 
 // --- Azure DevOps types ---
@@ -200,7 +206,8 @@ export type AppView =
   | "config"
   | "pipelines"
   | "releases"
-  | "projects";
+  | "projects"
+  | "jira";
 
 export interface LocalProject {
   name: string;
@@ -209,6 +216,76 @@ export interface LocalProject {
   dependencies: string[];
   url?: string;
 }
+
+// --- Jira types ---
+
+export interface JiraUser {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+  avatarUrls?: Record<string, string>;
+}
+
+export interface JiraStatus {
+  id: string;
+  name: string;
+  statusCategory: {
+    id: number;
+    key: string; // "new" | "indeterminate" | "done"
+    name: string;
+  };
+}
+
+export interface JiraIssueType {
+  id: string;
+  name: string; // "Task", "Bug", "Story", "Epic", "Sub-task"
+  subtask: boolean;
+  hierarchyLevel: number;
+}
+
+export interface JiraPriority {
+  id: string;
+  name: string; // "Highest", "High", "Medium", "Low", "Lowest"
+}
+
+export interface JiraComment {
+  id: string;
+  author: JiraUser;
+  body: any; // Atlassian Document Format (ADF)
+  created: string;
+  updated: string;
+}
+
+export interface JiraIssue {
+  id: string;
+  key: string; // e.g. "UUX-1629"
+  fields: {
+    summary: string;
+    status: JiraStatus;
+    issuetype: JiraIssueType;
+    priority: JiraPriority;
+    assignee: JiraUser | null;
+    reporter: JiraUser | null;
+    created: string;
+    updated: string;
+    labels: string[];
+    description?: any; // ADF
+    comment?: { comments: JiraComment[] };
+    subtasks?: Array<{
+      id: string;
+      key: string;
+      fields: {
+        summary: string;
+        status: JiraStatus;
+        issuetype: JiraIssueType;
+      };
+    }>;
+    parent?: { key: string; fields: { summary: string } };
+    fixVersions?: Array<{ name: string }>;
+  };
+}
+
+export type JiraFilterMode = "mine" | "team" | "person";
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
 
