@@ -1,24 +1,24 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type { RepoNode } from "../../api/types.ts";
+import type { AzureReleaseDefinition } from "../../api/types.ts";
 import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
 import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
-  repos: RepoNode[];
-  pinnedRepos: string[]; // qualified: "org/repo"
+  definitions: AzureReleaseDefinition[];
+  pinnedIds: number[];
   loading: boolean;
-  onSelect: (qualifiedRepo: string) => void;
-  onRemove: (qualifiedRepo: string) => void;
+  onSelect: (id: number) => void;
+  onRemove: (id: number) => void;
   onClose: () => void;
   height: number;
   width: number;
 }
 
-export function RepoSearch({
-  repos,
-  pinnedRepos,
+export function DefinitionSearch({
+  definitions,
+  pinnedIds,
   loading,
   onSelect,
   onRemove,
@@ -30,26 +30,12 @@ export function RepoSearch({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
 
-  const multiOrg = useMemo(() => {
-    const orgs = new Set(repos.map((r) => r.owner));
-    return orgs.size > 1;
-  }, [repos]);
-
   const filtered = useMemo(() => {
-    const withQualified = repos.map((r) => ({
-      ...r,
-      qualified: `${r.owner}/${r.name}`,
-      display: multiOrg ? `${r.owner}/${r.name}` : r.name,
-    }));
-
-    if (!query) return withQualified;
-    return withQualified
-      .filter((r) => fuzzyMatch(r.qualified, query))
-      .sort(
-        (a, b) =>
-          fuzzyScore(b.qualified, query) - fuzzyScore(a.qualified, query),
-      );
-  }, [repos, query, multiOrg]);
+    if (!query) return definitions;
+    return definitions
+      .filter((d) => fuzzyMatch(d.name, query))
+      .sort((a, b) => fuzzyScore(b.name, query) - fuzzyScore(a.name, query));
+  }, [definitions, query]);
 
   const boxWidth = Math.min(60, width - 4);
   const boxHeight = Math.min(height - 4, 24);
@@ -57,13 +43,13 @@ export function RepoSearch({
 
   const visible = filtered.slice(scrollOffset, scrollOffset + listHeight);
 
-  const toggleRepo = (index: number) => {
-    const repo = filtered[index];
-    if (!repo) return;
-    if (pinnedRepos.includes(repo.qualified)) {
-      onRemove(repo.qualified);
+  const toggleDefinition = (index: number) => {
+    const def = filtered[index];
+    if (!def) return;
+    if (pinnedIds.includes(def.id)) {
+      onRemove(def.id);
     } else {
-      onSelect(repo.qualified);
+      onSelect(def.id);
     }
   };
 
@@ -92,7 +78,7 @@ export function RepoSearch({
       return;
     }
     if (key.return) {
-      toggleRepo(selectedIndex);
+      toggleDefinition(selectedIndex);
       return;
     }
 
@@ -113,7 +99,7 @@ export function RepoSearch({
   // border (2) + paddingX (2) = 4
   const innerWidth = boxWidth - 4;
   const matchCount = filtered.length;
-  const totalCount = repos.length;
+  const totalCount = definitions.length;
 
   return (
     <Box
@@ -126,7 +112,7 @@ export function RepoSearch({
     >
       <Box>
         <Text bold color={getTheme().ui.heading}>
-          Add / Remove Repository
+          Add / Remove Release Definition
         </Text>
         <Text dimColor>
           {" "}
@@ -139,18 +125,20 @@ export function RepoSearch({
         <Text dimColor>█</Text>
       </Box>
       {loading ? (
-        <Spinner label="Loading repos..." />
+        <Spinner label="Loading definitions..." />
       ) : filtered.length === 0 ? (
-        <Text dimColor>{query ? "No repos match" : "No repos found"}</Text>
+        <Text dimColor>
+          {query ? "No definitions match" : "No definitions found"}
+        </Text>
       ) : (
-        visible.map((repo, i) => {
+        visible.map((def, i) => {
           const actualIndex = scrollOffset + i;
-          const isPinned = pinnedRepos.includes(repo.qualified);
+          const isPinned = pinnedIds.includes(def.id);
           const isActive = actualIndex === selectedIndex;
           const prefix = isPinned ? "\u2713 " : "  ";
-          const label = (prefix + repo.display).padEnd(innerWidth);
+          const label = (prefix + def.name).padEnd(innerWidth);
           return (
-            <Box key={repo.qualified}>
+            <Box key={def.id}>
               <Text
                 backgroundColor={isActive ? "blue" : undefined}
                 color={isActive ? "white" : undefined}
@@ -162,9 +150,7 @@ export function RepoSearch({
         })
       )}
       <Box marginTop={0}>
-        <Text dimColor>
-          Enter: {"{add/remove}"} │ Esc: close │ ↑↓: navigate
-        </Text>
+        <Text dimColor>Enter: {"add/remove"} | Esc: close | ↑↓: navigate</Text>
       </Box>
     </Box>
   );

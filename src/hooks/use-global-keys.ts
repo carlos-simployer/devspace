@@ -39,6 +39,14 @@ export function handleGlobalKeys(
     return true;
   }
   if (input === "3") {
+    options.onSwitchView("pipelines");
+    return true;
+  }
+  if (input === "4") {
+    options.onSwitchView("releases");
+    return true;
+  }
+  if (input === "5") {
     options.onSwitchView("config");
     return true;
   }

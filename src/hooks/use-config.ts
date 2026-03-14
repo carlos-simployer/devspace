@@ -50,6 +50,10 @@ export function useConfig(orgArg?: string) {
         trackedPackages: [],
         refreshInterval: DEFAULT_REFRESH_INTERVAL,
         theme: "default",
+        azureOrg: "",
+        azureProject: "",
+        pinnedPipelines: [],
+        pinnedReleaseDefinitions: [],
       };
     }
 
@@ -81,6 +85,10 @@ export function useConfig(orgArg?: string) {
       trackedPackages: raw.trackedPackages || [],
       refreshInterval: raw.refreshInterval || DEFAULT_REFRESH_INTERVAL,
       theme: raw.theme || "default",
+      azureOrg: raw.azureOrg || "",
+      azureProject: raw.azureProject || "",
+      pinnedPipelines: raw.pinnedPipelines || [],
+      pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -204,6 +212,65 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setAzureOrg = useCallback(
+    (azureOrg: string) => {
+      setConfig((prev) => ({ ...prev, azureOrg }));
+    },
+    [setConfig],
+  );
+
+  const setAzureProject = useCallback(
+    (azureProject: string) => {
+      setConfig((prev) => ({ ...prev, azureProject }));
+    },
+    [setConfig],
+  );
+
+  const addPinnedPipeline = useCallback(
+    (id: number) => {
+      setConfig((prev) => {
+        if (prev.pinnedPipelines.includes(id)) return prev;
+        return { ...prev, pinnedPipelines: [...prev.pinnedPipelines, id] };
+      });
+    },
+    [setConfig],
+  );
+
+  const removePinnedPipeline = useCallback(
+    (id: number) => {
+      setConfig((prev) => ({
+        ...prev,
+        pinnedPipelines: prev.pinnedPipelines.filter((p) => p !== id),
+      }));
+    },
+    [setConfig],
+  );
+
+  const addPinnedReleaseDefinition = useCallback(
+    (id: number) => {
+      setConfig((prev) => {
+        if (prev.pinnedReleaseDefinitions.includes(id)) return prev;
+        return {
+          ...prev,
+          pinnedReleaseDefinitions: [...prev.pinnedReleaseDefinitions, id],
+        };
+      });
+    },
+    [setConfig],
+  );
+
+  const removePinnedReleaseDefinition = useCallback(
+    (id: number) => {
+      setConfig((prev) => ({
+        ...prev,
+        pinnedReleaseDefinitions: prev.pinnedReleaseDefinitions.filter(
+          (p) => p !== id,
+        ),
+      }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -226,6 +293,12 @@ export function useConfig(orgArg?: string) {
     setRefreshInterval,
     markViewed,
     setThemeName,
+    setAzureOrg,
+    setAzureProject,
+    addPinnedPipeline,
+    removePinnedPipeline,
+    addPinnedReleaseDefinition,
+    removePinnedReleaseDefinition,
     isFirstLaunch,
   };
 }

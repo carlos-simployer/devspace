@@ -19,6 +19,10 @@ interface Props {
   setRefreshInterval: (seconds: number) => void;
   themeName: string;
   setThemeName: (name: string) => void;
+  azureOrg: string;
+  azureProject: string;
+  setAzureOrg: (org: string) => void;
+  setAzureProject: (project: string) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
@@ -30,8 +34,8 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "settings" | "theme";
-const SECTIONS: Section[] = ["orgs", "settings", "theme"];
+type Section = "orgs" | "settings" | "theme" | "azure";
+const SECTIONS: Section[] = ["orgs", "settings", "theme", "azure"];
 
 export function ConfigView({
   orgs,
@@ -41,6 +45,10 @@ export function ConfigView({
   setRefreshInterval,
   themeName,
   setThemeName,
+  azureOrg,
+  azureProject,
+  setAzureOrg,
+  setAzureProject,
   onSwitchView,
   height,
   width,
@@ -49,6 +57,8 @@ export function ConfigView({
   const [section, setSection] = useState<Section>("orgs");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAddOrg, setShowAddOrg] = useState(false);
+  const [showEditAzureOrg, setShowEditAzureOrg] = useState(false);
+  const [showEditAzureProject, setShowEditAzureProject] = useState(false);
 
   const orgItems = [
     ...orgs.map((org) => ({ label: org, isAdd: false })),
@@ -67,16 +77,37 @@ export function ConfigView({
     active: name === themeName,
   }));
 
+  const azureItems = [
+    {
+      label: `Organization: ${azureOrg || "[not set]"}`,
+      field: "org" as const,
+    },
+    {
+      label: `Project: ${azureProject || "[not set]"}`,
+      field: "project" as const,
+    },
+  ];
+
   const items =
     section === "orgs"
       ? orgItems
       : section === "settings"
         ? refreshPresetItems
-        : themeItems;
+        : section === "theme"
+          ? themeItems
+          : azureItems;
 
   useInput((input, key) => {
     if (showAddOrg) {
       if (key.escape) setShowAddOrg(false);
+      return;
+    }
+    if (showEditAzureOrg) {
+      if (key.escape) setShowEditAzureOrg(false);
+      return;
+    }
+    if (showEditAzureProject) {
+      if (key.escape) setShowEditAzureProject(false);
       return;
     }
 
@@ -146,13 +177,20 @@ export function ConfigView({
         if (item) setThemeName(item.name);
       }
     }
+
+    if (section === "azure") {
+      if (key.return) {
+        if (selectedIndex === 0) setShowEditAzureOrg(true);
+        if (selectedIndex === 1) setShowEditAzureProject(true);
+      }
+    }
   });
 
   return (
     <Box height={height} width={width} flexDirection="column">
       <Box flexGrow={1} flexDirection="row">
         {/* Organizations */}
-        <Box flexDirection="column" paddingX={2} width="34%">
+        <Box flexDirection="column" paddingX={2} width="25%">
           <Text bold inverse={section === "orgs"}>
             {" "}
             Organizations{" "}
@@ -186,7 +224,7 @@ export function ConfigView({
         </Box>
 
         {/* Settings */}
-        <Box flexDirection="column" paddingX={2} width="33%">
+        <Box flexDirection="column" paddingX={2} width="25%">
           <Text bold inverse={section === "settings"}>
             {" "}
             Settings{" "}
@@ -219,7 +257,7 @@ export function ConfigView({
         </Box>
 
         {/* Theme */}
-        <Box flexDirection="column" paddingX={2} width="33%">
+        <Box flexDirection="column" paddingX={2} width="25%">
           <Text bold inverse={section === "theme"}>
             {" "}
             Theme{" "}
@@ -260,6 +298,28 @@ export function ConfigView({
             );
           })}
         </Box>
+
+        {/* Azure DevOps */}
+        <Box flexDirection="column" paddingX={2} width="25%">
+          <Text bold inverse={section === "azure"}>
+            {" "}
+            Azure DevOps{" "}
+          </Text>
+          <Text dimColor>Organization and project for Pipelines/Releases.</Text>
+          <Box height={1} />
+          {azureItems.map((item, i) => {
+            const isActive = section === "azure" && i === selectedIndex;
+
+            return (
+              <Box key={item.field}>
+                <Text inverse={isActive} bold={isActive}>
+                  {isActive ? "> " : "  "}
+                  {item.label}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
 
       {/* Status bar */}
@@ -280,6 +340,12 @@ export function ConfigView({
           <Text bold>{formatInterval(refreshInterval)}</Text>
           <Text dimColor> │ Theme: </Text>
           <Text bold>{THEMES[themeName as ThemeName]?.name ?? "Default"}</Text>
+          <Text dimColor> │ Azure: </Text>
+          <Text bold>
+            {azureOrg && azureProject
+              ? `${azureOrg}/${azureProject}`
+              : "[not set]"}
+          </Text>
           <Text dimColor> │ ←/→ switch section</Text>
         </Text>
       </Box>
@@ -314,6 +380,74 @@ export function ConfigView({
               />
             </Box>
             <Text dimColor>Enter: add │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Azure org overlay */}
+      {showEditAzureOrg && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Azure DevOps Organization
+            </Text>
+            <Box>
+              <Text>Org: </Text>
+              <TextInput
+                placeholder={azureOrg || "type org name..."}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setAzureOrg(val.trim());
+                  }
+                  setShowEditAzureOrg(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Edit Azure project overlay */}
+      {showEditAzureProject && (
+        <Box
+          position="absolute"
+          marginLeft={Math.floor((width - 50) / 2)}
+          marginTop={Math.floor((height - 8) / 2)}
+        >
+          <Box
+            flexDirection="column"
+            width={50}
+            borderStyle="round"
+            borderColor={getTheme().ui.activeIndicator}
+            paddingX={1}
+          >
+            <Text bold color={getTheme().ui.activeIndicator}>
+              Azure DevOps Project
+            </Text>
+            <Box>
+              <Text>Project: </Text>
+              <TextInput
+                placeholder={azureProject || "type project name..."}
+                onSubmit={(val) => {
+                  if (val.trim()) {
+                    setAzureProject(val.trim());
+                  }
+                  setShowEditAzureProject(false);
+                }}
+              />
+            </Box>
+            <Text dimColor>Enter: save │ Esc: cancel</Text>
           </Box>
         </Box>
       )}

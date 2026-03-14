@@ -107,6 +107,83 @@ export interface Config {
   trackedPackages: string[];
   refreshInterval: number; // PR poll interval in seconds
   theme: string; // ThemeName — defaults to "default"
+  azureOrg: string; // Azure DevOps organization
+  azureProject: string; // Azure DevOps project
+  pinnedPipelines: number[]; // pipeline definition IDs
+  pinnedReleaseDefinitions: number[]; // release definition IDs
+}
+
+// --- Azure DevOps types ---
+
+export interface AzurePipelineDefinition {
+  id: number;
+  name: string;
+  path: string; // folder path, e.g. "\\Frontend" or "\\"
+  latestBuild: AzureBuildRun | null;
+}
+
+export interface AzureBuildRun {
+  id: number;
+  buildNumber: string;
+  status:
+    | "completed"
+    | "inProgress"
+    | "cancelling"
+    | "postponed"
+    | "notStarted"
+    | "none";
+  result:
+    | "succeeded"
+    | "partiallySucceeded"
+    | "failed"
+    | "canceled"
+    | "none"
+    | null;
+  sourceBranch: string;
+  sourceVersion: string;
+  reason: string;
+  startTime: string | null;
+  finishTime: string | null;
+  queueTime: string;
+  triggerInfo?: {
+    "pr.number"?: string;
+  };
+  definition: {
+    id: number;
+    name: string;
+  };
+  requestedFor?: {
+    displayName: string;
+  };
+}
+
+export interface AzureReleaseDefinition {
+  id: number;
+  name: string;
+  environments: Array<{
+    id: number;
+    name: string;
+  }>;
+}
+
+export interface AzureRelease {
+  id: number;
+  name: string;
+  createdOn: string;
+  description: string;
+  environments: Array<{
+    id: number;
+    name: string;
+    status: string;
+  }>;
+  artifacts: Array<{
+    type: string;
+    alias: string;
+    definitionReference: {
+      version?: { id: string; name: string };
+      branch?: { id: string; name: string };
+    };
+  }>;
 }
 
 export const REFRESH_PRESETS = [30, 45, 60, 120] as const;
@@ -115,7 +192,12 @@ export type FilterMode = "all" | "mine" | "review" | "closed";
 
 export type FocusArea = "sidebar" | "list";
 
-export type AppView = "prs" | "dependencies" | "config";
+export type AppView =
+  | "prs"
+  | "dependencies"
+  | "config"
+  | "pipelines"
+  | "releases";
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
 

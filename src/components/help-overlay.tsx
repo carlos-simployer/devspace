@@ -5,7 +5,7 @@ import { getTheme } from "../ui/theme.ts";
 interface Props {
   height: number;
   width: number;
-  view?: "prs" | "dependencies";
+  view?: "prs" | "dependencies" | "pipelines" | "releases";
 }
 
 const PR_SHORTCUTS = [
@@ -30,7 +30,7 @@ const PR_SHORTCUTS = [
   ["d", "Remove selected repo"],
   ["R", "Force refresh"],
   ["/", "Search/filter PRs"],
-  ["Tab/1-3", "Switch view"],
+  ["Tab/1-5", "Switch view"],
   ["Esc", "Clear search / close overlay"],
   ["?", "Toggle this help"],
   ["q", "Quit"],
@@ -43,18 +43,56 @@ const DEP_SHORTCUTS = [
   ["+", "Add package to track"],
   ["d/-", "Remove tracked package"],
   ["R", "Force refresh"],
-  ["Tab/1-3", "Switch view"],
+  ["Tab/1-5", "Switch view"],
+  ["Esc", "Close overlay"],
+  ["?", "Toggle this help"],
+  ["q", "Quit"],
+];
+
+const PIPELINE_SHORTCUTS = [
+  ["↑/↓", "Navigate list"],
+  ["←/→", "Switch sidebar / list"],
+  ["Enter/p", "View pipeline runs"],
+  ["o", "Open pipeline in browser"],
+  ["+", "Add pipeline (search)"],
+  ["d", "Remove pinned pipeline"],
+  ["R", "Force refresh"],
+  ["Tab/1-5", "Switch view"],
+  ["Esc", "Close overlay"],
+  ["?", "Toggle this help"],
+  ["q", "Quit"],
+];
+
+const RELEASE_SHORTCUTS = [
+  ["↑/↓", "Navigate list"],
+  ["←/→", "Switch definitions / releases"],
+  ["o", "Open release in browser"],
+  ["+", "Add release definition"],
+  ["d", "Remove definition"],
+  ["R", "Force refresh"],
+  ["Tab/1-5", "Switch view"],
   ["Esc", "Close overlay"],
   ["?", "Toggle this help"],
   ["q", "Quit"],
 ];
 
 export function HelpOverlay({ height, width, view = "prs" }: Props) {
-  const shortcuts = view === "dependencies" ? DEP_SHORTCUTS : PR_SHORTCUTS;
+  const shortcuts =
+    view === "dependencies"
+      ? DEP_SHORTCUTS
+      : view === "pipelines"
+        ? PIPELINE_SHORTCUTS
+        : view === "releases"
+          ? RELEASE_SHORTCUTS
+          : PR_SHORTCUTS;
   const title =
     view === "dependencies"
       ? "Dependency Tracker Shortcuts"
-      : "PR Dashboard Shortcuts";
+      : view === "pipelines"
+        ? "Pipelines Shortcuts"
+        : view === "releases"
+          ? "Releases Shortcuts"
+          : "PR Dashboard Shortcuts";
 
   return (
     <Box

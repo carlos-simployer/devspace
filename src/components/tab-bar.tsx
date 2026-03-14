@@ -10,8 +10,10 @@ interface Tab {
 
 const TABS: Tab[] = [
   { key: "prs", label: "1 PRs" },
-  { key: "dependencies", label: "2 Dependencies" },
-  { key: "config", label: "3 Config" },
+  { key: "dependencies", label: "2 Deps" },
+  { key: "pipelines", label: "3 Pipelines" },
+  { key: "releases", label: "4 Releases" },
+  { key: "config", label: "5 Config" },
 ];
 
 interface Props {
@@ -28,7 +30,7 @@ export function TabBar({ activeView }: Props) {
           isActive={tab.key === activeView}
         />
       ))}
-      <Text dimColor> Tab/1-3: switch</Text>
+      <Text dimColor> Tab/1-5: switch</Text>
     </Box>
   );
 }
