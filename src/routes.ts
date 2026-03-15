@@ -5,7 +5,13 @@ import { ConfigView } from "./views/config/index.tsx";
 import { PipelinesView } from "./views/pipelines/index.tsx";
 import { ReleasesView } from "./views/releases/index.tsx";
 import { ProjectsView } from "./views/projects/index.tsx";
-import { JiraView } from "./views/jira/index.tsx";
+import { JiraLayout } from "./views/jira/jira-layout.tsx";
+import { JiraIssueListView } from "./views/jira/issue-list-view.tsx";
+import { IssueDetail } from "./views/jira/issue-detail/index.tsx";
+import { SortOverlay } from "./views/jira/sort-overlay.tsx";
+import { StatusFilter } from "./views/jira/status-filter.tsx";
+import { MemberSelect } from "./views/jira/member-select.tsx";
+import { JiraHelpView } from "./views/jira/jira-help-view.tsx";
 
 export const routes = defineRoutes({
   // PRs — PRView handles its own sub-views internally
@@ -37,14 +43,19 @@ export const routes = defineRoutes({
   "projects/add": { component: ProjectsView, layout: "overlay" },
   "projects/confirm": { component: ProjectsView, layout: "overlay" },
 
-  // Jira — JiraView handles its own sub-views
-  jira: { component: JiraView },
-  "jira/detail/:key": { component: JiraView },
-  "jira/statusFilter": { component: JiraView, layout: "overlay" },
-  "jira/memberSelect": { component: JiraView, layout: "overlay" },
-  "jira/sort": { component: JiraView, layout: "overlay" },
-  "jira/help": { component: JiraView, layout: "overlay" },
-  "jira/search": { component: JiraView },
+  // Jira — nested routes via Outlet system
+  jira: {
+    component: JiraLayout,
+    children: {
+      "": { component: JiraIssueListView },
+      "detail/:key": { component: IssueDetail },
+      sort: { component: SortOverlay, layout: "overlay" },
+      statusFilter: { component: StatusFilter, layout: "overlay" },
+      memberSelect: { component: MemberSelect, layout: "overlay" },
+      help: { component: JiraHelpView, layout: "overlay" },
+      search: { component: JiraIssueListView },
+    },
+  },
 
   // Config — ConfigView handles its own sub-views
   config: { component: ConfigView },

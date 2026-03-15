@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text } from "ink";
-import type { JiraIssue } from "../../../api/types.ts";
 import { useRouteShortcuts } from "../../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../../ui/router.ts";
+import { useAppContext } from "../../../app-context.ts";
+import { useJiraContext } from "../jira-context.ts";
+import { openInBrowser } from "../../../utils/browser.ts";
 import { TabItem } from "../../../ui/tab-item.tsx";
 import { buildOverviewLines } from "./overview-tab.tsx";
 import { buildCommentsLines } from "./comments-tab.tsx";
@@ -10,30 +12,16 @@ import { buildSubtasksLines } from "./subtasks-tab.tsx";
 
 type DetailTab = "overview" | "comments" | "subtasks";
 
-interface Props {
-  issue: JiraIssue;
-  detailIssue: JiraIssue | null;
-  detailLoading: boolean;
-  detailError: string | null;
-  height: number;
-  width: number;
-  onOpenInBrowser: (url: string) => void;
-  jiraSite: string;
-}
-
-export function IssueDetail({
-  issue,
-  detailIssue,
-  detailLoading,
-  detailError,
-  height,
-  width,
-  onOpenInBrowser,
-  jiraSite,
-}: Props) {
+export function IssueDetail() {
   const { navigate } = useRouter();
+  const { config, contentHeight: height, width } = useAppContext();
+  const { selectedIssue, detailIssue, detailLoading, detailError } =
+    useJiraContext();
   const [tab, setTab] = useState<DetailTab>("overview");
   const [scrollOffset, setScrollOffset] = useState(0);
+
+  const jiraSite = config.jiraSite;
+  const issue = selectedIssue;
 
   const contentWidth = Math.min(width - 4, 120);
 
@@ -41,17 +29,20 @@ export function IssueDetail({
   const displayIssue = detailIssue ?? issue;
 
   const overviewLines = useMemo(
-    () => buildOverviewLines(displayIssue, detailLoading, detailError),
+    () =>
+      displayIssue
+        ? buildOverviewLines(displayIssue, detailLoading, detailError)
+        : [],
     [displayIssue, detailLoading, detailError],
   );
 
   const commentsLines = useMemo(
-    () => buildCommentsLines(displayIssue),
+    () => (displayIssue ? buildCommentsLines(displayIssue) : []),
     [displayIssue],
   );
 
   const subtasksLines = useMemo(
-    () => buildSubtasksLines(displayIssue),
+    () => (displayIssue ? buildSubtasksLines(displayIssue) : []),
     [displayIssue],
   );
 
@@ -70,7 +61,9 @@ export function IssueDetail({
   useRouteShortcuts({
     close: () => navigate("jira"),
     open: () => {
-      onOpenInBrowser(`https://${jiraSite}/browse/${issue.key}`);
+      if (issue) {
+        openInBrowser(`https://${jiraSite}/browse/${issue.key}`);
+      }
     },
     overviewTab: () => {
       setTab("overview");
@@ -87,6 +80,19 @@ export function IssueDetail({
     up: () => setScrollOffset((s) => Math.max(0, s - 1)),
     down: () => setScrollOffset((s) => Math.min(maxScroll, s + 1)),
   });
+
+  if (!issue || !displayIssue) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text dimColor>No issue selected</Text>
+      </Box>
+    );
+  }
 
   const actualOffset = Math.min(scrollOffset, maxScroll);
   const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);

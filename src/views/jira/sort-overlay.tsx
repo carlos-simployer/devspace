@@ -2,30 +2,23 @@ import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useJiraContext } from "./jira-context.ts";
 import {
   ALL_SORT_FIELDS,
   SORT_FIELD_LABELS,
   type JiraSortField,
 } from "../../utils/jira-status.ts";
 
-interface Props {
-  activeSortFields: JiraSortField[];
-  onApply: (fields: JiraSortField[]) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function SortOverlay() {
+  const { navigate } = useRouter();
+  const { contentHeight: height, width } = useAppContext();
+  const { sortFields, setSortFields, setSelectedIndex } = useJiraContext();
 
-export function SortOverlay({
-  activeSortFields,
-  onApply,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [cursorIndex, setCursorIndex] = useState(0);
   const [selected, setSelected] = useState<JiraSortField[]>(() => [
-    ...activeSortFields,
+    ...sortFields,
   ]);
 
   const boxWidth = Math.min(45, width - 4);
@@ -33,8 +26,12 @@ export function SortOverlay({
   const innerWidth = boxWidth - 4;
 
   useRouteShortcuts({
-    close: onClose,
-    select: () => onApply(selected),
+    close: () => navigate("jira"),
+    select: () => {
+      setSortFields(selected.length > 0 ? selected : ["updated"]);
+      setSelectedIndex(0);
+      navigate("jira");
+    },
     toggle: () => {
       const field = ALL_SORT_FIELDS[cursorIndex];
       if (!field) return;

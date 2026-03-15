@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useJiraContext } from "./jira-context.ts";
 
 interface TeamMember {
   name: string;
@@ -27,24 +30,19 @@ const TEAM_MEMBERS: TeamMember[] = [
   { name: "Ola Juliussen", accountId: "621cd9dc9c3cce006949ecce" },
 ];
 
-interface Props {
-  selectedIds: Set<string>;
-  onApply: (accountIds: Set<string>) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function MemberSelect() {
+  const { navigate } = useRouter();
+  const { contentHeight: height, width } = useAppContext();
+  const {
+    filterAccountIds,
+    setFilterAccountIds,
+    setFilterMode,
+    setSelectedIndex,
+  } = useJiraContext();
 
-export function MemberSelect({
-  selectedIds,
-  onApply,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [cursorIndex, setCursorIndex] = useState(0);
   const [enabled, setEnabled] = useState<Set<string>>(
-    () => new Set(selectedIds),
+    () => new Set(filterAccountIds),
   );
 
   const allEnabled = enabled.size === TEAM_MEMBERS.length;
@@ -66,9 +64,16 @@ export function MemberSelect({
   const innerWidth = boxWidth - 4;
 
   useRouteShortcuts({
-    close: onClose,
+    close: () => navigate("jira"),
     select: () => {
-      onApply(enabled);
+      setFilterAccountIds(enabled);
+      if (enabled.size > 0) {
+        setFilterMode("person");
+      } else {
+        setFilterMode("team");
+      }
+      setSelectedIndex(0);
+      navigate("jira");
     },
     toggle: () => {
       const item = items[cursorIndex];
