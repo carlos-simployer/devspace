@@ -16,15 +16,44 @@ import { ProjectsView } from "./views/projects/index.tsx";
 import { JiraView } from "./views/jira/index.tsx";
 import { ViewHeader } from "./components/view-header.tsx";
 import type { ViewId, BaseView } from "./ui/view-config.ts";
-import { getBaseView } from "./ui/view-config.ts";
 import { ViewContext } from "./ui/view-context.ts";
 import { RouterProvider, defineRoutes, useRouter } from "./ui/router.ts";
 
 // Placeholder component for route definitions (not rendered via RouteRenderer)
 const Noop = () => null;
 
-// Jira routes — used by RouterProvider for param extraction and route matching
-const jiraRoutes = defineRoutes({
+// All routes — used by RouterProvider for param extraction and route matching
+const routes = defineRoutes({
+  // PRs
+  prs: { component: Noop },
+  "prs/detail": { component: Noop },
+  "prs/help": { component: Noop, layout: "overlay" },
+  "prs/notifications": { component: Noop },
+  "prs/search": { component: Noop, layout: "overlay" },
+
+  // Dependencies
+  dependencies: { component: Noop },
+  "dependencies/help": { component: Noop, layout: "overlay" },
+  "dependencies/search": { component: Noop, layout: "overlay" },
+
+  // Pipelines
+  pipelines: { component: Noop },
+  "pipelines/help": { component: Noop, layout: "overlay" },
+  "pipelines/search": { component: Noop, layout: "overlay" },
+  "pipelines/runs": { component: Noop },
+
+  // Releases
+  releases: { component: Noop },
+  "releases/help": { component: Noop, layout: "overlay" },
+  "releases/search": { component: Noop, layout: "overlay" },
+
+  // Projects
+  projects: { component: Noop },
+  "projects/help": { component: Noop, layout: "overlay" },
+  "projects/add": { component: Noop, layout: "overlay" },
+  "projects/confirm": { component: Noop, layout: "overlay" },
+
+  // Jira
   jira: { component: Noop },
   "jira/detail/:key": { component: Noop },
   "jira/statusFilter": { component: Noop, layout: "overlay" },
@@ -32,13 +61,16 @@ const jiraRoutes = defineRoutes({
   "jira/sort": { component: Noop, layout: "overlay" },
   "jira/help": { component: Noop, layout: "overlay" },
   "jira/search": { component: Noop },
-  // Keep non-jira base routes so the router recognises them for tab switching
-  prs: { component: Noop },
-  dependencies: { component: Noop },
-  pipelines: { component: Noop },
-  releases: { component: Noop },
-  projects: { component: Noop },
+
+  // Config
   config: { component: Noop },
+  "config/addOrg": { component: Noop, layout: "overlay" },
+  "config/editAzureOrg": { component: Noop, layout: "overlay" },
+  "config/editAzureProject": { component: Noop, layout: "overlay" },
+  "config/editJiraSite": { component: Noop, layout: "overlay" },
+  "config/editJiraEmail": { component: Noop, layout: "overlay" },
+  "config/editJiraToken": { component: Noop, layout: "overlay" },
+  "config/editJiraProject": { component: Noop, layout: "overlay" },
 });
 
 interface Props {
@@ -94,54 +126,15 @@ function AppInner({ client, org, token }: Props) {
     unreadCount,
   } = useNotifications(token);
 
-  // Router — used by Jira view for sub-navigation
-  const { route, navigate: routerNavigate } = useRouter();
+  // Router — all views use router for sub-navigation
+  const { route, navigate: routerNavigate, baseRoute } = useRouter();
 
-  const [view, setViewRaw] = useState<ViewId>("prs");
-  const baseView = getBaseView(view);
-
-  // When switching base views, reset to the base
-  const setView = (v: ViewId) => setViewRaw(v);
-
-  // Legacy switchView for views not yet migrated
-  const switchView = (target?: string, reverse?: boolean) => {
-    if (target) {
-      setViewRaw(target as ViewId);
-    } else {
-      const VIEWS: BaseView[] = [
-        "prs",
-        "dependencies",
-        "pipelines",
-        "releases",
-        "projects",
-        "jira",
-        "config",
-      ];
-      const idx = VIEWS.indexOf(baseView);
-      const next = reverse
-        ? (idx - 1 + VIEWS.length) % VIEWS.length
-        : (idx + 1) % VIEWS.length;
-      setViewRaw(VIEWS[next]!);
-    }
+  // Derive view and baseView from the router for ViewContext compatibility
+  const view = route.replace(/\//g, ".") as ViewId;
+  const baseView = baseRoute as BaseView;
+  const setView = (v: ViewId) => {
+    routerNavigate(v.replace(/\./g, "/"));
   };
-
-  // Sync: when legacy ViewContext changes view away from jira, keep router in sync
-  // This ensures the router's baseRoute stays correct for non-jira views
-  useEffect(() => {
-    const routeBase = route.split("/")[0];
-    if (baseView !== routeBase) {
-      routerNavigate(baseView);
-    }
-  }, [baseView]);
-
-  // Sync: when router navigates to a different base view (from Jira's useRouteShortcuts
-  // handling tab/number keys), propagate back to ViewContext
-  useEffect(() => {
-    const routeBase = route.split("/")[0];
-    if (routeBase && routeBase !== baseView) {
-      setViewRaw(routeBase as ViewId);
-    }
-  }, [route]);
 
   // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
@@ -160,10 +153,7 @@ function AppInner({ client, org, token }: Props) {
 
   const contentHeight = height - measuredViewHeader;
 
-  // Use route for the ViewHeader when on the Jira tab (route-based shortcuts)
-  const headerRoute = baseView === "jira" ? route : undefined;
-
-  // PRView still manages its own header (will be migrated later)
+  // PRView still manages its own header
   if (baseView === "prs") {
     return (
       <ViewContext.Provider value={viewCtx}>
@@ -191,7 +181,7 @@ function AppInner({ client, org, token }: Props) {
   return (
     <ViewContext.Provider value={viewCtx}>
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} route={headerRoute} headerRef={viewHeaderRef} />
+        <ViewHeader view={view} route={route} headerRef={viewHeaderRef} />
 
         {baseView === "dependencies" && (
           <DependencyTracker
@@ -200,7 +190,6 @@ function AppInner({ client, org, token }: Props) {
             trackedPackages={config.trackedPackages}
             addPackage={addPackage}
             removePackage={removePackage}
-            onSwitchView={switchView}
             height={contentHeight}
             width={width}
             onQuit={exit}
@@ -212,7 +201,6 @@ function AppInner({ client, org, token }: Props) {
             config={config}
             addPinnedPipeline={addPinnedPipeline}
             removePinnedPipeline={removePinnedPipeline}
-            onSwitchView={switchView}
             height={contentHeight}
             width={width}
             onQuit={exit}
@@ -224,7 +212,6 @@ function AppInner({ client, org, token }: Props) {
             config={config}
             addPinnedReleaseDefinition={addPinnedReleaseDefinition}
             removePinnedReleaseDefinition={removePinnedReleaseDefinition}
-            onSwitchView={switchView}
             height={contentHeight}
             width={width}
             onQuit={exit}
@@ -236,7 +223,6 @@ function AppInner({ client, org, token }: Props) {
             localProjects={config.localProjects}
             addLocalProject={addLocalProject}
             removeLocalProject={removeLocalProject}
-            onSwitchView={switchView}
             height={contentHeight}
             width={width}
             onQuit={exit}
@@ -279,7 +265,6 @@ function AppInner({ client, org, token }: Props) {
             setAzureToken={setAzureToken}
             persistCache={config.persistCache}
             setPersistCache={setPersistCache}
-            onSwitchView={switchView}
             height={contentHeight}
             width={width}
             onQuit={exit}
@@ -295,7 +280,7 @@ function AppInner({ client, org, token }: Props) {
  */
 export function App({ client, org, token }: Props) {
   return (
-    <RouterProvider routes={jiraRoutes} initialRoute="prs">
+    <RouterProvider routes={routes} initialRoute="prs">
       <AppInner client={client} org={org} token={token} />
     </RouterProvider>
   );

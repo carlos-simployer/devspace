@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { AppView, Config, FocusArea } from "../../api/types.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
-import { useView } from "../../ui/view-context.ts";
+import type { Config, FocusArea } from "../../api/types.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
 import {
   useReleaseDefinitions,
   useReleases,
@@ -18,7 +18,6 @@ interface Props {
   config: Config;
   addPinnedReleaseDefinition: (id: number) => void;
   removePinnedReleaseDefinition: (id: number) => void;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   onQuit: () => void;
   height: number;
   width: number;
@@ -28,14 +27,13 @@ export function ReleasesView({
   config,
   addPinnedReleaseDefinition,
   removePinnedReleaseDefinition,
-  onSwitchView: _onSwitchView,
   onQuit,
   height,
   width,
 }: Props) {
-  const { view, setView } = useView();
-  const showHelp = view === "releases.help";
-  const showSearch = view === "releases.search";
+  const { route, navigate } = useRouter();
+  const showHelp = route === "releases/help";
+  const showSearch = route === "releases/search";
 
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [sidebarIndex, setSidebarIndex] = useState(0);
@@ -64,13 +62,13 @@ export function ReleasesView({
     await open(url);
   }, []);
 
-  useShortcuts(
+  useRouteShortcuts(
     {
       quit: onQuit,
       refresh: () => {
         // No-op for now (definitions auto-refresh)
       },
-      add: () => setView("releases.search"),
+      add: () => navigate("releases/search"),
       remove: () => {
         if (focus === "sidebar" && sidebarIndex < definitions.length) {
           const def = definitions[sidebarIndex];
@@ -93,7 +91,7 @@ export function ReleasesView({
       select: () => {
         if (focus === "sidebar") {
           if (sidebarIndex === definitions.length) {
-            setView("releases.search");
+            navigate("releases/search");
           }
         } else if (focus === "list" && releases.length > 0) {
           const release = releases[listIndex];
@@ -148,7 +146,12 @@ export function ReleasesView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay height={height} width={width} view="releases" />
+        <HelpOverlay
+          height={height}
+          width={width}
+          view="releases"
+          route="releases"
+        />
       </Box>
     );
   }
@@ -171,7 +174,7 @@ export function ReleasesView({
           onRemove={(id) => {
             removePinnedReleaseDefinition(id);
           }}
-          onClose={() => setView("releases")}
+          onClose={() => navigate("releases")}
           height={height}
           width={width}
         />

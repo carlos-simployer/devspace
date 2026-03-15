@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import { exec } from "child_process";
-import type { AppView, LocalProject } from "../../api/types.ts";
+import type { LocalProject } from "../../api/types.ts";
 import {
   useLocalProcesses,
   type ProcessState,
 } from "../../hooks/use-local-processes.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
-import { useView } from "../../ui/view-context.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
 import { getTheme } from "../../ui/index.ts";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { ProjectList } from "./project-list.tsx";
@@ -18,7 +18,6 @@ interface Props {
   localProjects: LocalProject[];
   addLocalProject: (project: LocalProject) => void;
   removeLocalProject: (name: string) => void;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
@@ -28,19 +27,18 @@ export function ProjectsView({
   localProjects,
   addLocalProject,
   removeLocalProject,
-  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
-  const { view, setView } = useView();
+  const { route, navigate } = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [logScroll, setLogScroll] = useState<number | null>(null); // null = auto-follow
   const [confirmKill, setConfirmKill] = useState<string | null>(null);
   const [uptimeTick, setUptimeTick] = useState(0);
 
-  const showHelp = view === "projects.help";
-  const showAdd = view === "projects.add";
+  const showHelp = route === "projects/help";
+  const showAdd = route === "projects/add";
 
   const { states, start, stop, restart, clearLogs, getDependents } =
     useLocalProcesses(localProjects);
@@ -67,7 +65,7 @@ export function ProjectsView({
   const currentOffset = () =>
     logScroll ?? Math.max(0, logState.logs.length - (height - 4));
 
-  useShortcuts(
+  useRouteShortcuts(
     {
       quit: () => onQuit(),
 
@@ -113,7 +111,7 @@ export function ProjectsView({
         );
         if (dependents.length > 0) {
           setConfirmKill(selected.name);
-          setView("projects.confirm");
+          navigate("projects/confirm");
         } else {
           stop(selected.name);
         }
@@ -130,7 +128,7 @@ export function ProjectsView({
           }
         }
       },
-      add: () => setView("projects.add"),
+      add: () => navigate("projects/add"),
       remove: () => {
         if (selected) {
           if (selectedState.status === "running") {
@@ -156,7 +154,7 @@ export function ProjectsView({
             stop(confirmKill);
           }
           setConfirmKill(null);
-          setView("projects");
+          navigate("projects");
         }
       },
     },
@@ -177,7 +175,12 @@ export function ProjectsView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay height={height} width={width} view="projects" />
+        <HelpOverlay
+          height={height}
+          width={width}
+          view="projects"
+          route="projects"
+        />
       </Box>
     );
   }
@@ -259,9 +262,9 @@ export function ProjectsView({
           existingNames={localProjects.map((p) => p.name)}
           onSubmit={(project) => {
             addLocalProject(project);
-            setView("projects");
+            navigate("projects");
           }}
-          onCancel={() => setView("projects")}
+          onCancel={() => navigate("projects")}
           width={width}
           height={height}
         />

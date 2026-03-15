@@ -4,14 +4,13 @@ import { TextInput } from "@inkjs/ui";
 import { exec } from "child_process";
 import { join } from "path";
 import { homedir } from "os";
-import type { AppView } from "../../api/types.ts";
 import { REFRESH_PRESETS } from "../../api/types.ts";
 import {
   clearQueryCache,
   getQueryCacheSize,
 } from "../../utils/query-persister.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
-import { useView } from "../../ui/view-context.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
 import {
   getTheme,
   getThemeNames,
@@ -45,7 +44,6 @@ interface Props {
   setAzureToken: (token: string) => void;
   persistCache: boolean;
   setPersistCache: (enabled: boolean) => void;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
@@ -104,28 +102,27 @@ export function ConfigView({
   setAzureToken,
   persistCache,
   setPersistCache,
-  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
-  const { view, setView } = useView();
+  const { route, navigate } = useRouter();
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
 
-  // Sync editing state to ViewContext
+  // Sync editing state to router
   useEffect(() => {
     if (editingField) {
-      setView("config.addOrg" as any); // any edit overlay
+      navigate("config/addOrg"); // any edit overlay
     } else if (
-      view !== "config" &&
-      view !== "config.addOrg" &&
-      !view.toString().startsWith("config.edit")
+      route !== "config" &&
+      route !== "config/addOrg" &&
+      !route.startsWith("config/edit")
     ) {
       // don't reset if on a different view entirely
-    } else if (!editingField && view !== "config") {
-      setView("config");
+    } else if (!editingField && route !== "config") {
+      navigate("config");
     }
   }, [editingField]);
 
@@ -258,7 +255,7 @@ export function ConfigView({
     { isActive: !!editingField },
   );
 
-  useShortcuts({
+  useRouteShortcuts({
     quit: onQuit,
     add: () => {
       if (section === "github") setEditingField("add-org");

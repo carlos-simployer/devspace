@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { Box, Text } from "ink";
-import type { AppView, FocusArea, TrackedPackage } from "../../api/types.ts";
+import type { FocusArea, TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
-import { useView } from "../../ui/view-context.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
 import { PackageList } from "./package-list.tsx";
 import { DepResults } from "./dep-results.tsx";
 import { DepStatusBar } from "./dep-status-bar.tsx";
@@ -16,7 +16,6 @@ interface Props {
   trackedPackages: string[];
   addPackage: (pkg: string) => void;
   removePackage: (pkg: string) => void;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   height: number;
   width: number;
   onQuit: () => void;
@@ -28,14 +27,13 @@ export function DependencyTracker({
   trackedPackages,
   addPackage,
   removePackage,
-  onSwitchView: _onSwitchView,
   height,
   width,
   onQuit,
 }: Props) {
-  const { view, setView } = useView();
-  const showHelp = view === "dependencies.help";
-  const showPackageSearch = view === "dependencies.search";
+  const { route, navigate } = useRouter();
+  const showHelp = route === "dependencies/help";
+  const showPackageSearch = route.startsWith("dependencies/search");
 
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [packageIndex, setPackageIndex] = useState(0);
@@ -76,13 +74,13 @@ export function DependencyTracker({
     await open(url);
   }, []);
 
-  useShortcuts(
+  useRouteShortcuts(
     {
       quit: onQuit,
       refresh: () => {
         if (selectedName) fetchPackage(selectedName, true);
       },
-      add: () => setView("dependencies.search"),
+      add: () => navigate("dependencies/search"),
       remove: () => {
         if (focus === "sidebar" && packageIndex < trackedPackages.length) {
           const pkg = trackedPackages[packageIndex];
@@ -95,7 +93,7 @@ export function DependencyTracker({
       open: () => {
         if (focus === "sidebar") {
           if (packageIndex === trackedPackages.length) {
-            setView("dependencies.search");
+            navigate("dependencies/search");
           }
         } else if (focus === "list" && selectedPackage) {
           const result = selectedPackage.results[resultIndex];
@@ -109,7 +107,7 @@ export function DependencyTracker({
       select: () => {
         if (focus === "sidebar") {
           if (packageIndex === trackedPackages.length) {
-            setView("dependencies.search");
+            navigate("dependencies/search");
           }
         } else if (focus === "list" && selectedPackage) {
           const result = selectedPackage.results[resultIndex];
@@ -162,7 +160,12 @@ export function DependencyTracker({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay height={height} width={width} view="dependencies" />
+        <HelpOverlay
+          height={height}
+          width={width}
+          view="dependencies"
+          route="dependencies"
+        />
       </Box>
     );
   }
@@ -180,7 +183,7 @@ export function DependencyTracker({
           onSelect={(pkg) => {
             addPackage(pkg);
           }}
-          onClose={() => setView("dependencies")}
+          onClose={() => navigate("dependencies")}
           height={height}
           width={width}
         />

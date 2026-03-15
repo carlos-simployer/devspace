@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { AppView, Config, FocusArea } from "../../api/types.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
-import { useView } from "../../ui/view-context.ts";
+import type { Config, FocusArea } from "../../api/types.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
 import { usePipelines } from "../../hooks/use-pipelines.ts";
 import { useAllPipelineDefinitions } from "../../hooks/use-pipelines.ts";
 import { usePipelineRuns } from "../../hooks/use-pipeline-runs.ts";
@@ -17,7 +17,6 @@ interface Props {
   config: Config;
   addPinnedPipeline: (id: number) => void;
   removePinnedPipeline: (id: number) => void;
-  onSwitchView: (target?: AppView, reverse?: boolean) => void;
   onQuit: () => void;
   height: number;
   width: number;
@@ -27,15 +26,14 @@ export function PipelinesView({
   config,
   addPinnedPipeline,
   removePinnedPipeline,
-  onSwitchView: _onSwitchView,
   onQuit,
   height,
   width,
 }: Props) {
-  const { view, setView } = useView();
-  const showHelp = view === "pipelines.help";
-  const showSearch = view === "pipelines.search";
-  const showRuns = view === "pipelines.runs";
+  const { route, navigate } = useRouter();
+  const showHelp = route === "pipelines/help";
+  const showSearch = route === "pipelines/search";
+  const showRuns = route === "pipelines/runs";
 
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [sidebarIndex, setSidebarIndex] = useState(0);
@@ -72,11 +70,11 @@ export function PipelinesView({
     await open(url);
   }, []);
 
-  useShortcuts(
+  useRouteShortcuts(
     {
       quit: onQuit,
       refresh: () => refetch(),
-      add: () => setView("pipelines.search"),
+      add: () => navigate("pipelines/search"),
       remove: () => {
         if (
           focus === "sidebar" &&
@@ -96,18 +94,18 @@ export function PipelinesView({
         }
       },
       runs: () => {
-        if (selectedPipeline) setView("pipelines.runs");
+        if (selectedPipeline) navigate("pipelines/runs");
       },
       select: () => {
         if (focus === "sidebar") {
           if (sidebarIndex === config.pinnedPipelines.length) {
-            setView("pipelines.search");
+            navigate("pipelines/search");
           } else {
             setListIndex(sidebarIndex);
             setFocus("list");
           }
         } else if (selectedPipeline) {
-          setView("pipelines.runs");
+          navigate("pipelines/runs");
         }
       },
       left: () => setFocus("sidebar"),
@@ -155,7 +153,12 @@ export function PipelinesView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay height={height} width={width} view="pipelines" />
+        <HelpOverlay
+          height={height}
+          width={width}
+          view="pipelines"
+          route="pipelines"
+        />
       </Box>
     );
   }
@@ -171,7 +174,7 @@ export function PipelinesView({
         width={width}
         azureOrg={config.azureOrg}
         azureProject={config.azureProject}
-        onClose={() => setView("pipelines")}
+        onClose={() => navigate("pipelines")}
         onOpenInBrowser={openInBrowser}
       />
     );
@@ -195,7 +198,7 @@ export function PipelinesView({
           onRemove={(id) => {
             removePinnedPipeline(id);
           }}
-          onClose={() => setView("pipelines")}
+          onClose={() => navigate("pipelines")}
           height={height}
           width={width}
         />

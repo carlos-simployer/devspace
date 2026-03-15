@@ -18,10 +18,9 @@ import type {
 import type { GitHubNotification } from "../../hooks/use-notifications.ts";
 import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
-import { useView } from "../../ui/view-context.ts";
-import { matchShortcut, getBarShortcuts } from "../../ui/shortcut-registry.ts";
-import type { ViewId } from "../../ui/view-config.ts";
-import { getTabNumberKeys } from "../../ui/view-config.ts";
+import { useRouter } from "../../ui/router.ts";
+import { matchShortcut, getBarShortcuts } from "../../ui/route-shortcuts.ts";
+import { getTabNumberKeys } from "../../ui/tabs.ts";
 import { Sidebar } from "./sidebar.tsx";
 import { PRList } from "./pr-list.tsx";
 import { StatusBar } from "./status-bar.tsx";
@@ -74,22 +73,22 @@ export function PRView({
   height,
   width,
 }: Props) {
-  const { view, setView } = useView();
+  const { route, navigate } = useRouter();
 
-  // Derive sub-view state from view context
-  const showHelp = view === "prs.help";
-  const showDetail = view === "prs.detail";
-  const showNotifications = view === "prs.notifications";
-  const showRepoSearch = view === "prs.search";
+  // Derive sub-view state from router route
+  const showHelp = route === "prs/help";
+  const showDetail = route === "prs/detail";
+  const showNotifications = route === "prs/notifications";
+  const showRepoSearch = route === "prs/search";
 
   // Open search overlay on first launch
   const firstLaunchHandled = useRef(false);
   useEffect(() => {
-    if (isFirstLaunch && !firstLaunchHandled.current && view === "prs") {
+    if (isFirstLaunch && !firstLaunchHandled.current && route === "prs") {
       firstLaunchHandled.current = true;
-      setView("prs.search");
+      navigate("prs/search");
     }
-  }, [isFirstLaunch, view, setView]);
+  }, [isFirstLaunch, route, navigate]);
 
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [focus, setFocus] = useState<FocusArea>("list");
@@ -219,7 +218,7 @@ export function PRView({
     if (showNotifications) return;
 
     if (showHelp) {
-      if (input === "?" || key.escape) setView("prs");
+      if (input === "?" || key.escape) navigate("prs");
       return;
     }
 
@@ -294,8 +293,8 @@ export function PRView({
       if (key.escape) return;
     }
 
-    // Match against shortcut registry (view-specific + global)
-    const action = matchShortcut(input, key, view);
+    // Match against shortcut registry (route-specific + global)
+    const action = matchShortcut(input, key, route);
 
     // Global shortcuts
     if (action === "quit") {
@@ -303,40 +302,42 @@ export function PRView({
       return;
     }
     if (action === "help") {
-      setView("prs.help");
+      navigate("prs/help");
       return;
     }
     if (action === "nextView") {
-      const VIEWS: ViewId[] = [
+      const VIEWS = [
         "prs",
         "dependencies",
         "pipelines",
         "releases",
         "projects",
+        "jira",
         "config",
       ];
       const idx = VIEWS.indexOf("prs");
-      setView(VIEWS[(idx + 1) % VIEWS.length]!);
+      navigate(VIEWS[(idx + 1) % VIEWS.length]!);
       return;
     }
     if (action === "prevView") {
-      const VIEWS: ViewId[] = [
+      const VIEWS = [
         "prs",
         "dependencies",
         "pipelines",
         "releases",
         "projects",
+        "jira",
         "config",
       ];
       const idx = VIEWS.indexOf("prs");
-      setView(VIEWS[(idx - 1 + VIEWS.length) % VIEWS.length]!);
+      navigate(VIEWS[(idx - 1 + VIEWS.length) % VIEWS.length]!);
       return;
     }
 
-    // Tab number keys (1-6)
+    // Tab number keys (1-7)
     const tabKeys = getTabNumberKeys();
     if (tabKeys[input]) {
-      setView(tabKeys[input]!);
+      navigate(tabKeys[input]!);
       return;
     }
 
@@ -367,7 +368,7 @@ export function PRView({
       return;
     }
     if (action === "add") {
-      setView("prs.search");
+      navigate("prs/search");
       return;
     }
     if (action === "sort") {
@@ -378,7 +379,7 @@ export function PRView({
       return;
     }
     if (action === "notifications") {
-      setView("prs.notifications");
+      navigate("prs/notifications");
       return;
     }
     if (action === "clearSearch") {
@@ -405,7 +406,7 @@ export function PRView({
       if (action === "down") setSidebarIndex((i) => Math.min(maxIdx, i + 1));
       if (action === "select" || action === "open") {
         if (sidebarIndex === sidebarItems.length) {
-          setView("prs.search");
+          navigate("prs/search");
           return;
         }
       }
@@ -427,7 +428,7 @@ export function PRView({
       if (action === "select" || action === "detail") {
         if (prs[listIndex]) {
           markViewed(prs[listIndex]!.id);
-          setView("prs.detail");
+          navigate("prs/detail");
         }
       }
       if (action === "open") {
@@ -510,7 +511,7 @@ export function PRView({
   );
   const listWidth = width - sidebarWidth;
 
-  const barShortcuts = getBarShortcuts(view);
+  const barShortcuts = getBarShortcuts(route);
 
   // Height of the shared header (TabBar + Shortcuts + border)
   const sharedHeaderHeight = 3;
@@ -518,11 +519,12 @@ export function PRView({
   if (showHelp) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
+        <ViewHeader view={"prs" as any} route={route} />
         <HelpOverlay
           height={height - sharedHeaderHeight}
           width={width}
           view="prs"
+          route="prs"
         />
       </Box>
     );
@@ -531,7 +533,7 @@ export function PRView({
   if (showDetail && prs[listIndex]) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
+        <ViewHeader view={"prs.detail" as any} route={route} />
         <PRDetailPanel
           pr={prs[listIndex]!}
           detail={prDetail}
@@ -539,7 +541,7 @@ export function PRView({
           error={detailError}
           height={height - sharedHeaderHeight}
           width={width}
-          onClose={() => setView("prs")}
+          onClose={() => navigate("prs")}
           onOpenInBrowser={openInBrowser}
         />
       </Box>
@@ -549,13 +551,13 @@ export function PRView({
   if (showNotifications) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
+        <ViewHeader view={"prs.notifications" as any} route={route} />
         <NotificationsView
           notifications={notifications}
           loading={notifLoading}
           height={height - sharedHeaderHeight}
           width={width}
-          onClose={() => setView("prs")}
+          onClose={() => navigate("prs")}
           onOpenInBrowser={openInBrowser}
         />
       </Box>
@@ -580,7 +582,7 @@ export function PRView({
           onRemove={(repo) => {
             removeRepo(repo);
           }}
-          onClose={() => setView("prs")}
+          onClose={() => navigate("prs")}
           height={height}
           width={width}
         />
