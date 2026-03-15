@@ -101,6 +101,12 @@ export function useShortcuts(
       }
     }
 
+    // Esc closes help overlay from any .help view
+    if (key.escape && view.endsWith(".help")) {
+      setView(view.replace(".help", "") as ViewId);
+      return;
+    }
+
     // Tab number keys
     const tabKeys = getTabNumberKeys();
     if (tabKeys[input]) {
