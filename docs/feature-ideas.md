@@ -93,31 +93,9 @@
 
 ---
 
-## Config View Redesign
+## Config View Redesign -- IMPLEMENTED
 
-Currently 6 sections at 16% width each — too cramped and doesn't scale.
-
-**Proposed: Tabbed sections (option A)** — show one section at a time, full width. Left/right to switch sections.
-
-```
-                        [Jira]
-────────────────────────────────────────────
-  Site:           simployer.atlassian.net
-  Email:          carlos@simployer.com
-  API Token:      ●●●●●●●●
-  Project:        UUX
-  Status Order:   In Progress, In Review, To Do, Done
-  Default Filter: Mine
-  Show Done:      ● Last 20  ○ Last 50  ○ None
-
-  ←/→ section │ ↑/↓ navigate │ Enter edit │ e open config
-```
-
-- **Left/Right** — switch section
-- **Up/Down** — navigate items within section (scrollable if many items via useListViewport)
-- **Enter** — edit selected item (overlay or toggle)
-- Same mental model as current, just full width per section
-- Scales to any number of items per section
+Implemented as tool-based sections: one section visible at a time, full width. Left/right to switch sections, up/down to navigate items, Enter to edit. Uses `useRouteShortcuts` for keyboard handling. Section overlays (addOrg, editAzureOrg, etc.) sync to the router via `navigate("config/addOrg")` etc.
 
 ---
 

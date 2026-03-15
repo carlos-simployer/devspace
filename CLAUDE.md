@@ -38,10 +38,16 @@ src/
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
 │   ├── theme.ts                 # Centralized color + icon constants
-│   ├── shortcut-registry.ts     # Single source of truth for all keyboard shortcuts
-│   ├── shortcut-registry.test.ts # Tests for shortcut registry
-│   ├── view-config.ts           # ViewId type system, view definitions, tab/bar config
-│   ├── view-context.ts          # React context for current view + setView navigation
+│   ├── router.ts                # RouterProvider, useRouter, defineRoutes, RouteRenderer
+│   ├── router.test.tsx          # Router tests (param extraction, navigation, goBack)
+│   ├── route-shortcuts.ts       # All keyboard shortcuts grouped by route path
+│   ├── route-shortcuts.test.ts  # Tests for route-based shortcut system
+│   ├── tabs.ts                  # TABS array, getTabViews, getTabNumberKeys, getBaseRoute
+│   ├── tabs.test.ts             # Tests for tab system
+│   ├── shortcut-registry.ts     # [LEGACY] Old view-based shortcut registry (still imported by bridge components)
+│   ├── shortcut-registry.test.ts # [LEGACY] Tests for old shortcut registry
+│   ├── view-config.ts           # [LEGACY] ViewId/BaseView types, VIEW_CONFIG (still used by bridge in app.tsx)
+│   ├── view-context.ts          # [LEGACY] ViewContext/useView (still used by bridge in app.tsx)
 │   ├── selectable-list-item.tsx # Blue-bg selected row component
 │   ├── tab-item.tsx             # Single tab label component
 │   ├── use-list-viewport.ts     # Viewport windowing hook for scrollable lists
@@ -50,7 +56,7 @@ src/
 │   └── keyboard-hint.tsx        # Dim hint text component
 ├── views/                       # View modules (each owns its state + shortcuts)
 │   ├── prs/                     # PR dashboard view
-│   │   ├── index.tsx            # PRView — owns all PR state and useShortcuts
+│   │   ├── index.tsx            # PRView — owns all PR state, uses useRouter + matchShortcut
 │   │   ├── sidebar.tsx          # Pinned repos sidebar
 │   │   ├── pr-list.tsx          # Scrollable PR list
 │   │   ├── pr-row.tsx           # Single PR row
@@ -63,13 +69,13 @@ src/
 │   │       ├── files-tab.tsx    # Changed file list + expansion
 │   │       └── diff-view.tsx    # Patch line rendering
 │   ├── dependencies/            # Dependency tracker view
-│   │   ├── index.tsx            # DependencyTracker component
+│   │   ├── index.tsx            # DependencyTracker — uses useRouteShortcuts
 │   │   ├── package-list.tsx     # Tracked packages sidebar
 │   │   ├── package-search.tsx   # Package name search overlay
 │   │   ├── dep-results.tsx      # Repos using a tracked package
 │   │   └── dep-status-bar.tsx   # Dep view status bar
 │   ├── pipelines/               # Azure DevOps pipelines view
-│   │   ├── index.tsx            # PipelinesView — pipeline monitoring
+│   │   ├── index.tsx            # PipelinesView — uses useRouteShortcuts
 │   │   ├── pipeline-sidebar.tsx # Pinned pipelines sidebar
 │   │   ├── pipeline-list.tsx    # Pipeline build list
 │   │   ├── pipeline-row.tsx     # Single pipeline row
@@ -77,34 +83,36 @@ src/
 │   │   ├── pipeline-search.tsx  # Pipeline search overlay
 │   │   └── status-bar.tsx       # Pipeline status bar
 │   ├── releases/                # Azure DevOps releases view
-│   │   ├── index.tsx            # ReleasesView — release tracking
+│   │   ├── index.tsx            # ReleasesView — uses useRouteShortcuts
 │   │   ├── definition-sidebar.tsx # Release definitions sidebar
 │   │   ├── definition-search.tsx  # Definition search overlay
 │   │   ├── release-list.tsx     # Release list
 │   │   ├── release-row.tsx      # Single release row
 │   │   └── status-bar.tsx       # Release status bar
 │   ├── projects/                # Local projects runner view
-│   │   ├── index.tsx            # ProjectsView — process start/stop, log panel
+│   │   ├── index.tsx            # ProjectsView — uses useRouteShortcuts
 │   │   ├── project-list.tsx     # Project list with status indicators
 │   │   ├── log-panel.tsx        # Live log detail panel (right side)
 │   │   └── add-project.tsx      # Multi-step add project wizard
 │   ├── jira/                    # Jira issue tracker view
-│   │   ├── index.tsx            # JiraView — issue list, filter, search, member select
+│   │   ├── index.tsx            # JiraView — uses useRouteShortcuts + useRouter
 │   │   ├── issue-list.tsx       # Issue list grouped by status
 │   │   ├── issue-row.tsx        # Single issue row
 │   │   ├── status-bar.tsx       # Jira status bar (filter mode, project, counts)
-│   │   ├── member-select.tsx    # Team member select overlay
+│   │   ├── status-filter.tsx    # Status filter overlay (useRouteShortcuts)
+│   │   ├── sort-overlay.tsx     # Sort overlay (useRouteShortcuts)
+│   │   ├── member-select.tsx    # Team member select overlay (useRouteShortcuts)
 │   │   └── issue-detail/        # Issue detail panel (sub-view)
 │   │       ├── index.tsx        # Tab switching (overview/comments/subtasks) + scroll
 │   │       ├── overview-tab.tsx # Issue metadata, description, status
 │   │       ├── comments-tab.tsx # Issue comments
 │   │       └── subtasks-tab.tsx # Subtask list
 │   └── config/                  # Configuration view
-│       └── index.tsx            # Org management, refresh interval, Jira settings, edit config
+│       └── index.tsx            # Tool-based sections, uses useRouteShortcuts
 ├── components/                  # Shared cross-view components
-│   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar)
-│   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from registry)
-│   ├── tab-bar.tsx              # View switcher tab bar (reads from view-config)
+│   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar, reads from route-shortcuts)
+│   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from route-shortcuts)
+│   ├── tab-bar.tsx              # View switcher tab bar (reads from tabs.ts)
 │   └── shortcuts.tsx            # Bottom shortcut hint bar
 ├── hooks/                       # React hooks
 │   ├── use-config.ts            # Config read/write (~/.config/github-pr-dash/)
@@ -115,8 +123,8 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   ├── use-shortcuts.ts         # Shortcut hook (replaces useInput in views)
-│   ├── use-global-keys.ts       # handleGlobalKeys() (legacy, being replaced by useShortcuts)
+│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (replaces useShortcuts)
+│   ├── use-shortcuts.ts         # [LEGACY] Old view-based shortcut hook (zero imports, safe to delete)
 │   ├── use-local-processes.ts   # Child process management for local projects
 │   ├── use-pipelines.ts         # Azure DevOps pipeline data
 │   ├── use-pipeline-runs.ts     # Pipeline run history
@@ -136,50 +144,70 @@ src/
 │   ├── reviewers.ts             # Reviewer info + hex color conversion
 │   ├── fuzzy.ts                 # Fuzzy match/score for search
 │   └── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
-├── app.tsx                      # ViewContext.Provider + ViewHeader, view switching
+├── app.tsx                      # RouterProvider + ViewContext bridge, ViewHeader, view switching
 ├── index.tsx                    # Entry point: auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
 
 ### Entry & Auth Flow
 
-`src/index.tsx` resolves auth (`gh auth token` → `GITHUB_TOKEN` env → exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`.
+`src/index.tsx` resolves auth (`gh auth token` -> `GITHUB_TOKEN` env -> exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">` before rendering `AppInner`.
 
-### View Architecture
+### View Architecture (Router-based)
 
-`src/app.tsx` wraps views in a `ViewContext.Provider` and renders a shared `ViewHeader` component (TabBar + Shortcuts bar). View switching and sub-view navigation use the `ViewId` type from `src/ui/view-config.ts`.
+`src/app.tsx` wraps the entire app in a `RouterProvider` (from `src/ui/router.ts`) and renders a shared `ViewHeader` component (TabBar + Shortcuts bar). Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"config/addOrg"`).
+
+The router system consists of 3 key files:
+- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`. Routes are defined in `app.tsx` via `defineRoutes()` with path patterns (supporting `:param` placeholders), component references, and optional `layout: "overlay"` flag.
+- **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
+- **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
+
+**Legacy bridge:** `app.tsx` still maintains a `ViewContext.Provider` that derives `ViewId`/`BaseView` from the router state for backward compatibility with shared components (`view-header.tsx`, `help-overlay.tsx`, `tab-bar.tsx`). These components accept an optional `route` prop and prefer the new route-based system when provided, falling back to the legacy view-based system otherwise.
 
 Each view in `src/views/` is self-contained:
-- **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, input handling, and sub-components (sidebar, list, detail panel, overlays)
-- **DependencyTracker** (`views/dependencies/index.tsx`) — owns dependency search state and layout
-- **PipelinesView** (`views/pipelines/index.tsx`) — Azure DevOps pipeline monitoring
-- **ReleasesView** (`views/releases/index.tsx`) — Azure DevOps release tracking
-- **ProjectsView** (`views/projects/index.tsx`) — local dev project runner with process management, log panel, dependency-aware start/stop
-- **JiraView** (`views/jira/index.tsx`) — Jira Cloud issue tracker with filter modes (mine/team/person), status-grouped issue list, issue detail panel (overview/comments/subtasks tabs), team member select overlay
-- **ConfigView** (`views/config/index.tsx`) — org management, refresh interval, theme, Azure DevOps settings, Jira settings, open config in VS Code (e)
+- **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, uses `useRouter()` + `matchShortcut()` directly (not yet migrated to `useRouteShortcuts`)
+- **DependencyTracker** (`views/dependencies/index.tsx`) — uses `useRouteShortcuts`
+- **PipelinesView** (`views/pipelines/index.tsx`) — uses `useRouteShortcuts`
+- **ReleasesView** (`views/releases/index.tsx`) — uses `useRouteShortcuts`
+- **ProjectsView** (`views/projects/index.tsx`) — uses `useRouteShortcuts`
+- **JiraView** (`views/jira/index.tsx`) — uses `useRouteShortcuts` + `useRouter` for parameterized detail routes
+- **ConfigView** (`views/config/index.tsx`) — tool-based sections with left/right navigation, uses `useRouteShortcuts`
 
-Views use `useShortcuts` from `src/hooks/use-shortcuts.ts` instead of raw `useInput`. This hook reads the current `ViewId` from `ViewContext`, matches keyboard input against the shortcut registry, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-7) are handled automatically.
+Views use `useRouteShortcuts` from `src/hooks/use-route-shortcuts.ts`. This hook reads the current route from `RouterContext`, matches keyboard input against `ROUTE_SHORTCUTS`, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-7) are handled automatically.
+
+#### useRouteShortcuts Behavior
+
+- **Auto-scope:** The hook automatically scopes to the current route from `RouterContext` -- no manual `scope` parameter needed.
+- **`active` flag:** Set to `false` to disable during text input modes (search typing, etc.).
+- **`onUnhandled`:** Fallback for keys not matching any shortcut.
+- **Help overlay:** When on a `/help` route, `?` and `Esc` automatically close it (navigate back). Tab switching and quit still work from help overlays.
+- **Global shortcuts** (quit, help, tab switch) are always active within any route.
 
 #### View Sub-state Pattern
 
-Sub-view navigation uses `setView` from the context (e.g., `setView("prs.detail")`, `setView("jira.detail")`, `setView("jira.memberSelect")`). Views derive boolean state from the current ViewId:
+Sub-view navigation uses `navigate()` from `useRouter()` (e.g., `navigate("prs/detail")`, `navigate("jira/detail/UUX-1629")`, `navigate("jira/memberSelect")`). Views derive boolean state from the current route:
 
 ```tsx
-const showHelp = view === "jira.help";
-const showDetail = view === "jira.detail";
-const showMemberSelect = view === "jira.memberSelect";
+const { route, navigate } = useRouter();
+const showHelp = route === "jira/help";
+const showDetail = route.startsWith("jira/detail/");
+const showMemberSelect = route === "jira/memberSelect";
 ```
 
-Early returns render sub-views in priority order: not-configured, then full-screen overlays (member-select, help, detail, search), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current `ViewId`.
+Early returns render sub-views in priority order: not-configured, then full-screen overlays (member-select, help, detail, search), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current route.
+
+#### goBack() Navigation
+
+The router maintains a history stack. `goBack()` pops the previous route from the stack, enabling natural back-navigation from detail views and overlays. This is useful for parameterized routes where the caller route is not statically known.
 
 #### Overlay Pattern
 
 There are two types of overlays:
 
-**Full-screen overlays** (search, member select, help, detail panels) use the early-return pattern — the overlay replaces the view content entirely while the shared `ViewHeader` from `app.tsx` stays visible above:
+**Full-screen overlays** (search, member select, help, detail panels) use the early-return pattern -- the overlay replaces the view content entirely while the shared `ViewHeader` from `app.tsx` stays visible above:
 
 ```tsx
-if (showSearch) {
+if (route === "pipelines/search") {
   return (
     <Box height={height} width={width} alignItems="center" justifyContent="center">
       <PipelineSearch ... />
@@ -188,17 +216,17 @@ if (showSearch) {
 }
 ```
 
-These set the view via context (`setView("pipelines.search")`). The main view's `useShortcuts` won't fire because scope awareness prevents it.
+These navigate via `navigate("pipelines/search")`. The main view's `useRouteShortcuts` won't fire because the route no longer matches.
 
-**Small input overlays** (config edit dialogs, confirm dialogs) use `position="absolute"` centered on screen, rendered within the main view's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Overlay state must be synced to `ViewContext` so main shortcuts don't interfere:
+**Small input overlays** (config edit dialogs, confirm dialogs) use `position="absolute"` centered on screen, rendered within the main view's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Overlay state is synced to the router so main shortcuts don't interfere:
 
 ```tsx
-// In config view: sync local overlay state → ViewContext
+// In config view: sync local overlay state -> router
 useEffect(() => {
-  if (showAddOrg) setView("config.addOrg");
-  else if (showEditAzureOrg) setView("config.editAzureOrg");
+  if (showAddOrg) navigate("config/addOrg");
+  else if (showEditAzureOrg) navigate("config/editAzureOrg");
   // ...
-  else if (view.startsWith("config.")) setView("config");
+  else if (route.startsWith("config/")) navigate("config");
 }, [showAddOrg, showEditAzureOrg, ...]);
 ```
 
@@ -271,9 +299,9 @@ Config fields:
 
 Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **theme.ts** — `colors` and `icons` constants used throughout the app
-- **shortcut-registry.ts** — single source of truth for all keyboard shortcuts (see Shortcut System below)
-- **view-config.ts** — `ViewId` type (includes sub-views like `"prs.detail"`, `"jira.detail"`, `"jira.memberSelect"`), `BaseView` type, `VIEW_CONFIG` with tab labels and bar action lists, plus helpers: `getBaseView()`, `getTabViews()`, `getTabNumberKeys()`. Tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last)
-- **view-context.ts** — React context providing `{ view, setView, baseView }` to the component tree; consumed via `useView()` hook
+- **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, navigate, goBack }`. `defineRoutes()` creates the route map from path patterns. `RouteRenderer` matches the current route and renders the component.
+- **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
+- **tabs.ts** — `TABS` array defining tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 - **SelectableListItem** — row with blue background when selected
 - **TabItem** — single tab label component
 - **useListViewport** — handles viewport windowing for scrollable lists
@@ -281,29 +309,40 @@ Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **StatusBarLayout** — consistent status bar wrapper
 - **KeyboardHint** — dim hint text for keyboard shortcuts
 
-Import these via `from "../ui/index.ts"` or `from "../ui/theme.ts"`.
+**Legacy (still present, pending removal):**
+- **view-config.ts** — `ViewId`/`BaseView` types, `VIEW_CONFIG`. Used by the ViewContext bridge in `app.tsx` and shared components.
+- **view-context.ts** — `ViewContext`/`useView()`. Used by the bridge layer in `app.tsx`.
+- **shortcut-registry.ts** — old flat `SHORTCUTS` array. Used by legacy fallback paths in `view-header.tsx` and `help-overlay.tsx`.
 
-### Shortcut System
+Import these via `from "../ui/index.ts"` or directly (e.g. `from "../ui/router.ts"`, `from "../ui/route-shortcuts.ts"`).
 
-All keyboard shortcuts are defined once in `src/ui/shortcut-registry.ts` as a flat `SHORTCUTS` array. Each entry has:
-- `action` — action name (e.g. `"open"`, `"filterMine"`)
-- `key` — trigger key (character or special: `"tab"`, `"return"`, `"escape"`, `"up"`, `"down"`, etc.)
-- `view` — `ViewId` this shortcut is active in; `undefined` = global (always active)
-- `label` — short label for the bottom bar (optional; only entries with a label appear in the bar)
-- `help` — description for the help overlay
+### Shortcut System (Route-based)
 
-Query helpers derive UI from the registry:
-- `getBarShortcuts(viewId)` — returns `[{key, label}]` for the bottom bar, filtered by `VIEW_CONFIG[viewId].bar` action names
-- `getHelpShortcuts(viewId)` — returns `[key, help]` pairs for the help overlay (view-specific + globals)
-- `matchShortcut(input, key, viewId)` — matches Ink's `useInput` args against the registry; view-specific shortcuts take precedence over globals
+All keyboard shortcuts are defined in `src/ui/route-shortcuts.ts` as `ROUTE_SHORTCUTS` -- an object keyed by route path. Each route maps key strings to `ShortcutDef` objects:
+- `action` -- action name (e.g. `"open"`, `"filterMine"`)
+- `key` -- trigger key (character or special: `"tab"`, `"return"`, `"escape"`, `"up"`, `"down"`, etc.)
+- `label` -- short label for the bottom bar (optional; only entries with a label appear in the bar)
+- `help` -- description for the help overlay
 
-**Adding a new shortcut:** Add one entry to the `SHORTCUTS` array in `shortcut-registry.ts`, then add a handler for that action name in the view's `useShortcuts` call. If it should appear in the bottom bar, also add its action name to `VIEW_CONFIG[viewId].bar` in `view-config.ts`.
+The special `_global` key defines shortcuts active on all routes (quit, help, tab switching).
 
-**Scope awareness:** `useShortcuts(handlers, { scope: "jira.detail" })` only fires when `view === scope` (exact match). When `scope` is omitted, it defaults to `baseView` (e.g. `"jira"`), which means handlers fire only on the exact base view — not on sub-views like `"jira.detail"` or `"jira.memberSelect"`. Sub-view components MUST specify their scope explicitly. Global shortcuts (quit, tab switching) still work from any sub-view within the same base view.
+Bottom bar configuration is in `ROUTE_BAR` -- a separate object mapping route paths to arrays of action names that should appear in the bar.
 
-**When to use `useShortcuts` vs `useInput`:**
-- `useShortcuts` — for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
-- `useInput` — only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`) should use `useShortcuts` with scope, not `useInput`.
+Query helpers:
+- `getBarShortcuts(route)` -- returns `[{key, label}]` for the bottom bar, using `ROUTE_BAR[route]` to select which actions to show
+- `getHelpShortcuts(route)` -- returns `[key, help]` pairs for the help overlay (route-specific + base route + globals)
+- `matchShortcut(input, key, route)` -- matches Ink's `useInput` args against the route's shortcuts; route-specific take precedence over globals
+
+**Adding a new shortcut:**
+1. Add the `ShortcutDef` entry to `ROUTE_SHORTCUTS[route]` in `route-shortcuts.ts`
+2. Add a handler for that action name in the view's `useRouteShortcuts` call
+3. If it should appear in the bottom bar, add its action name to `ROUTE_BAR[route]`
+
+**`useRouteShortcuts` behavior:** Auto-scopes from the current route via `RouterContext`. No manual scope needed -- the hook only fires handlers for shortcuts defined on the current route. Global shortcuts (quit, help, tab switching) are handled automatically. The `active` flag can disable shortcuts during text input modes.
+
+**When to use `useRouteShortcuts` vs `useInput`:**
+- `useRouteShortcuts` -- for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
+- `useInput` -- only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`, `SortOverlay`) should use `useRouteShortcuts`, not `useInput`.
 
 ### Status Mapping
 
