@@ -52,15 +52,27 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "refresh" | "theme" | "azure" | "jira" | "cache";
-const SECTIONS: Section[] = [
-  "orgs",
-  "refresh",
-  "theme",
-  "azure",
-  "jira",
-  "cache",
-];
+// -- Section definitions --
+
+type Section = "github" | "azure" | "jira" | "system";
+const SECTIONS: Section[] = ["github", "azure", "jira", "system"];
+
+const SECTION_LABELS: Record<Section, string> = {
+  github: "GitHub",
+  azure: "Azure DevOps",
+  jira: "Jira",
+  system: "System",
+};
+
+interface ConfigItem {
+  key: string;
+  label: string;
+  type: "text" | "select" | "action";
+  value?: string;
+  options?: Array<{ label: string; value: any; active: boolean }>;
+  actionLabel?: string;
+  color?: string;
+}
 
 export function ConfigView({
   orgs,
@@ -90,169 +102,151 @@ export function ConfigView({
   onQuit,
 }: Props) {
   const { view, setView } = useView();
-  const [section, setSection] = useState<Section>("orgs");
+  const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [showAddOrg, setShowAddOrg] = useState(false);
-  const [showEditAzureOrg, setShowEditAzureOrg] = useState(false);
-  const [showEditAzureProject, setShowEditAzureProject] = useState(false);
-  const [showEditJiraSite, setShowEditJiraSite] = useState(false);
-  const [showEditJiraEmail, setShowEditJiraEmail] = useState(false);
-  const [showEditJiraToken, setShowEditJiraToken] = useState(false);
-  const [showEditJiraProject, setShowEditJiraProject] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
 
-  // Sync overlay state -> ViewContext so shortcuts are scoped correctly
+  // Sync editing state to ViewContext
   useEffect(() => {
-    if (showAddOrg) {
-      setView("config.addOrg");
-    } else if (showEditAzureOrg) {
-      setView("config.editAzureOrg");
-    } else if (showEditAzureProject) {
-      setView("config.editAzureProject");
-    } else if (showEditJiraSite) {
-      setView("config.editJiraSite");
-    } else if (showEditJiraEmail) {
-      setView("config.editJiraEmail");
-    } else if (showEditJiraToken) {
-      setView("config.editJiraToken");
-    } else if (showEditJiraProject) {
-      setView("config.editJiraProject");
+    if (editingField) {
+      setView("config.addOrg" as any); // any edit overlay
     } else if (
-      view === "config.addOrg" ||
-      view === "config.editAzureOrg" ||
-      view === "config.editAzureProject" ||
-      view === "config.editJiraSite" ||
-      view === "config.editJiraEmail" ||
-      view === "config.editJiraToken" ||
-      view === "config.editJiraProject"
+      view !== "config" &&
+      view !== "config.addOrg" &&
+      !view.toString().startsWith("config.edit")
     ) {
+      // don't reset if on a different view entirely
+    } else if (!editingField && view !== "config") {
       setView("config");
     }
-  }, [
-    showAddOrg,
-    showEditAzureOrg,
-    showEditAzureProject,
-    showEditJiraSite,
-    showEditJiraEmail,
-    showEditJiraToken,
-    showEditJiraProject,
-  ]);
+  }, [editingField]);
 
-  const orgItems = [
-    ...orgs.map((org) => ({ label: org, isAdd: false })),
-    { label: "[+] Add organization", isAdd: true },
-  ];
+  const theme = getTheme();
 
-  const refreshPresetItems = REFRESH_PRESETS.map((s) => ({
-    label: formatInterval(s),
-    value: s,
-    active: s === refreshInterval,
-  }));
+  // Build items for each section
+  const getItems = (): ConfigItem[] => {
+    switch (section) {
+      case "github":
+        return [
+          ...orgs.map((org) => ({
+            key: `org-${org}`,
+            label: org,
+            type: "text" as const,
+          })),
+          {
+            key: "add-org",
+            label: "[+] Add organization",
+            type: "action" as const,
+            color: theme.list.addAction,
+          },
+        ];
+      case "azure":
+        return [
+          {
+            key: "azure-org",
+            label: `Organization: ${azureOrg || "[not set]"}`,
+            type: "text" as const,
+          },
+          {
+            key: "azure-project",
+            label: `Project: ${azureProject || "[not set]"}`,
+            type: "text" as const,
+          },
+        ];
+      case "jira":
+        return [
+          {
+            key: "jira-site",
+            label: `Site: ${jiraSite || "[not set]"}`,
+            type: "text" as const,
+          },
+          {
+            key: "jira-email",
+            label: `Email: ${jiraEmail || "[not set]"}`,
+            type: "text" as const,
+          },
+          {
+            key: "jira-token",
+            label: `API Token: ${jiraToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set]"}`,
+            type: "text" as const,
+          },
+          {
+            key: "jira-project",
+            label: `Project: ${jiraProject || "[not set]"}`,
+            type: "text" as const,
+          },
+        ];
+      case "system": {
+        const cacheSize = getQueryCacheSize();
+        const cacheSizeStr =
+          cacheSize > 1024 * 1024
+            ? `${(cacheSize / 1024 / 1024).toFixed(1)} MB`
+            : cacheSize > 1024
+              ? `${(cacheSize / 1024).toFixed(0)} KB`
+              : cacheSize > 0
+                ? `${cacheSize} B`
+                : "empty";
+        return [
+          // Refresh interval presets
+          ...REFRESH_PRESETS.map((s) => ({
+            key: `refresh-${s}`,
+            label: `Refresh: ${formatInterval(s)}`,
+            type: "select" as const,
+            options: [
+              {
+                label: formatInterval(s),
+                value: s,
+                active: s === refreshInterval,
+              },
+            ],
+          })),
+          // Theme
+          ...getThemeNames().map((name) => ({
+            key: `theme-${name}`,
+            label: `Theme: ${THEMES[name].name}`,
+            type: "select" as const,
+            options: [
+              {
+                label: THEMES[name].name,
+                value: name,
+                active: name === themeName,
+              },
+            ],
+          })),
+          // Cache
+          {
+            key: "cache-toggle",
+            label: `Cache: ${persistCache ? "Enabled" : "Disabled"}`,
+            type: "action" as const,
+          },
+          {
+            key: "cache-clear",
+            label: `Clear cache (${cacheSizeStr})`,
+            type: "action" as const,
+            color: theme.status.failure,
+          },
+        ];
+      }
+    }
+  };
 
-  const themeItems = getThemeNames().map((name) => ({
-    name,
-    label: THEMES[name].name,
-    active: name === themeName,
-  }));
+  const items = getItems();
 
-  const azureItems = [
-    {
-      label: `Organization: ${azureOrg || "[not set]"}`,
-      field: "org" as const,
-    },
-    {
-      label: `Project: ${azureProject || "[not set]"}`,
-      field: "project" as const,
-    },
-  ];
-
-  const jiraItems = [
-    {
-      label: `Site: ${jiraSite || "[not set]"}`,
-      field: "site" as const,
-    },
-    {
-      label: `Email: ${jiraEmail || "[not set]"}`,
-      field: "email" as const,
-    },
-    {
-      label: `API Token: ${jiraToken ? "●●●●●●●●" : "[not set]"}`,
-      field: "token" as const,
-    },
-    {
-      label: `Project: ${jiraProject || "[not set]"}`,
-      field: "project" as const,
-    },
-  ];
-
-  const cacheSize = getQueryCacheSize();
-  const cacheSizeStr =
-    cacheSize > 1024 * 1024
-      ? `${(cacheSize / 1024 / 1024).toFixed(1)} MB`
-      : cacheSize > 1024
-        ? `${(cacheSize / 1024).toFixed(0)} KB`
-        : cacheSize > 0
-          ? `${cacheSize} B`
-          : "empty";
-
-  const cacheItems = [
-    {
-      label: persistCache ? "● Enabled" : "○ Disabled",
-      action: "toggle" as const,
-    },
-    { label: `Clear cache (${cacheSizeStr})`, action: "clear" as const },
-  ];
-
-  const items =
-    section === "orgs"
-      ? orgItems
-      : section === "refresh"
-        ? refreshPresetItems
-        : section === "theme"
-          ? themeItems
-          : section === "azure"
-            ? azureItems
-            : section === "jira"
-              ? jiraItems
-              : section === "cache"
-                ? cacheItems
-                : azureItems;
-
-  // Handle escape in overlay sub-views via a minimal useInput
-  // (TextInput captures most keys; we only need escape to close)
-  const anyOverlayOpen =
-    showAddOrg ||
-    showEditAzureOrg ||
-    showEditAzureProject ||
-    showEditJiraSite ||
-    showEditJiraEmail ||
-    showEditJiraToken ||
-    showEditJiraProject;
-
+  // Handle escape in edit overlays
   useInput(
     (_input, key) => {
-      if (key.escape) {
-        if (showAddOrg) setShowAddOrg(false);
-        else if (showEditAzureOrg) setShowEditAzureOrg(false);
-        else if (showEditAzureProject) setShowEditAzureProject(false);
-        else if (showEditJiraSite) setShowEditJiraSite(false);
-        else if (showEditJiraEmail) setShowEditJiraEmail(false);
-        else if (showEditJiraToken) setShowEditJiraToken(false);
-        else if (showEditJiraProject) setShowEditJiraProject(false);
-      }
+      if (key.escape) setEditingField(null);
     },
-    {
-      isActive: anyOverlayOpen,
-    },
+    { isActive: !!editingField },
   );
 
-  // Main view shortcuts (only active when no overlay is open)
   useShortcuts({
     quit: onQuit,
     add: () => {
-      if (section === "orgs") setShowAddOrg(true);
+      if (section === "github") setEditingField("add-org");
     },
     remove: () => {
-      if (section === "orgs" && selectedIndex < orgs.length) {
+      if (section === "github" && selectedIndex < orgs.length) {
         const org = orgs[selectedIndex];
         if (org) {
           removeOrg(org);
@@ -261,28 +255,27 @@ export function ConfigView({
       }
     },
     select: () => {
-      if (section === "orgs") {
-        if (selectedIndex === orgs.length) {
-          setShowAddOrg(true);
-        }
-      } else if (section === "refresh") {
-        const preset = refreshPresetItems[selectedIndex];
-        if (preset) setRefreshInterval(preset.value);
-      } else if (section === "theme") {
-        const item = themeItems[selectedIndex];
-        if (item) setThemeName(item.name);
+      const item = items[selectedIndex];
+      if (!item) return;
+
+      if (section === "github") {
+        if (item.key === "add-org") setEditingField("add-org");
       } else if (section === "azure") {
-        if (selectedIndex === 0) setShowEditAzureOrg(true);
-        if (selectedIndex === 1) setShowEditAzureProject(true);
+        setEditingField(item.key);
       } else if (section === "jira") {
-        if (selectedIndex === 0) setShowEditJiraSite(true);
-        if (selectedIndex === 1) setShowEditJiraEmail(true);
-        if (selectedIndex === 2) setShowEditJiraToken(true);
-        if (selectedIndex === 3) setShowEditJiraProject(true);
-      } else if (section === "cache") {
-        const item = cacheItems[selectedIndex];
-        if (item?.action === "toggle") setPersistCache(!persistCache);
-        if (item?.action === "clear") clearQueryCache();
+        setEditingField(item.key);
+      } else if (section === "system") {
+        if (item.key.startsWith("refresh-")) {
+          const val = parseInt(item.key.split("-")[1]!, 10);
+          setRefreshInterval(val);
+        } else if (item.key.startsWith("theme-")) {
+          const name = item.key.replace("theme-", "");
+          setThemeName(name);
+        } else if (item.key === "cache-toggle") {
+          setPersistCache(!persistCache);
+        } else if (item.key === "cache-clear") {
+          clearQueryCache();
+        }
       }
     },
     editConfig: () => {
@@ -303,217 +296,185 @@ export function ConfigView({
     left: () => {
       setSection((s) => {
         const idx = SECTIONS.indexOf(s);
-        const next = (idx - 1 + SECTIONS.length) % SECTIONS.length;
-        return SECTIONS[next]!;
+        return SECTIONS[(idx - 1 + SECTIONS.length) % SECTIONS.length]!;
       });
       setSelectedIndex(0);
     },
     right: () => {
       setSection((s) => {
         const idx = SECTIONS.indexOf(s);
-        const next = (idx + 1) % SECTIONS.length;
-        return SECTIONS[next]!;
+        return SECTIONS[(idx + 1) % SECTIONS.length]!;
       });
       setSelectedIndex(0);
     },
   });
 
+  // -- Rendering --
+
+  const sectionTabBar = (
+    <Box paddingX={1}>
+      {SECTIONS.map((s) => (
+        <Box key={s} marginRight={2}>
+          <Text bold={s === section} inverse={s === section}>
+            {" "}
+            {SECTION_LABELS[s]}{" "}
+          </Text>
+        </Box>
+      ))}
+      <Text dimColor> {"\u2190/\u2192"} switch section</Text>
+    </Box>
+  );
+
+  const contentHeight = height - 4; // tab bar + status bar
+
   return (
     <Box height={height} width={width} flexDirection="column">
-      <Box flexGrow={1} flexDirection="row">
-        {/* Organizations */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "orgs"}>
-            {" "}
-            Organizations{" "}
-          </Text>
-          <Text dimColor>
-            Repos and dependency searches use all configured orgs.
-          </Text>
-          <Box height={1} />
-          {orgItems.map((item, i) => {
-            const isActive = section === "orgs" && i === selectedIndex;
+      {/* Section tab bar */}
+      {sectionTabBar}
+      <Box
+        borderStyle="single"
+        borderTop
+        borderBottom={false}
+        borderLeft={false}
+        borderRight={false}
+      />
+
+      {/* Section content — full width, one section at a time */}
+      <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
+        <Text dimColor>
+          {section === "github" &&
+            "GitHub organizations for repo and dependency search."}
+          {section === "azure" &&
+            "Azure DevOps settings for Pipelines and Releases."}
+          {section === "jira" && "Jira Cloud connection settings."}
+          {section === "system" &&
+            "App settings: refresh interval, theme, cache."}
+        </Text>
+        <Box height={1} />
+
+        {items.map((item, i) => {
+          const isActive = i === selectedIndex;
+
+          // System section: show radio/toggle indicators
+          if (section === "system") {
+            const isRefresh = item.key.startsWith("refresh-");
+            const isTheme = item.key.startsWith("theme-");
+            const isOption = isRefresh || isTheme;
+            const isSelected = item.options?.[0]?.active ?? false;
+
+            // Group headers
+            const prevItem = items[i - 1];
+            const showRefreshHeader =
+              isRefresh && !prevItem?.key.startsWith("refresh-");
+            const showThemeHeader =
+              isTheme && !prevItem?.key.startsWith("theme-");
+            const showCacheHeader = item.key === "cache-toggle";
 
             return (
-              <Box key={item.label + i}>
-                <Text
-                  inverse={isActive}
-                  color={
-                    isActive
-                      ? undefined
-                      : item.isAdd
-                        ? getTheme().list.addAction
-                        : undefined
-                  }
-                  bold={isActive}
-                >
-                  {isActive ? "> " : "  "}
-                  {item.label}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Refresh */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "refresh"}>
-            {" "}
-            Refresh{" "}
-          </Text>
-          <Text dimColor>PR auto-refresh interval.</Text>
-          <Box height={1} />
-          {refreshPresetItems.map((item, i) => {
-            const isActive = section === "refresh" && i === selectedIndex;
-
-            return (
-              <Box key={item.value}>
-                <Text
-                  inverse={isActive}
-                  color={
-                    isActive
-                      ? undefined
-                      : item.active
-                        ? getTheme().ui.activeIndicator
-                        : undefined
-                  }
-                  bold={isActive || item.active}
-                >
-                  {isActive ? "> " : "  "}
-                  {item.active ? "● " : "○ "}
-                  {item.label}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Theme */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "theme"}>
-            {" "}
-            Theme{" "}
-          </Text>
-          <Text dimColor>Color theme for the UI.</Text>
-          <Box height={1} />
-          {themeItems.map((item, i) => {
-            const isActive = section === "theme" && i === selectedIndex;
-            const theme = THEMES[item.name as ThemeName];
-
-            return (
-              <Box key={item.name}>
-                <Text
-                  inverse={isActive}
-                  color={
-                    isActive
-                      ? undefined
-                      : item.active
-                        ? getTheme().ui.activeIndicator
-                        : undefined
-                  }
-                  bold={isActive || item.active}
-                >
-                  {isActive ? "> " : "  "}
-                  {item.active ? "● " : "○ "}
-                  {item.label}
-                </Text>
-                {!isActive && (
-                  <Text>
-                    {"  "}
-                    <Text color={theme.status.success}>●</Text>
-                    <Text color={theme.status.failure}>●</Text>
-                    <Text color={theme.status.pending}>●</Text>
-                    <Text color={theme.ui.border}>●</Text>
+              <React.Fragment key={item.key}>
+                {showRefreshHeader && (
+                  <Text bold color={theme.ui.heading}>
+                    Refresh Interval
                   </Text>
                 )}
-              </Box>
+                {showThemeHeader && (
+                  <>
+                    <Box height={1} />
+                    <Text bold color={theme.ui.heading}>
+                      Theme
+                    </Text>
+                  </>
+                )}
+                {showCacheHeader && (
+                  <>
+                    <Box height={1} />
+                    <Text bold color={theme.ui.heading}>
+                      Cache
+                    </Text>
+                  </>
+                )}
+                <Box>
+                  <Text
+                    inverse={isActive}
+                    bold={isActive || isSelected}
+                    color={
+                      isActive
+                        ? undefined
+                        : isSelected
+                          ? theme.ui.activeIndicator
+                          : item.color
+                    }
+                  >
+                    {isActive ? "> " : "  "}
+                    {isOption ? (isSelected ? "\u25CF " : "\u25CB ") : ""}
+                    {isRefresh
+                      ? formatInterval(parseInt(item.key.split("-")[1]!, 10))
+                      : isTheme
+                        ? (THEMES[item.key.replace("theme-", "") as ThemeName]
+                            ?.name ?? item.label)
+                        : item.label}
+                  </Text>
+                  {isTheme && !isActive && (
+                    <Text>
+                      {"  "}
+                      <Text
+                        color={
+                          THEMES[item.key.replace("theme-", "") as ThemeName]
+                            ?.status.success
+                        }
+                      >
+                        {"\u25CF"}
+                      </Text>
+                      <Text
+                        color={
+                          THEMES[item.key.replace("theme-", "") as ThemeName]
+                            ?.status.failure
+                        }
+                      >
+                        {"\u25CF"}
+                      </Text>
+                      <Text
+                        color={
+                          THEMES[item.key.replace("theme-", "") as ThemeName]
+                            ?.status.pending
+                        }
+                      >
+                        {"\u25CF"}
+                      </Text>
+                      <Text
+                        color={
+                          THEMES[item.key.replace("theme-", "") as ThemeName]
+                            ?.ui.border
+                        }
+                      >
+                        {"\u25CF"}
+                      </Text>
+                    </Text>
+                  )}
+                </Box>
+              </React.Fragment>
             );
-          })}
-        </Box>
+          }
 
-        {/* Azure DevOps */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "azure"}>
-            {" "}
-            Azure DevOps{" "}
-          </Text>
-          <Text dimColor>Organization and project for Pipelines/Releases.</Text>
-          <Box height={1} />
-          {azureItems.map((item, i) => {
-            const isActive = section === "azure" && i === selectedIndex;
-
-            return (
-              <Box key={item.field}>
-                <Text inverse={isActive} bold={isActive}>
-                  {isActive ? "> " : "  "}
-                  {item.label}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Jira */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "jira"}>
-            {" "}
-            Jira{" "}
-          </Text>
-          <Text dimColor>Jira Cloud connection settings.</Text>
-          <Box height={1} />
-          {jiraItems.map((item, i) => {
-            const isActive = section === "jira" && i === selectedIndex;
-
-            return (
-              <Box key={item.field}>
-                <Text inverse={isActive} bold={isActive}>
-                  {isActive ? "> " : "  "}
-                  {item.label}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-
-        {/* Cache */}
-        <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "cache"}>
-            {" "}
-            Cache{" "}
-          </Text>
-          <Text dimColor>Persist data across restarts.</Text>
-          <Box height={1} />
-          {cacheItems.map((item, i) => {
-            const isActive = section === "cache" && i === selectedIndex;
-
-            return (
-              <Box key={item.action}>
-                <Text
-                  inverse={isActive}
-                  bold={isActive}
-                  color={
-                    isActive
-                      ? undefined
-                      : item.action === "toggle" && persistCache
-                        ? getTheme().ui.activeIndicator
-                        : item.action === "clear"
-                          ? getTheme().status.failure
-                          : undefined
-                  }
-                >
-                  {isActive ? "> " : "  "}
-                  {item.label}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
+          // GitHub/Azure/Jira: simple list items
+          return (
+            <Box key={item.key}>
+              <Text
+                inverse={isActive}
+                bold={isActive}
+                color={isActive ? undefined : item.color}
+              >
+                {isActive ? "> " : "  "}
+                {item.label}
+              </Text>
+            </Box>
+          );
+        })}
       </Box>
 
       {/* Status bar */}
       <Box
         width={width}
-        flexDirection="column"
         borderStyle="single"
         borderTop
         borderBottom={false}
@@ -528,27 +489,12 @@ export function ConfigView({
           <Text bold>{formatInterval(refreshInterval)}</Text>
           <Text dimColor> │ Theme: </Text>
           <Text bold>{THEMES[themeName as ThemeName]?.name ?? "Default"}</Text>
-          <Text dimColor> │ Azure: </Text>
-          <Text bold>
-            {azureOrg && azureProject
-              ? `${azureOrg}/${azureProject}`
-              : "[not set]"}
-          </Text>
-          <Text dimColor> │ Jira: </Text>
-          <Text bold>
-            {jiraSite && jiraProject
-              ? `${jiraProject}@${jiraSite}`
-              : "[not set]"}
-          </Text>
-          <Text dimColor> │ Cache: </Text>
-          <Text bold>{persistCache ? "on" : "off"}</Text>
-          <Text dimColor> ({cacheSizeStr})</Text>
-          <Text dimColor> │ e: edit config │ ←/→ switch section</Text>
+          <Text dimColor> │ e: edit config │ Enter: edit │ ←/→ section</Text>
         </Text>
       </Box>
 
-      {/* Add org overlay */}
-      {showAddOrg && (
+      {/* Edit overlay */}
+      {editingField && (
         <Box
           position="absolute"
           marginLeft={Math.floor((width - 50) / 2)}
@@ -558,225 +504,58 @@ export function ConfigView({
             flexDirection="column"
             width={50}
             borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
+            borderColor={theme.ui.activeIndicator}
             paddingX={1}
           >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Add Organization
+            <Text bold color={theme.ui.activeIndicator}>
+              {editingField === "add-org" && "Add Organization"}
+              {editingField === "azure-org" && "Azure DevOps Organization"}
+              {editingField === "azure-project" && "Azure DevOps Project"}
+              {editingField === "jira-site" && "Jira Site"}
+              {editingField === "jira-email" && "Jira Email"}
+              {editingField === "jira-token" && "Jira API Token"}
+              {editingField === "jira-project" && "Jira Project Key"}
             </Text>
             <Box>
-              <Text>Name: </Text>
+              <Text>
+                {editingField === "add-org" && "Name: "}
+                {editingField === "azure-org" && "Org: "}
+                {editingField === "azure-project" && "Project: "}
+                {editingField === "jira-site" && "Site: "}
+                {editingField === "jira-email" && "Email: "}
+                {editingField === "jira-token" && "Token: "}
+                {editingField === "jira-project" && "Project: "}
+              </Text>
               <TextInput
-                placeholder="type org name..."
+                placeholder={
+                  editingField === "add-org"
+                    ? "type org name..."
+                    : editingField === "azure-org"
+                      ? azureOrg || "type org name..."
+                      : editingField === "azure-project"
+                        ? azureProject || "type project name..."
+                        : editingField === "jira-site"
+                          ? jiraSite || "yourcompany.atlassian.net"
+                          : editingField === "jira-email"
+                            ? jiraEmail || "user@company.com"
+                            : editingField === "jira-token"
+                              ? "paste API token..."
+                              : editingField === "jira-project"
+                                ? jiraProject || "e.g. UUX"
+                                : ""
+                }
                 onSubmit={(val) => {
-                  if (val.trim()) {
-                    addOrg(val.trim());
+                  const v = val.trim();
+                  if (v) {
+                    if (editingField === "add-org") addOrg(v);
+                    if (editingField === "azure-org") setAzureOrg(v);
+                    if (editingField === "azure-project") setAzureProject(v);
+                    if (editingField === "jira-site") setJiraSite(v);
+                    if (editingField === "jira-email") setJiraEmail(v);
+                    if (editingField === "jira-token") setJiraToken(v);
+                    if (editingField === "jira-project") setJiraProject(v);
                   }
-                  setShowAddOrg(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: add │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Azure org overlay */}
-      {showEditAzureOrg && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Azure DevOps Organization
-            </Text>
-            <Box>
-              <Text>Org: </Text>
-              <TextInput
-                placeholder={azureOrg || "type org name..."}
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setAzureOrg(val.trim());
-                  }
-                  setShowEditAzureOrg(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: save │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Azure project overlay */}
-      {showEditAzureProject && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Azure DevOps Project
-            </Text>
-            <Box>
-              <Text>Project: </Text>
-              <TextInput
-                placeholder={azureProject || "type project name..."}
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setAzureProject(val.trim());
-                  }
-                  setShowEditAzureProject(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: save │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Jira site overlay */}
-      {showEditJiraSite && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Jira Site
-            </Text>
-            <Box>
-              <Text>Site: </Text>
-              <TextInput
-                placeholder={jiraSite || "yourcompany.atlassian.net"}
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setJiraSite(val.trim());
-                  }
-                  setShowEditJiraSite(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: save │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Jira email overlay */}
-      {showEditJiraEmail && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Jira Email
-            </Text>
-            <Box>
-              <Text>Email: </Text>
-              <TextInput
-                placeholder={jiraEmail || "user@company.com"}
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setJiraEmail(val.trim());
-                  }
-                  setShowEditJiraEmail(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: save │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Jira API token overlay */}
-      {showEditJiraToken && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Jira API Token
-            </Text>
-            <Box>
-              <Text>Token: </Text>
-              <TextInput
-                placeholder="paste API token..."
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setJiraToken(val.trim());
-                  }
-                  setShowEditJiraToken(false);
-                }}
-              />
-            </Box>
-            <Text dimColor>Enter: save │ Esc: cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Edit Jira project overlay */}
-      {showEditJiraProject && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 8) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={getTheme().ui.activeIndicator}
-            paddingX={1}
-          >
-            <Text bold color={getTheme().ui.activeIndicator}>
-              Jira Project Key
-            </Text>
-            <Box>
-              <Text>Project: </Text>
-              <TextInput
-                placeholder={jiraProject || "e.g. UUX"}
-                onSubmit={(val) => {
-                  if (val.trim()) {
-                    setJiraProject(val.trim());
-                  }
-                  setShowEditJiraProject(false);
+                  setEditingField(null);
                 }}
               />
             </Box>
