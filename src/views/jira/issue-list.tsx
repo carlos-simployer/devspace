@@ -71,6 +71,23 @@ export function IssueList({
   );
   const flatRows: FlatRow[] = useMemo(() => flattenGroups(groups), [groups]);
 
+  // Calculate visual line position of each flat row (headers after first get +1 margin)
+  const rowVisualPos = useMemo(() => {
+    const positions: number[] = [];
+    let line = 0;
+    let seenHeader = false;
+    for (const row of flatRows) {
+      if (row.type === "header" && seenHeader) line++; // margin before header
+      if (row.type === "header") seenHeader = true;
+      positions.push(line);
+      line++;
+    }
+    return positions;
+  }, [flatRows]);
+
+  const totalVisualLines =
+    rowVisualPos.length > 0 ? rowVisualPos[rowVisualPos.length - 1]! + 1 : 0;
+
   // Find the flat-row index of the selected issue
   const selectedRowIdx = useMemo(() => {
     for (let i = 0; i < flatRows.length; i++) {
@@ -80,47 +97,31 @@ export function IssueList({
     return 0;
   }, [flatRows, selectedIndex]);
 
-  // Count visual lines (headers after the first add a blank margin line)
-  const visualHeight = (rows: FlatRow[]) => {
-    let lines = 0;
-    let firstHeader = true;
-    for (const r of rows) {
-      if (r.type === "header" && !firstHeader) lines++;
-      if (r.type === "header") firstHeader = false;
-      lines++;
-    }
-    return lines;
-  };
-
-  // Viewport windowing on flat rows
-  let startRow = 0;
-  if (visualHeight(flatRows) > listHeight) {
+  // Viewport: keep selected row centered
+  let visualStart = 0;
+  if (totalVisualLines > listHeight) {
+    const selectedVisual = rowVisualPos[selectedRowIdx] ?? 0;
     const halfView = Math.floor(listHeight / 2);
-    if (selectedRowIdx > halfView) {
-      let candidate = Math.min(selectedRowIdx - halfView, flatRows.length - 1);
-      while (
-        candidate > 0 &&
-        visualHeight(flatRows.slice(candidate)) > listHeight
-      ) {
-        candidate++;
-      }
-      startRow = candidate;
-    }
+    visualStart = Math.max(
+      0,
+      Math.min(selectedVisual - halfView, totalVisualLines - listHeight),
+    );
   }
 
-  // Trim visible rows to fit listHeight visual lines
+  // Collect visible rows that fall within the viewport
   const visibleRows: FlatRow[] = [];
-  {
-    let lines = 0;
-    let seenHeader = false;
-    for (let i = startRow; i < flatRows.length; i++) {
-      const row = flatRows[i]!;
-      let needed = 1;
-      if (row.type === "header" && seenHeader) needed = 2;
-      if (row.type === "header") seenHeader = true;
-      if (lines + needed > listHeight) break;
+  for (let i = 0; i < flatRows.length; i++) {
+    const pos = rowVisualPos[i]!;
+    // Include margin line before headers
+    const row = flatRows[i]!;
+    const rowStart =
+      row.type === "header" && i > 0 && flatRows[i - 1]?.type !== undefined
+        ? pos - (pos > 0 && rowVisualPos[i - 1]! < pos - 1 ? 1 : 0)
+        : pos;
+    if (pos >= visualStart && pos < visualStart + listHeight) {
       visibleRows.push(row);
-      lines += needed;
+    } else if (pos >= visualStart + listHeight) {
+      break;
     }
   }
 
