@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import {
   ALL_SORT_FIELDS,
   SORT_FIELD_LABELS,
@@ -32,30 +32,27 @@ export function SortOverlay({
   const boxHeight = Math.min(height - 4, ALL_SORT_FIELDS.length + 6);
   const innerWidth = boxWidth - 4;
 
-  useShortcuts(
-    {
-      close: onClose,
-      select: () => onApply(selected),
-      toggle: () => {
-        const field = ALL_SORT_FIELDS[cursorIndex];
-        if (!field) return;
-        setSelected((prev) => {
-          const idx = prev.indexOf(field);
-          if (idx >= 0) {
-            // Remove it
-            return prev.filter((f) => f !== field);
-          } else {
-            // Add it at the end
-            return [...prev, field];
-          }
-        });
-      },
-      up: () => setCursorIndex((i) => Math.max(0, i - 1)),
-      down: () =>
-        setCursorIndex((i) => Math.min(ALL_SORT_FIELDS.length - 1, i + 1)),
+  useRouteShortcuts({
+    close: onClose,
+    select: () => onApply(selected),
+    toggle: () => {
+      const field = ALL_SORT_FIELDS[cursorIndex];
+      if (!field) return;
+      setSelected((prev) => {
+        const idx = prev.indexOf(field);
+        if (idx >= 0) {
+          // Remove it
+          return prev.filter((f) => f !== field);
+        } else {
+          // Add it at the end
+          return [...prev, field];
+        }
+      });
     },
-    { scope: "jira.sort" },
-  );
+    up: () => setCursorIndex((i) => Math.max(0, i - 1)),
+    down: () =>
+      setCursorIndex((i) => Math.min(ALL_SORT_FIELDS.length - 1, i + 1)),
+  });
 
   return (
     <Overlay

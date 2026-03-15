@@ -18,6 +18,28 @@ import { ViewHeader } from "./components/view-header.tsx";
 import type { ViewId, BaseView } from "./ui/view-config.ts";
 import { getBaseView } from "./ui/view-config.ts";
 import { ViewContext } from "./ui/view-context.ts";
+import { RouterProvider, defineRoutes, useRouter } from "./ui/router.ts";
+
+// Placeholder component for route definitions (not rendered via RouteRenderer)
+const Noop = () => null;
+
+// Jira routes — used by RouterProvider for param extraction and route matching
+const jiraRoutes = defineRoutes({
+  jira: { component: Noop },
+  "jira/detail/:key": { component: Noop },
+  "jira/statusFilter": { component: Noop, layout: "overlay" },
+  "jira/memberSelect": { component: Noop, layout: "overlay" },
+  "jira/sort": { component: Noop, layout: "overlay" },
+  "jira/help": { component: Noop, layout: "overlay" },
+  "jira/search": { component: Noop },
+  // Keep non-jira base routes so the router recognises them for tab switching
+  prs: { component: Noop },
+  dependencies: { component: Noop },
+  pipelines: { component: Noop },
+  releases: { component: Noop },
+  projects: { component: Noop },
+  config: { component: Noop },
+});
 
 interface Props {
   client: GraphQLClient;
@@ -25,7 +47,10 @@ interface Props {
   token: string;
 }
 
-export function App({ client, org, token }: Props) {
+/**
+ * Inner app — lives inside RouterProvider so it can sync ViewContext ↔ Router.
+ */
+function AppInner({ client, org, token }: Props) {
   const { exit } = useApp();
   const { height, width } = useScreenSize();
   const {
@@ -69,6 +94,9 @@ export function App({ client, org, token }: Props) {
     unreadCount,
   } = useNotifications(token);
 
+  // Router — used by Jira view for sub-navigation
+  const { route, navigate: routerNavigate } = useRouter();
+
   const [view, setViewRaw] = useState<ViewId>("prs");
   const baseView = getBaseView(view);
 
@@ -97,6 +125,24 @@ export function App({ client, org, token }: Props) {
     }
   };
 
+  // Sync: when legacy ViewContext changes view away from jira, keep router in sync
+  // This ensures the router's baseRoute stays correct for non-jira views
+  useEffect(() => {
+    const routeBase = route.split("/")[0];
+    if (baseView !== routeBase) {
+      routerNavigate(baseView);
+    }
+  }, [baseView]);
+
+  // Sync: when router navigates to a different base view (from Jira's useRouteShortcuts
+  // handling tab/number keys), propagate back to ViewContext
+  useEffect(() => {
+    const routeBase = route.split("/")[0];
+    if (routeBase && routeBase !== baseView) {
+      setViewRaw(routeBase as ViewId);
+    }
+  }, [route]);
+
   // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
   const [measuredViewHeader, setMeasuredViewHeader] = useState(3);
@@ -113,6 +159,9 @@ export function App({ client, org, token }: Props) {
   );
 
   const contentHeight = height - measuredViewHeader;
+
+  // Use route for the ViewHeader when on the Jira tab (route-based shortcuts)
+  const headerRoute = baseView === "jira" ? route : undefined;
 
   // PRView still manages its own header (will be migrated later)
   if (baseView === "prs") {
@@ -142,7 +191,7 @@ export function App({ client, org, token }: Props) {
   return (
     <ViewContext.Provider value={viewCtx}>
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} headerRef={viewHeaderRef} />
+        <ViewHeader view={view} route={headerRoute} headerRef={viewHeaderRef} />
 
         {baseView === "dependencies" && (
           <DependencyTracker
@@ -238,5 +287,16 @@ export function App({ client, org, token }: Props) {
         )}
       </Box>
     </ViewContext.Provider>
+  );
+}
+
+/**
+ * Top-level App component — wraps everything in RouterProvider.
+ */
+export function App({ client, org, token }: Props) {
+  return (
+    <RouterProvider routes={jiraRoutes} initialRoute="prs">
+      <AppInner client={client} org={org} token={token} />
+    </RouterProvider>
   );
 }

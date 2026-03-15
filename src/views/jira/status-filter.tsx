@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { getStatusColor } from "../../utils/jira-status.ts";
 
 interface Props {
@@ -33,38 +33,35 @@ export function StatusFilter({
     ...statuses.map((s) => ({ label: s, isAll: false })),
   ];
 
-  useShortcuts(
-    {
-      close: onClose,
-      select: () => {
-        onApply(enabled);
-      },
-      toggle: () => {
-        const item = items[selectedIndex];
-        if (!item) return;
-        if (item.isAll) {
-          if (allEnabled) {
-            setEnabled(new Set());
-          } else {
-            setEnabled(new Set(statuses));
-          }
-        } else {
-          setEnabled((prev) => {
-            const next = new Set(prev);
-            if (next.has(item.label)) {
-              next.delete(item.label);
-            } else {
-              next.add(item.label);
-            }
-            return next;
-          });
-        }
-      },
-      up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-      down: () => setSelectedIndex((i) => Math.min(items.length - 1, i + 1)),
+  useRouteShortcuts({
+    close: onClose,
+    select: () => {
+      onApply(enabled);
     },
-    { scope: "jira.statusFilter" },
-  );
+    toggle: () => {
+      const item = items[selectedIndex];
+      if (!item) return;
+      if (item.isAll) {
+        if (allEnabled) {
+          setEnabled(new Set());
+        } else {
+          setEnabled(new Set(statuses));
+        }
+      } else {
+        setEnabled((prev) => {
+          const next = new Set(prev);
+          if (next.has(item.label)) {
+            next.delete(item.label);
+          } else {
+            next.add(item.label);
+          }
+          return next;
+        });
+      }
+    },
+    up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+    down: () => setSelectedIndex((i) => Math.min(items.length - 1, i + 1)),
+  });
 
   const boxWidth = Math.min(40, width - 4);
   const boxHeight = Math.min(height - 4, items.length + 5);

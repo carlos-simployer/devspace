@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 
 interface TeamMember {
   name: string;
@@ -65,38 +65,35 @@ export function MemberSelect({
   const boxHeight = Math.min(height - 4, items.length + 5);
   const innerWidth = boxWidth - 4;
 
-  useShortcuts(
-    {
-      close: onClose,
-      select: () => {
-        onApply(enabled);
-      },
-      toggle: () => {
-        const item = items[cursorIndex];
-        if (!item) return;
-        if (item.isAll) {
-          if (allEnabled) {
-            setEnabled(new Set());
-          } else {
-            setEnabled(new Set(TEAM_MEMBERS.map((m) => m.accountId)));
-          }
-        } else {
-          setEnabled((prev) => {
-            const next = new Set(prev);
-            if (next.has(item.accountId)) {
-              next.delete(item.accountId);
-            } else {
-              next.add(item.accountId);
-            }
-            return next;
-          });
-        }
-      },
-      up: () => setCursorIndex((i) => Math.max(0, i - 1)),
-      down: () => setCursorIndex((i) => Math.min(items.length - 1, i + 1)),
+  useRouteShortcuts({
+    close: onClose,
+    select: () => {
+      onApply(enabled);
     },
-    { scope: "jira.memberSelect" },
-  );
+    toggle: () => {
+      const item = items[cursorIndex];
+      if (!item) return;
+      if (item.isAll) {
+        if (allEnabled) {
+          setEnabled(new Set());
+        } else {
+          setEnabled(new Set(TEAM_MEMBERS.map((m) => m.accountId)));
+        }
+      } else {
+        setEnabled((prev) => {
+          const next = new Set(prev);
+          if (next.has(item.accountId)) {
+            next.delete(item.accountId);
+          } else {
+            next.add(item.accountId);
+          }
+          return next;
+        });
+      }
+    },
+    up: () => setCursorIndex((i) => Math.max(0, i - 1)),
+    down: () => setCursorIndex((i) => Math.min(items.length - 1, i + 1)),
+  });
 
   return (
     <Overlay

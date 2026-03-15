@@ -2,8 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Box, Text, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import type { Config, JiraFilterMode } from "../../api/types.ts";
-import { useView } from "../../ui/view-context.ts";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
@@ -38,14 +38,14 @@ const DEFAULT_STATUS_ORDER = [
 ];
 
 export function JiraView({ config, height, width, onQuit }: Props) {
-  const { view, setView } = useView();
+  const { route, navigate } = useRouter();
 
-  // Derive sub-view state from view context
-  const showHelp = view === "jira.help";
-  const showDetail = view === "jira.detail";
-  const showMemberSelect = view === "jira.memberSelect";
-  const showStatusFilter = view === "jira.statusFilter";
-  const showSort = view === "jira.sort";
+  // Derive sub-view state from router route
+  const showHelp = route === "jira/help";
+  const showDetail = route.startsWith("jira/detail");
+  const showMemberSelect = route === "jira/memberSelect";
+  const showStatusFilter = route === "jira/statusFilter";
+  const showSort = route === "jira/sort";
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
@@ -141,7 +141,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     await open(url);
   };
 
-  // Search mode captures all input before useShortcuts can match
+  // Search mode captures all input before useRouteShortcuts can match
   const searchJustActivated = useRef(false);
   useInput(
     (input, key) => {
@@ -166,7 +166,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       if (key.return) {
         // Open detail for selected issue (keep search active)
         if (selectedIssue) {
-          setView("jira.detail");
+          navigate(`jira/detail/${selectedIssue.key}`);
         }
         return;
       }
@@ -178,10 +178,10 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         setSearchText((s) => s + input);
       }
     },
-    { isActive: searchMode && view === "jira" },
+    { isActive: searchMode && route === "jira" },
   );
 
-  useShortcuts(
+  useRouteShortcuts(
     {
       quit: onQuit,
       open: () => {
@@ -193,7 +193,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       },
       detail: () => {
         if (selectedIssue) {
-          setView("jira.detail");
+          navigate(`jira/detail/${selectedIssue.key}`);
         }
       },
       filterMine: () => {
@@ -205,13 +205,13 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         setSelectedIndex(0);
       },
       filterPerson: () => {
-        setView("jira.memberSelect");
+        navigate("jira/memberSelect");
       },
       filterStatus: () => {
-        setView("jira.statusFilter");
+        navigate("jira/statusFilter");
       },
       sort: () => {
-        setView("jira.sort");
+        navigate("jira/sort");
       },
       search: () => {
         searchJustActivated.current = true;
@@ -269,9 +269,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           onApply={(enabled) => {
             setEnabledStatuses(enabled);
             setSelectedIndex(0);
-            setView("jira");
+            navigate("jira");
           }}
-          onClose={() => setView("jira")}
+          onClose={() => navigate("jira")}
           height={height}
           width={width}
         />
@@ -292,9 +292,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           onApply={(fields) => {
             setSortFields(fields.length > 0 ? fields : ["updated"]);
             setSelectedIndex(0);
-            setView("jira");
+            navigate("jira");
           }}
-          onClose={() => setView("jira")}
+          onClose={() => navigate("jira")}
           height={height}
           width={width}
         />
@@ -320,9 +320,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
               setFilterMode("team");
             }
             setSelectedIndex(0);
-            setView("jira");
+            navigate("jira");
           }}
-          onClose={() => setView("jira")}
+          onClose={() => navigate("jira")}
           height={height}
           width={width}
         />
@@ -331,7 +331,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   }
 
   if (showHelp) {
-    return <HelpOverlay height={height} width={width} view="jira" />;
+    return (
+      <HelpOverlay height={height} width={width} view="jira" route="jira" />
+    );
   }
 
   if (showDetail && selectedIssue) {

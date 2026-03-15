@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text } from "ink";
 import type { JiraIssue } from "../../../api/types.ts";
-import { useShortcuts } from "../../../hooks/use-shortcuts.ts";
-import { useView } from "../../../ui/view-context.ts";
+import { useRouteShortcuts } from "../../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../../ui/router.ts";
 import { TabItem } from "../../../ui/tab-item.tsx";
 import { buildOverviewLines } from "./overview-tab.tsx";
 import { buildCommentsLines } from "./comments-tab.tsx";
@@ -31,7 +31,7 @@ export function IssueDetail({
   onOpenInBrowser,
   jiraSite,
 }: Props) {
-  const { setView } = useView();
+  const { navigate } = useRouter();
   const [tab, setTab] = useState<DetailTab>("overview");
   const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -67,29 +67,26 @@ export function IssueDetail({
   const viewportHeight = height - 2 - tabBarLines - footerLines;
   const maxScroll = Math.max(0, lines.length - viewportHeight);
 
-  useShortcuts(
-    {
-      close: () => setView("jira"),
-      open: () => {
-        onOpenInBrowser(`https://${jiraSite}/browse/${issue.key}`);
-      },
-      overviewTab: () => {
-        setTab("overview");
-        setScrollOffset(0);
-      },
-      commentsTab: () => {
-        setTab("comments");
-        setScrollOffset(0);
-      },
-      subtasksTab: () => {
-        setTab("subtasks");
-        setScrollOffset(0);
-      },
-      up: () => setScrollOffset((s) => Math.max(0, s - 1)),
-      down: () => setScrollOffset((s) => Math.min(maxScroll, s + 1)),
+  useRouteShortcuts({
+    close: () => navigate("jira"),
+    open: () => {
+      onOpenInBrowser(`https://${jiraSite}/browse/${issue.key}`);
     },
-    { scope: "jira.detail" },
-  );
+    overviewTab: () => {
+      setTab("overview");
+      setScrollOffset(0);
+    },
+    commentsTab: () => {
+      setTab("comments");
+      setScrollOffset(0);
+    },
+    subtasksTab: () => {
+      setTab("subtasks");
+      setScrollOffset(0);
+    },
+    up: () => setScrollOffset((s) => Math.max(0, s - 1)),
+    down: () => setScrollOffset((s) => Math.min(maxScroll, s + 1)),
+  });
 
   const actualOffset = Math.min(scrollOffset, maxScroll);
   const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);
