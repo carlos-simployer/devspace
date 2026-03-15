@@ -37,7 +37,7 @@ export function PrsLayout() {
     height,
     width,
   } = useAppContext();
-  const { route, navigate } = useRouter();
+  const { route, navigate, matchedPath } = useRouter();
   const outlet = useOutlet();
 
   // Open search overlay on first launch
@@ -267,7 +267,7 @@ export function PrsLayout() {
   );
 
   // ── Render ────────────────────────────────────────────────────────────
-  const barShortcuts = getBarShortcuts(route);
+  const barShortcuts = getBarShortcuts(route, matchedPath);
   const contentHeight = height - measuredHeader;
 
   // For overlay children: center them, no header

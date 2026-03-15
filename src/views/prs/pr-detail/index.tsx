@@ -6,6 +6,7 @@ import { getChangeTypeIcon } from "../../../utils/status.ts";
 import { TabItem } from "../../../ui/tab-item.tsx";
 import { useAppContext } from "../../../app-context.ts";
 import { useRouter } from "../../../ui/router.ts";
+import { useRouteShortcuts } from "../../../hooks/use-route-shortcuts.ts";
 import { openInBrowser } from "../../../utils/browser.ts";
 import { usePrsContext } from "../prs-context.ts";
 import { buildOverviewLines } from "./overview-tab.tsx";
@@ -28,6 +29,9 @@ export function PRDetailPanel() {
   } = usePrsContext();
 
   const [tab, setTab] = useState<DetailTab>("overview");
+
+  useRouteShortcuts({});
+
   const [scrollOffset, setScrollOffset] = useState(0);
   const [fileIndex, setFileIndex] = useState(0);
   const [expandedFile, setExpandedFile] = useState<number | null>(null);

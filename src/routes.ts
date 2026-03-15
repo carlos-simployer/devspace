@@ -83,7 +83,6 @@ export const routes = defineRoutes({
       "": { component: ProjectsListView },
       help: { component: ProjectsHelpView, layout: "overlay" },
       add: { component: ProjectsListView, layout: "overlay" },
-      confirm: { component: ProjectsListView, layout: "overlay" },
     },
   },
 
@@ -97,7 +96,6 @@ export const routes = defineRoutes({
       statusFilter: { component: StatusFilter, layout: "overlay" },
       memberSelect: { component: MemberSelect, layout: "overlay" },
       help: { component: JiraHelpView, layout: "overlay" },
-      search: { component: JiraIssueListView },
     },
   },
 
@@ -107,13 +105,6 @@ export const routes = defineRoutes({
     children: {
       "": { component: ConfigMainView },
       help: { component: ConfigHelpView, layout: "overlay" },
-      addOrg: { component: ConfigMainView, layout: "overlay" },
-      editAzureOrg: { component: ConfigMainView, layout: "overlay" },
-      editAzureProject: { component: ConfigMainView, layout: "overlay" },
-      editJiraSite: { component: ConfigMainView, layout: "overlay" },
-      editJiraEmail: { component: ConfigMainView, layout: "overlay" },
-      editJiraToken: { component: ConfigMainView, layout: "overlay" },
-      editJiraProject: { component: ConfigMainView, layout: "overlay" },
     },
   },
 });

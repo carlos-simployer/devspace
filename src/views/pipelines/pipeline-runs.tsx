@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import {
   getBuildStatusIcon,
   formatBranch,
@@ -49,6 +50,8 @@ export function PipelineRuns() {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
+
+  useRouteShortcuts({});
 
   const pipeline = selectedPipeline;
   const azureOrg = config.azureOrg;

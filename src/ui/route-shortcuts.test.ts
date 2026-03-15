@@ -437,7 +437,6 @@ describe("getBarShortcuts", () => {
     expect(getBarShortcuts("dependencies/search")).toEqual([]);
     expect(getBarShortcuts("pipelines/search")).toEqual([]);
     expect(getBarShortcuts("releases/search")).toEqual([]);
-    expect(getBarShortcuts("jira/search")).toEqual([]);
   });
 
   it("should skip actions that have no label defined", () => {

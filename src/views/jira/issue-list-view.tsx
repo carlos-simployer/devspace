@@ -56,7 +56,6 @@ export function JiraIssueListView() {
       if (key.escape) {
         setSearchMode(false);
         setSearchText("");
-        navigate("jira");
         return;
       }
       if (key.upArrow) {
@@ -84,11 +83,11 @@ export function JiraIssueListView() {
       }
     },
     {
-      isActive: searchMode && (route === "jira" || route === "jira/search"),
+      isActive: searchMode && route === "jira",
     },
   );
 
-  const isMainView = route === "jira" || route === "jira/search";
+  const isMainView = route === "jira";
 
   useRouteShortcuts(
     {
@@ -126,7 +125,6 @@ export function JiraIssueListView() {
         searchJustActivated.current = true;
         setSearchMode(true);
         setSearchText("");
-        navigate("jira/search");
       },
       refresh: () => {
         refetch();

@@ -1,2 +1,1 @@
-// Re-export layout as the main entry point for backward compatibility
-export { ConfigLayout as ConfigView } from "./config-layout.tsx";
+export { ConfigLayout } from "./config-layout.tsx";

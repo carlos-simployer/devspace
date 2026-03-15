@@ -11,7 +11,6 @@ import {
 } from "../../utils/query-persister.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
-import { useRouter } from "../../ui/router.ts";
 import {
   getTheme,
   getThemeNames,
@@ -79,29 +78,15 @@ export function ConfigMainView() {
   const githubToken = config.githubToken;
   const azureToken = config.azureToken;
   const persistCache = config.persistCache;
-  const { navigate } = useRouter();
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
 
   const startEditing = (field: string) => {
     setEditingField(field);
-    const routeMap: Record<string, string> = {
-      "add-org": "config/addOrg",
-      "github-token": "config/addOrg",
-      "azure-org": "config/editAzureOrg",
-      "azure-project": "config/editAzureProject",
-      "azure-token": "config/editAzureOrg",
-      "jira-site": "config/editJiraSite",
-      "jira-email": "config/editJiraEmail",
-      "jira-token": "config/editJiraToken",
-      "jira-project": "config/editJiraProject",
-    };
-    navigate(routeMap[field] ?? "config/addOrg");
   };
   const stopEditing = () => {
     setEditingField(null);
-    navigate("config");
   };
 
   const theme = getTheme();

@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { openInBrowser } from "../../utils/browser.ts";
 import { relativeTime } from "../../utils/time.ts";
 import { getTheme } from "../../ui/theme.ts";
@@ -18,6 +19,8 @@ export function NotificationsView() {
   const { notifications, notifLoading: loading } = usePrsContext();
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useRouteShortcuts({});
 
   // Header height (same as PrsLayout header: ~3 lines)
   const sharedHeaderHeight = 3;

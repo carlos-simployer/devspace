@@ -121,7 +121,6 @@ const ROUTE_BAR: Record<string, string[]> = {
   ],
   "projects/help": [],
   "projects/add": [],
-  "projects/confirm": [],
 
   jira: [
     "open",
@@ -136,19 +135,11 @@ const ROUTE_BAR: Record<string, string[]> = {
   ],
   "jira/detail": ["close", "open"],
   "jira/help": [],
-  "jira/search": [],
   "jira/statusFilter": [],
   "jira/sort": [],
   "jira/memberSelect": [],
 
   config: ["add", "remove", "select", "editConfig", "help"],
-  "config/addOrg": [],
-  "config/editAzureOrg": [],
-  "config/editAzureProject": [],
-  "config/editJiraSite": [],
-  "config/editJiraEmail": [],
-  "config/editJiraToken": [],
-  "config/editJiraProject": [],
 };
 
 // ---------------------------------------------------------------------------
