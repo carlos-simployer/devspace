@@ -53,21 +53,10 @@ export function IssueList({
   const listHeight = height - 2; // header + margin
   const titleWidth = getIssueTitleWidth(width);
 
-  // Filter by search text on summary/key
-  const filtered = searchText
-    ? issues.filter(
-        (issue) =>
-          issue.fields.summary
-            .toLowerCase()
-            .includes(searchText.toLowerCase()) ||
-          issue.key.toLowerCase().includes(searchText.toLowerCase()),
-      )
-    : issues;
-
-  // Group by status
+  // Group by status (issues are already filtered by the parent)
   const groups = useMemo(
-    () => groupByStatus(filtered, statusOrder),
-    [filtered, statusOrder],
+    () => groupByStatus(issues, statusOrder),
+    [issues, statusOrder],
   );
   const flatRows: FlatRow[] = useMemo(() => flattenGroups(groups), [groups]);
 
@@ -142,7 +131,7 @@ export function IssueList({
         <Box paddingLeft={2} paddingTop={1}>
           <Spinner label="Loading Jira issues..." />
         </Box>
-      ) : filtered.length === 0 ? (
+      ) : issues.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
           <Text dimColor>
             {searchText ? "No issues match search" : "No issues found"}

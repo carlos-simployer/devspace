@@ -6,7 +6,6 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-// Box import removed — RouteRenderer no longer wraps overlays
 import { getBaseRoute } from "./tabs.ts";
 
 // ---------------------------------------------------------------------------

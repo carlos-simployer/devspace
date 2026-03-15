@@ -22,10 +22,19 @@ const DEFAULT_STATUS_ORDER = [
   "Done",
 ];
 
+// Note: State resets when leaving and returning to the Jira tab
+// because JiraLayout unmounts. This is acceptable for now; if
+// persistence is needed, state can be lifted to AppContext or
+// stored in a ref-backed cache.
 export function JiraLayout() {
   const { config, contentHeight: height, width } = useAppContext();
   const { route } = useRouter();
   const outlet = useOutlet();
+
+  const statusOrder =
+    config.jiraStatusOrder?.length > 0
+      ? config.jiraStatusOrder
+      : DEFAULT_STATUS_ORDER;
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
@@ -36,7 +45,7 @@ export function JiraLayout() {
   const [searchMode, setSearchMode] = useState(false);
   const [sortFields, setSortFields] = useState<JiraSortField[]>(["updated"]);
   const [enabledStatuses, setEnabledStatuses] = useState<Set<string>>(
-    () => new Set(config.jiraStatusOrder),
+    () => new Set(statusOrder),
   );
 
   const isConfigured =
@@ -47,11 +56,6 @@ export function JiraLayout() {
     filterMode,
     filterAccountIds.size > 0 ? filterAccountIds : undefined,
   );
-
-  const statusOrder =
-    config.jiraStatusOrder?.length > 0
-      ? config.jiraStatusOrder
-      : DEFAULT_STATUS_ORDER;
 
   const allStatusesEnabled = enabledStatuses.size === statusOrder.length;
 

@@ -40,8 +40,8 @@ src/
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
 │   ├── theme.ts                 # Centralized color + icon constants
-│   ├── router.ts                # RouterProvider, useRouter, defineRoutes, RouteRenderer
-│   ├── router.test.tsx          # Router tests (param extraction, navigation, goBack)
+│   ├── router.ts                # RouterProvider, useRouter, defineRoutes, RouteRenderer, Outlet, useOutlet
+│   ├── router.test.tsx          # Router tests (param extraction, navigation, goBack, nested routes)
 │   ├── route-shortcuts.ts       # All keyboard shortcuts grouped by route path
 │   ├── route-shortcuts.test.ts  # Tests for route-based shortcut system
 │   ├── tabs.ts                  # TABS array, getTabViews, getTabNumberKeys, getBaseRoute
@@ -96,15 +96,19 @@ src/
 │   │   ├── project-list.tsx     # Project list with status indicators
 │   │   ├── log-panel.tsx        # Live log detail panel (right side)
 │   │   └── add-project.tsx      # Multi-step add project wizard
-│   ├── jira/                    # Jira issue tracker view
-│   │   ├── index.tsx            # JiraView — uses useRouteShortcuts + useRouter
+│   ├── jira/                    # Jira issue tracker view (nested routes via Outlet)
+│   │   ├── index.tsx            # Re-exports JiraLayout (entry point)
+│   │   ├── jira-context.ts      # JiraContext — shared state for all Jira child routes
+│   │   ├── jira-layout.tsx      # JiraLayout — parent layout, owns state, renders <Outlet />
+│   │   ├── issue-list-view.tsx  # JiraIssueListView — index route (list + search + shortcuts)
+│   │   ├── jira-help-view.tsx   # JiraHelpView — help overlay route
 │   │   ├── issue-list.tsx       # Issue list grouped by status
 │   │   ├── issue-row.tsx        # Single issue row
 │   │   ├── status-bar.tsx       # Jira status bar (filter mode, project, counts)
-│   │   ├── status-filter.tsx    # Status filter overlay (useRouteShortcuts)
-│   │   ├── sort-overlay.tsx     # Sort overlay (useRouteShortcuts)
-│   │   ├── member-select.tsx    # Team member select overlay (useRouteShortcuts)
-│   │   └── issue-detail/        # Issue detail panel (sub-view)
+│   │   ├── status-filter.tsx    # Status filter overlay (reads JiraContext)
+│   │   ├── sort-overlay.tsx     # Sort overlay (reads JiraContext)
+│   │   ├── member-select.tsx    # Team member select overlay (reads JiraContext)
+│   │   └── issue-detail/        # Issue detail panel (child route)
 │   │       ├── index.tsx        # Tab switching (overview/comments/subtasks) + scroll
 │   │       ├── overview-tab.tsx # Issue metadata, description, status
 │   │       ├── comments-tab.tsx # Issue comments
@@ -146,7 +150,8 @@ src/
 │   ├── fuzzy.ts                 # Fuzzy match/score for search
 │   ├── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
 │   ├── azure-status.ts          # Azure pipeline/release status → icon/color mapping
-│   └── query-persister.ts       # React Query file-based cache persistence
+│   ├── query-persister.ts       # React Query file-based cache persistence
+│   └── browser.ts               # Shared openInBrowser utility (uses 'open' package)
 ├── app.tsx                      # AppContext.Provider + RouterProvider + ViewHeader shell
 ├── app-context.ts               # AppContext (React context providing shared data to all views)
 ├── routes.ts                    # Route definitions mapping paths to view components
@@ -164,9 +169,9 @@ src/
 
 The architecture consists of 5 key files:
 - **`src/app-context.ts`** — `AppContext` (React context) and `useAppContext()` hook. Provides all shared data to views: config + all config mutators, GraphQL client, token, org repos, dependency data, notifications, layout dimensions, and `onQuit`. Views call `useAppContext()` to access everything they need — no props are passed from `app.tsx` to views.
-- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. Maps route path strings to view components. Sub-routes (e.g. `"prs/detail"`, `"jira/help"`) point to the same parent component which handles its own sub-views internally.
-- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`. Routes support `:param` placeholders and optional `layout: "overlay"` flag. `RouteRenderer` renders the matched component with zero props via `React.createElement(match.component)`.
-- **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
+- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. Maps route path strings to view components. Flat views (e.g. PRs, Config) list each sub-route pointing to the same component. Nested views (e.g. Jira) use `NestedRouteDef` with `children` — the parent layout renders `<Outlet />` and child routes are mapped to separate components.
+- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`, `Outlet`, `useOutlet()`. Routes support `:param` placeholders and optional `layout: "overlay"` flag. `defineRoutes()` accepts both flat `RouteDef` and nested `NestedRouteDef` (with `children`), flattening them internally. `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }` — `matchedPath` is the pattern (e.g. `"jira/detail/:key"`) used for shortcut lookup via `getShortcutRoute()`. For nested routes, `RouteRenderer` wraps the child in `OutletContext` and renders the parent; the parent calls `<Outlet />` to render the child.
+- **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup (e.g. `"jira/detail/:key"` -> `"jira/detail"`). Query helpers: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
 - **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 
 **All views take zero props.** Each view in `src/views/` calls `useAppContext()` to get shared data and `useRouter()` for navigation:
@@ -175,7 +180,7 @@ The architecture consists of 5 key files:
 - **PipelinesView** (`views/pipelines/index.tsx`) — uses `useRouteShortcuts`
 - **ReleasesView** (`views/releases/index.tsx`) — uses `useRouteShortcuts`
 - **ProjectsView** (`views/projects/index.tsx`) — uses `useRouteShortcuts`
-- **JiraView** (`views/jira/index.tsx`) — uses `useRouteShortcuts` + `useRouter` for parameterized detail routes
+- **Jira** (`views/jira/`) — **nested routes via Outlet** (see below). `JiraLayout` is the parent, child routes are separate components reading shared state from `JiraContext`
 - **ConfigView** (`views/config/index.tsx`) — tool-based sections with left/right navigation, uses `useRouteShortcuts`
 
 Views use `useRouteShortcuts` from `src/hooks/use-route-shortcuts.ts`. This hook reads the current route from `RouterContext`, matches keyboard input against `ROUTE_SHORTCUTS`, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-7) are handled automatically.
@@ -188,18 +193,17 @@ Views use `useRouteShortcuts` from `src/hooks/use-route-shortcuts.ts`. This hook
 - **Help overlay:** When on a `/help` route, `?` and `Esc` automatically close it (navigate back). Tab switching and quit still work from help overlays.
 - **Global shortcuts** (quit, help, tab switch) are always active within any route.
 
-#### View Sub-state Pattern
+#### View Sub-state Pattern (Flat Views)
 
-Sub-view navigation uses `navigate()` from `useRouter()` (e.g., `navigate("prs/detail")`, `navigate("jira/detail/UUX-1629")`, `navigate("jira/memberSelect")`). Views derive boolean state from the current route:
+For flat views (PRs, Dependencies, Pipelines, Releases, Projects, Config), sub-view navigation uses `navigate()` from `useRouter()`. The single view component derives boolean state from the current route and uses early returns:
 
 ```tsx
 const { route, navigate } = useRouter();
-const showHelp = route === "jira/help";
-const showDetail = route.startsWith("jira/detail/");
-const showMemberSelect = route === "jira/memberSelect";
+const showHelp = route === "pipelines/help";
+const showDetail = route === "pipelines/runs";
 ```
 
-Early returns render sub-views in priority order: not-configured, then full-screen overlays (member-select, help, detail, search), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current route.
+Early returns render sub-views in priority order: not-configured, then full-screen overlays (search, help, detail), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current route.
 
 #### goBack() Navigation
 
@@ -236,6 +240,53 @@ useEffect(() => {
 ```
 
 A minimal `useInput` handles only Escape to close the overlay (since `TextInput` captures all other keys).
+
+#### Nested Routes + Outlet Pattern
+
+For views with many sub-views and shared state, use nested routes instead of the flat early-return pattern. This is modeled after React Router's Outlet concept. The Jira view is the reference implementation; future views should follow this pattern when decomposing.
+
+**How it works:**
+
+1. In `routes.ts`, define a `NestedRouteDef` with a `component` (parent layout) and `children` (child routes):
+
+```tsx
+jira: {
+  component: JiraLayout,
+  children: {
+    "": { component: JiraIssueListView },           // index route
+    "detail/:key": { component: IssueDetail },       // parameterized child
+    sort: { component: SortOverlay, layout: "overlay" },
+    help: { component: JiraHelpView, layout: "overlay" },
+  },
+}
+```
+
+2. `defineRoutes()` flattens this into routes like `"jira"`, `"jira/detail/:key"`, `"jira/sort"`, etc. Each flattened entry stores both `parentComponent` and `childComponent`.
+
+3. `RouteRenderer` wraps the child in `OutletContext` and renders the parent. The parent calls `<Outlet />` to render the matched child:
+
+```tsx
+function JiraLayout() {
+  const outlet = useOutlet(); // { layout, isOverlay } or null
+  return (
+    <JiraContext.Provider value={ctx}>
+      {outlet?.isOverlay ? (
+        <Box alignItems="center" justifyContent="center"><Outlet /></Box>
+      ) : (
+        <Outlet />
+      )}
+    </JiraContext.Provider>
+  );
+}
+```
+
+4. Child components call `useJiraContext()` to access shared state instead of receiving props.
+
+**State flow:** `AppContext` (global) -> `JiraLayout` (owns Jira state) -> `JiraContext.Provider` -> child components via `useJiraContext()`.
+
+**When to use nested routes vs flat:**
+- **Nested routes** — when a view has 3+ sub-views that share significant state, or when the parent provides a context wrapper. This avoids a monolithic index.tsx with early returns.
+- **Flat routes** — when a view has simple sub-views (help, search) and manages everything in one component. This is simpler and sufficient for most views.
 
 ### State & Data
 
@@ -304,8 +355,8 @@ Config fields:
 
 Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **theme.ts** — `colors` and `icons` constants used throughout the app
-- **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, navigate, goBack }`. `defineRoutes()` creates the route map from path patterns. `RouteRenderer` matches the current route and renders the component.
-- **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
+- **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }`. `defineRoutes()` creates the route map from flat or nested path patterns. `RouteRenderer` matches the current route and renders the component. `Outlet` renders the child route in nested layouts; `useOutlet()` returns `{ layout, isOverlay }` for conditional rendering.
+- **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup. Query helpers accept optional `matchedPath`: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
 - **tabs.ts** — `TABS` array defining tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 - **SelectableListItem** — row with blue background when selected
 - **TabItem** — single tab label component
@@ -328,10 +379,11 @@ The special `_global` key defines shortcuts active on all routes (quit, help, ta
 
 Bottom bar configuration is in `ROUTE_BAR` -- a separate object mapping route paths to arrays of action names that should appear in the bar.
 
-Query helpers:
-- `getBarShortcuts(route)` -- returns `[{key, label}]` for the bottom bar, using `ROUTE_BAR[route]` to select which actions to show
-- `getHelpShortcuts(route)` -- returns `[key, help]` pairs for the help overlay (route-specific + base route + globals)
-- `matchShortcut(input, key, route)` -- matches Ink's `useInput` args against the route's shortcuts; route-specific take precedence over globals
+Query helpers (all accept optional `matchedPath` to handle parameterized routes via `getShortcutRoute()`):
+- `getBarShortcuts(route, matchedPath?)` -- returns `[{key, label}]` for the bottom bar, using `ROUTE_BAR[route]` to select which actions to show
+- `getHelpShortcuts(route, matchedPath?)` -- returns `[key, help]` pairs for the help overlay (route-specific + base route + globals)
+- `matchShortcut(input, key, route, matchedPath?)` -- matches Ink's `useInput` args against the route's shortcuts; route-specific take precedence over globals
+- `getShortcutRoute(matchedPath)` -- strips `:param` segments from a matched pattern (e.g. `"jira/detail/:key"` -> `"jira/detail"`) so shortcuts are looked up by the static prefix
 
 **Adding a new shortcut:**
 1. Add the `ShortcutDef` entry to `ROUTE_SHORTCUTS[route]` in `route-shortcuts.ts`

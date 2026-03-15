@@ -56,6 +56,7 @@ export function JiraIssueListView() {
       if (key.escape) {
         setSearchMode(false);
         setSearchText("");
+        navigate("jira");
         return;
       }
       if (key.upArrow) {
@@ -69,7 +70,6 @@ export function JiraIssueListView() {
         return;
       }
       if (key.return) {
-        // Open detail for selected issue (keep search active)
         if (selectedIssue) {
           navigate(`jira/detail/${selectedIssue.key}`);
         }
@@ -126,6 +126,7 @@ export function JiraIssueListView() {
         searchJustActivated.current = true;
         setSearchMode(true);
         setSearchText("");
+        navigate("jira/search");
       },
       refresh: () => {
         refetch();
