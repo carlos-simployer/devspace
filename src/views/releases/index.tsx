@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { Config, FocusArea } from "../../api/types.ts";
+import type { FocusArea } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import {
@@ -14,23 +15,15 @@ import { ReleaseStatusBar } from "./status-bar.tsx";
 import { DefinitionSearch } from "./definition-search.tsx";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 
-interface Props {
-  config: Config;
-  addPinnedReleaseDefinition: (id: number) => void;
-  removePinnedReleaseDefinition: (id: number) => void;
-  onQuit: () => void;
-  height: number;
-  width: number;
-}
-
-export function ReleasesView({
-  config,
-  addPinnedReleaseDefinition,
-  removePinnedReleaseDefinition,
-  onQuit,
-  height,
-  width,
-}: Props) {
+export function ReleasesView() {
+  const {
+    config,
+    addPinnedReleaseDefinition,
+    removePinnedReleaseDefinition,
+    onQuit,
+    contentHeight: height,
+    width,
+  } = useAppContext();
   const { route, navigate } = useRouter();
   const showHelp = route === "releases/help";
   const showSearch = route === "releases/search";

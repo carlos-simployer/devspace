@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { Box } from "ink";
 import type { FocusArea, TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { PackageList } from "./package-list.tsx";
@@ -10,27 +11,18 @@ import { DepStatusBar } from "./dep-status-bar.tsx";
 import { PackageSearch } from "./package-search.tsx";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 
-interface Props {
-  packages: Map<string, TrackedPackage>;
-  fetchPackage: (name: string, force?: boolean) => void;
-  trackedPackages: string[];
-  addPackage: (pkg: string) => void;
-  removePackage: (pkg: string) => void;
-  height: number;
-  width: number;
-  onQuit: () => void;
-}
-
-export function DependencyTracker({
-  packages,
-  fetchPackage,
-  trackedPackages,
-  addPackage,
-  removePackage,
-  height,
-  width,
-  onQuit,
-}: Props) {
+export function DependencyTracker() {
+  const {
+    depPackages: packages,
+    depFetchPackage: fetchPackage,
+    config,
+    addPackage,
+    removePackage,
+    contentHeight: height,
+    width,
+    onQuit,
+  } = useAppContext();
+  const trackedPackages = config.trackedPackages;
   const { route, navigate } = useRouter();
   const showHelp = route === "dependencies/help";
   const showPackageSearch = route.startsWith("dependencies/search");

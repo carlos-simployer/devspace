@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Box, useApp, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
@@ -7,69 +7,10 @@ import { useConfig } from "./hooks/use-config.ts";
 import { useRepos } from "./hooks/use-repos.ts";
 import { useNotifications } from "./hooks/use-notifications.ts";
 import { useDependencySearch } from "./hooks/use-dependency-search.ts";
-import { PRView } from "./views/prs/index.tsx";
-import { DependencyTracker } from "./views/dependencies/index.tsx";
-import { ConfigView } from "./views/config/index.tsx";
-import { PipelinesView } from "./views/pipelines/index.tsx";
-import { ReleasesView } from "./views/releases/index.tsx";
-import { ProjectsView } from "./views/projects/index.tsx";
-import { JiraView } from "./views/jira/index.tsx";
 import { ViewHeader } from "./components/view-header.tsx";
-import { RouterProvider, defineRoutes, useRouter } from "./ui/router.ts";
-
-// Placeholder component for route definitions (not rendered via RouteRenderer)
-const Noop = () => null;
-
-// All routes — used by RouterProvider for param extraction and route matching
-const routes = defineRoutes({
-  // PRs
-  prs: { component: Noop },
-  "prs/detail": { component: Noop },
-  "prs/help": { component: Noop, layout: "overlay" },
-  "prs/notifications": { component: Noop },
-  "prs/search": { component: Noop, layout: "overlay" },
-
-  // Dependencies
-  dependencies: { component: Noop },
-  "dependencies/help": { component: Noop, layout: "overlay" },
-  "dependencies/search": { component: Noop, layout: "overlay" },
-
-  // Pipelines
-  pipelines: { component: Noop },
-  "pipelines/help": { component: Noop, layout: "overlay" },
-  "pipelines/search": { component: Noop, layout: "overlay" },
-  "pipelines/runs": { component: Noop },
-
-  // Releases
-  releases: { component: Noop },
-  "releases/help": { component: Noop, layout: "overlay" },
-  "releases/search": { component: Noop, layout: "overlay" },
-
-  // Projects
-  projects: { component: Noop },
-  "projects/help": { component: Noop, layout: "overlay" },
-  "projects/add": { component: Noop, layout: "overlay" },
-  "projects/confirm": { component: Noop, layout: "overlay" },
-
-  // Jira
-  jira: { component: Noop },
-  "jira/detail/:key": { component: Noop },
-  "jira/statusFilter": { component: Noop, layout: "overlay" },
-  "jira/memberSelect": { component: Noop, layout: "overlay" },
-  "jira/sort": { component: Noop, layout: "overlay" },
-  "jira/help": { component: Noop, layout: "overlay" },
-  "jira/search": { component: Noop },
-
-  // Config
-  config: { component: Noop },
-  "config/addOrg": { component: Noop, layout: "overlay" },
-  "config/editAzureOrg": { component: Noop, layout: "overlay" },
-  "config/editAzureProject": { component: Noop, layout: "overlay" },
-  "config/editJiraSite": { component: Noop, layout: "overlay" },
-  "config/editJiraEmail": { component: Noop, layout: "overlay" },
-  "config/editJiraToken": { component: Noop, layout: "overlay" },
-  "config/editJiraProject": { component: Noop, layout: "overlay" },
-});
+import { RouterProvider, RouteRenderer, useRouter } from "./ui/router.ts";
+import { AppContext } from "./app-context.ts";
+import { routes } from "./routes.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -79,10 +20,12 @@ interface Props {
 
 /**
  * Inner app — lives inside RouterProvider so it can use the router.
+ * Provides AppContext to all views.
  */
 function AppInner({ client, org, token }: Props) {
   const { exit } = useApp();
   const { height, width } = useScreenSize();
+  const configHook = useConfig(org);
   const {
     config,
     addRepo,
@@ -107,11 +50,11 @@ function AppInner({ client, org, token }: Props) {
     setJiraEmail,
     setJiraToken,
     setJiraProject,
-    setJiraAccountId: _setJiraAccountId,
     setGithubToken,
     setAzureToken,
     isFirstLaunch,
-  } = useConfig(org);
+  } = configHook;
+
   const { repos: orgRepos, loading: reposLoading } = useRepos(
     client,
     config.orgs,
@@ -139,121 +82,107 @@ function AppInner({ client, org, token }: Props) {
 
   const contentHeight = height - measuredViewHeader;
 
-  // PRView still manages its own header
+  const appCtx = useMemo(
+    () => ({
+      height,
+      width,
+      contentHeight,
+      onQuit: exit,
+      config,
+      addRepo,
+      removeRepo,
+      addPackage,
+      removePackage,
+      addOrg,
+      removeOrg,
+      setRefreshInterval,
+      markViewed,
+      setThemeName,
+      setAzureOrg,
+      setAzureProject,
+      addPinnedPipeline,
+      removePinnedPipeline,
+      addPinnedReleaseDefinition,
+      removePinnedReleaseDefinition,
+      addLocalProject,
+      removeLocalProject,
+      setPersistCache,
+      setJiraSite,
+      setJiraEmail,
+      setJiraToken,
+      setJiraProject,
+      setGithubToken,
+      setAzureToken,
+      isFirstLaunch,
+      client,
+      token,
+      orgRepos,
+      reposLoading,
+      depPackages,
+      depFetchPackage,
+      notifications,
+      notifLoading,
+      unreadCount,
+    }),
+    [
+      height,
+      width,
+      contentHeight,
+      exit,
+      config,
+      addRepo,
+      removeRepo,
+      addPackage,
+      removePackage,
+      addOrg,
+      removeOrg,
+      setRefreshInterval,
+      markViewed,
+      setThemeName,
+      setAzureOrg,
+      setAzureProject,
+      addPinnedPipeline,
+      removePinnedPipeline,
+      addPinnedReleaseDefinition,
+      removePinnedReleaseDefinition,
+      addLocalProject,
+      removeLocalProject,
+      setPersistCache,
+      setJiraSite,
+      setJiraEmail,
+      setJiraToken,
+      setJiraProject,
+      setGithubToken,
+      setAzureToken,
+      isFirstLaunch,
+      client,
+      token,
+      orgRepos,
+      reposLoading,
+      depPackages,
+      depFetchPackage,
+      notifications,
+      notifLoading,
+      unreadCount,
+    ],
+  );
+
+  // PRView manages its own header — render it without ViewHeader wrapper
   if (baseRoute === "prs") {
     return (
-      <PRView
-        client={client}
-        token={token}
-        config={config}
-        addRepo={addRepo}
-        removeRepo={removeRepo}
-        markViewed={markViewed}
-        isFirstLaunch={isFirstLaunch}
-        orgRepos={orgRepos}
-        reposLoading={reposLoading}
-        notifications={notifications}
-        notifLoading={notifLoading}
-        unreadCount={unreadCount}
-        onQuit={exit}
-        height={height}
-        width={width}
-      />
+      <AppContext.Provider value={appCtx}>
+        <RouteRenderer routes={routes} />
+      </AppContext.Provider>
     );
   }
 
   return (
-    <Box height={height} width={width} flexDirection="column">
-      <ViewHeader route={route} headerRef={viewHeaderRef} />
-
-      {baseRoute === "dependencies" && (
-        <DependencyTracker
-          packages={depPackages}
-          fetchPackage={depFetchPackage}
-          trackedPackages={config.trackedPackages}
-          addPackage={addPackage}
-          removePackage={removePackage}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-
-      {baseRoute === "pipelines" && (
-        <PipelinesView
-          config={config}
-          addPinnedPipeline={addPinnedPipeline}
-          removePinnedPipeline={removePinnedPipeline}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-
-      {baseRoute === "releases" && (
-        <ReleasesView
-          config={config}
-          addPinnedReleaseDefinition={addPinnedReleaseDefinition}
-          removePinnedReleaseDefinition={removePinnedReleaseDefinition}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-
-      {baseRoute === "projects" && (
-        <ProjectsView
-          localProjects={config.localProjects}
-          addLocalProject={addLocalProject}
-          removeLocalProject={removeLocalProject}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-
-      {baseRoute === "jira" && (
-        <JiraView
-          config={config}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-
-      {baseRoute === "config" && (
-        <ConfigView
-          orgs={config.orgs}
-          addOrg={addOrg}
-          removeOrg={removeOrg}
-          refreshInterval={config.refreshInterval}
-          setRefreshInterval={setRefreshInterval}
-          themeName={config.theme}
-          setThemeName={setThemeName}
-          azureOrg={config.azureOrg}
-          azureProject={config.azureProject}
-          setAzureOrg={setAzureOrg}
-          setAzureProject={setAzureProject}
-          jiraSite={config.jiraSite}
-          jiraEmail={config.jiraEmail}
-          jiraToken={config.jiraToken}
-          jiraProject={config.jiraProject}
-          setJiraSite={setJiraSite}
-          setJiraEmail={setJiraEmail}
-          setJiraToken={setJiraToken}
-          setJiraProject={setJiraProject}
-          githubToken={config.githubToken}
-          setGithubToken={setGithubToken}
-          azureToken={config.azureToken}
-          setAzureToken={setAzureToken}
-          persistCache={config.persistCache}
-          setPersistCache={setPersistCache}
-          height={contentHeight}
-          width={width}
-          onQuit={exit}
-        />
-      )}
-    </Box>
+    <AppContext.Provider value={appCtx}>
+      <Box height={height} width={width} flexDirection="column">
+        <ViewHeader route={route} headerRef={viewHeaderRef} />
+        <RouteRenderer routes={routes} />
+      </Box>
+    </AppContext.Provider>
   );
 }
 

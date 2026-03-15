@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Box, Text, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
-import type { Config, JiraFilterMode } from "../../api/types.ts";
+import type { JiraFilterMode } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
@@ -21,13 +22,6 @@ import { StatusFilter } from "./status-filter.tsx";
 import { SortOverlay } from "./sort-overlay.tsx";
 import { IssueDetail } from "./issue-detail/index.tsx";
 
-interface Props {
-  config: Config;
-  height: number;
-  width: number;
-  onQuit: () => void;
-}
-
 const DEFAULT_STATUS_ORDER = [
   "In Progress",
   "Blocked",
@@ -37,7 +31,8 @@ const DEFAULT_STATUS_ORDER = [
   "Done",
 ];
 
-export function JiraView({ config, height, width, onQuit }: Props) {
+export function JiraView() {
+  const { config, contentHeight: height, width, onQuit } = useAppContext();
   const { route, navigate } = useRouter();
 
   // Derive sub-view state from router route

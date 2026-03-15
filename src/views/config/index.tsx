@@ -9,6 +9,7 @@ import {
   clearQueryCache,
   getQueryCacheSize,
 } from "../../utils/query-persister.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import {
@@ -17,37 +18,6 @@ import {
   THEMES,
   type ThemeName,
 } from "../../ui/theme.ts";
-
-interface Props {
-  orgs: string[];
-  addOrg: (org: string) => void;
-  removeOrg: (org: string) => void;
-  refreshInterval: number;
-  setRefreshInterval: (seconds: number) => void;
-  themeName: string;
-  setThemeName: (name: string) => void;
-  azureOrg: string;
-  azureProject: string;
-  setAzureOrg: (org: string) => void;
-  setAzureProject: (project: string) => void;
-  jiraSite: string;
-  jiraEmail: string;
-  jiraToken: string;
-  jiraProject: string;
-  setJiraSite: (site: string) => void;
-  setJiraEmail: (email: string) => void;
-  setJiraToken: (token: string) => void;
-  setJiraProject: (project: string) => void;
-  githubToken: string;
-  setGithubToken: (token: string) => void;
-  azureToken: string;
-  setAzureToken: (token: string) => void;
-  persistCache: boolean;
-  setPersistCache: (enabled: boolean) => void;
-  height: number;
-  width: number;
-  onQuit: () => void;
-}
 
 function formatInterval(seconds: number): string {
   if (seconds >= 60) return `${seconds / 60}m`;
@@ -76,36 +46,39 @@ interface ConfigItem {
   color?: string;
 }
 
-export function ConfigView({
-  orgs,
-  addOrg,
-  removeOrg,
-  refreshInterval,
-  setRefreshInterval,
-  themeName,
-  setThemeName,
-  azureOrg,
-  azureProject,
-  setAzureOrg,
-  setAzureProject,
-  jiraSite,
-  jiraEmail,
-  jiraToken,
-  jiraProject,
-  setJiraSite,
-  setJiraEmail,
-  setJiraToken,
-  setJiraProject,
-  githubToken,
-  setGithubToken,
-  azureToken,
-  setAzureToken,
-  persistCache,
-  setPersistCache,
-  height,
-  width,
-  onQuit,
-}: Props) {
+export function ConfigView() {
+  const {
+    config,
+    addOrg,
+    removeOrg,
+    setRefreshInterval,
+    setThemeName,
+    setAzureOrg,
+    setAzureProject,
+    setJiraSite,
+    setJiraEmail,
+    setJiraToken,
+    setJiraProject,
+    setGithubToken,
+    setAzureToken,
+    setPersistCache,
+    contentHeight: height,
+    width,
+    onQuit,
+  } = useAppContext();
+
+  const orgs = config.orgs;
+  const refreshInterval = config.refreshInterval;
+  const themeName = config.theme;
+  const azureOrg = config.azureOrg;
+  const azureProject = config.azureProject;
+  const jiraSite = config.jiraSite;
+  const jiraEmail = config.jiraEmail;
+  const jiraToken = config.jiraToken;
+  const jiraProject = config.jiraProject;
+  const githubToken = config.githubToken;
+  const azureToken = config.azureToken;
+  const persistCache = config.persistCache;
   const { navigate } = useRouter();
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);

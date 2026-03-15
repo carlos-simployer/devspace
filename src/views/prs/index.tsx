@@ -7,15 +7,8 @@ import React, {
 } from "react";
 import { Box, Text, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
-import type { GraphQLClient } from "../../api/client.ts";
-import type {
-  Config,
-  FilterMode,
-  FocusArea,
-  SortMode,
-  RepoNode,
-} from "../../api/types.ts";
-import type { GitHubNotification } from "../../hooks/use-notifications.ts";
+import type { FilterMode, FocusArea, SortMode } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
 import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
 import { useRouter } from "../../ui/router.ts";
@@ -36,43 +29,26 @@ import { orderByTimeBucket } from "../../utils/time-buckets.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "../../api/mutations.ts";
 import { getTheme } from "../../ui/theme.ts";
 
-interface Props {
-  client: GraphQLClient;
-  token: string;
-  config: Config;
-  addRepo: (repo: string) => void;
-  removeRepo: (repo: string) => void;
-  markViewed: (prId: string) => void;
-  isFirstLaunch: boolean;
-  orgRepos: RepoNode[];
-  reposLoading: boolean;
-  notifications: GitHubNotification[];
-  notifLoading: boolean;
-  unreadCount: number;
-  onQuit: () => void;
-  height: number;
-  width: number;
-}
-
 const SORT_MODES: SortMode[] = ["repo-updated", "updated", "oldest"];
 
-export function PRView({
-  client,
-  token,
-  config,
-  addRepo,
-  removeRepo,
-  markViewed,
-  isFirstLaunch,
-  orgRepos,
-  reposLoading,
-  notifications,
-  notifLoading,
-  unreadCount,
-  onQuit,
-  height,
-  width,
-}: Props) {
+export function PRView() {
+  const {
+    client,
+    token,
+    config,
+    addRepo,
+    removeRepo,
+    markViewed,
+    isFirstLaunch,
+    orgRepos,
+    reposLoading,
+    notifications,
+    notifLoading,
+    unreadCount,
+    onQuit,
+    height,
+    width,
+  } = useAppContext();
   const { route, navigate } = useRouter();
 
   // Derive sub-view state from router route

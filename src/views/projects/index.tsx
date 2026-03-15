@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import { exec } from "child_process";
-import type { LocalProject } from "../../api/types.ts";
 import {
   useLocalProcesses,
   type ProcessState,
 } from "../../hooks/use-local-processes.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { getTheme } from "../../ui/index.ts";
@@ -14,23 +14,16 @@ import { ProjectList } from "./project-list.tsx";
 import { LogPanel } from "./log-panel.tsx";
 import { AddProjectOverlay } from "./add-project.tsx";
 
-interface Props {
-  localProjects: LocalProject[];
-  addLocalProject: (project: LocalProject) => void;
-  removeLocalProject: (name: string) => void;
-  height: number;
-  width: number;
-  onQuit: () => void;
-}
-
-export function ProjectsView({
-  localProjects,
-  addLocalProject,
-  removeLocalProject,
-  height,
-  width,
-  onQuit,
-}: Props) {
+export function ProjectsView() {
+  const {
+    config,
+    addLocalProject,
+    removeLocalProject,
+    contentHeight: height,
+    width,
+    onQuit,
+  } = useAppContext();
+  const localProjects = config.localProjects;
   const { route, navigate } = useRouter();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [logScroll, setLogScroll] = useState<number | null>(null); // null = auto-follow

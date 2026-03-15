@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { Box } from "ink";
+// Box import removed — RouteRenderer no longer wraps overlays
 import { getBaseRoute } from "./tabs.ts";
 
 // ---------------------------------------------------------------------------
@@ -196,42 +196,17 @@ export function RouterProvider({
 
 interface RouteRendererProps {
   routes: Map<string, RouteDef>;
-  height: number;
-  width: number;
-  [key: string]: any; // shared props passed to all route components
 }
 
-export function RouteRenderer({
-  routes,
-  height,
-  width,
-  ...sharedProps
-}: RouteRendererProps) {
-  const { route, params } = useRouter();
+/**
+ * Renders the matched route component with no props.
+ * Views read shared data from AppContext via useAppContext().
+ */
+export function RouteRenderer({ routes }: RouteRendererProps) {
+  const { route } = useRouter();
 
   const match = findMatch(routes, route);
   if (!match) return null;
 
-  const componentProps = {
-    ...sharedProps,
-    ...params,
-    height,
-    width,
-  };
-
-  if (match.layout === "overlay") {
-    return React.createElement(
-      Box,
-      {
-        height,
-        width,
-        alignItems: "center",
-        justifyContent: "center",
-      },
-      React.createElement(match.component, componentProps),
-    );
-  }
-
-  // Full layout
-  return React.createElement(match.component, componentProps);
+  return React.createElement(match.component);
 }

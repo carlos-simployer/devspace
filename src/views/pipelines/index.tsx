@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Box, Text } from "ink";
-import type { Config, FocusArea } from "../../api/types.ts";
+import type { FocusArea } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { usePipelines } from "../../hooks/use-pipelines.ts";
@@ -13,23 +14,15 @@ import { PipelineSearch } from "./pipeline-search.tsx";
 import { PipelineRuns } from "./pipeline-runs.tsx";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 
-interface Props {
-  config: Config;
-  addPinnedPipeline: (id: number) => void;
-  removePinnedPipeline: (id: number) => void;
-  onQuit: () => void;
-  height: number;
-  width: number;
-}
-
-export function PipelinesView({
-  config,
-  addPinnedPipeline,
-  removePinnedPipeline,
-  onQuit,
-  height,
-  width,
-}: Props) {
+export function PipelinesView() {
+  const {
+    config,
+    addPinnedPipeline,
+    removePinnedPipeline,
+    onQuit,
+    contentHeight: height,
+    width,
+  } = useAppContext();
   const { route, navigate } = useRouter();
   const showHelp = route === "pipelines/help";
   const showSearch = route === "pipelines/search";

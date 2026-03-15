@@ -37,7 +37,7 @@ function renderWithRouter(
   const routes = defineRoutes(routeDefs);
   return render(
     <RouterProvider routes={routes} initialRoute={initialRoute}>
-      <RouteRenderer routes={routes} height={24} width={80} />
+      <RouteRenderer routes={routes} />
     </RouterProvider>,
   );
 }
