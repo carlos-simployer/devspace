@@ -25,6 +25,7 @@ export interface RouterContextValue {
   route: string;
   params: Record<string, string>;
   baseRoute: string;
+  matchedPath: string;
   navigate: (path: string) => void;
   goBack: () => void;
 }
@@ -35,6 +36,27 @@ export interface RouteDef {
   bar?: string[]; // action names to show in shortcut bar (optional override)
 }
 
+export interface ChildRouteDef {
+  component: React.ComponentType<any>;
+  layout?: "full" | "overlay";
+}
+
+export interface NestedRouteDef {
+  component: React.ComponentType<any>; // layout/parent component
+  children: Record<string, ChildRouteDef>;
+}
+
+export type RouteInput = RouteDef | NestedRouteDef;
+
+// Flattened type used by RouterProvider and RouteRenderer
+export interface FlattenedRouteDef {
+  component: React.ComponentType<any>;
+  layout?: "full" | "overlay";
+  parentComponent?: React.ComponentType<any>;
+  childComponent?: React.ComponentType<any>;
+  childLayout?: "full" | "overlay";
+}
+
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
@@ -43,6 +65,7 @@ export const RouterContext = createContext<RouterContextValue>({
   route: "prs",
   params: {},
   baseRoute: "prs",
+  matchedPath: "prs",
   navigate: () => {},
   goBack: () => {},
 });
@@ -52,13 +75,65 @@ export function useRouter(): RouterContextValue {
 }
 
 // ---------------------------------------------------------------------------
+// Outlet — renders the child component in a nested route layout
+// ---------------------------------------------------------------------------
+
+interface OutletContextValue {
+  component: React.ComponentType<any>;
+  layout: "full" | "overlay";
+}
+
+const OutletContext = createContext<OutletContextValue | null>(null);
+
+export function Outlet() {
+  const ctx = useContext(OutletContext);
+  if (!ctx) return null;
+  return React.createElement(ctx.component);
+}
+
+export function useOutlet() {
+  const ctx = useContext(OutletContext);
+  if (!ctx) return null;
+  return { layout: ctx.layout, isOverlay: ctx.layout === "overlay" };
+}
+
+// ---------------------------------------------------------------------------
 // Route definition helper
 // ---------------------------------------------------------------------------
 
+/** Type guard: detect nested route definitions (have `children` property). */
+function isNestedDef(def: RouteInput): def is NestedRouteDef {
+  return "children" in def && typeof def.children === "object";
+}
+
 export function defineRoutes(
-  defs: Record<string, RouteDef>,
-): Map<string, RouteDef> {
-  return new Map(Object.entries(defs));
+  defs: Record<string, RouteInput>,
+): Map<string, FlattenedRouteDef> {
+  const result = new Map<string, FlattenedRouteDef>();
+
+  for (const [key, def] of Object.entries(defs)) {
+    if (isNestedDef(def)) {
+      // Flatten nested routes: parent + children
+      for (const [childPath, childDef] of Object.entries(def.children)) {
+        const flatKey = childPath === "" ? key : `${key}/${childPath}`;
+        result.set(flatKey, {
+          component: def.component,
+          layout: childDef.layout,
+          parentComponent: def.component,
+          childComponent: childDef.component,
+          childLayout: childDef.layout,
+        });
+      }
+    } else {
+      // Flat route — pass through unchanged (backward compatible)
+      result.set(key, {
+        component: def.component,
+        layout: def.layout,
+      });
+    }
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,14 +169,21 @@ function matchRoute(
   return params;
 }
 
+/** Extended match that includes nesting info from FlattenedRouteDef. */
+interface FlattenedMatch extends RouteMatch {
+  parentComponent?: React.ComponentType<any>;
+  childComponent?: React.ComponentType<any>;
+  childLayout?: "full" | "overlay";
+}
+
 /**
  * Find the matching route definition for a given route string.
  * Tries exact match first, then pattern matching.
  */
 function findMatch(
-  routes: Map<string, RouteDef>,
+  routes: Map<string, FlattenedRouteDef>,
   route: string,
-): RouteMatch | null {
+): FlattenedMatch | null {
   // Exact match first
   const exact = routes.get(route);
   if (exact) {
@@ -111,6 +193,9 @@ function findMatch(
       params: {},
       component: exact.component,
       layout: exact.layout ?? "full",
+      parentComponent: exact.parentComponent,
+      childComponent: exact.childComponent,
+      childLayout: exact.childLayout,
     };
   }
 
@@ -125,6 +210,9 @@ function findMatch(
         params,
         component: def.component,
         layout: def.layout ?? "full",
+        parentComponent: def.parentComponent,
+        childComponent: def.childComponent,
+        childLayout: def.childLayout,
       };
     }
   }
@@ -137,7 +225,7 @@ function findMatch(
 // ---------------------------------------------------------------------------
 
 interface RouterProviderProps {
-  routes: Map<string, RouteDef>;
+  routes: Map<string, FlattenedRouteDef>;
   initialRoute?: string;
   children: React.ReactNode;
 }
@@ -174,18 +262,29 @@ export function RouterProvider({
 
   const baseRoute = getBaseRoute(route);
 
-  // Derive params synchronously — no useEffect / useState needed
+  // Derive params + matchedPath synchronously — no useEffect / useState needed
   const value = useMemo(() => {
     let params: Record<string, string> = {};
-    for (const [pattern] of _routes) {
-      if (!pattern.includes(":")) continue;
-      const matched = matchRoute(pattern, route);
-      if (matched) {
-        params = matched;
-        break;
+    let matchedPath: string = route;
+
+    // Try exact match first
+    if (_routes.has(route)) {
+      params = {};
+      matchedPath = route;
+    } else {
+      // Pattern match
+      for (const [pattern] of _routes) {
+        if (!pattern.includes(":")) continue;
+        const matched = matchRoute(pattern, route);
+        if (matched) {
+          params = matched;
+          matchedPath = pattern;
+          break;
+        }
       }
     }
-    return { route, params, baseRoute, navigate, goBack };
+
+    return { route, params, baseRoute, matchedPath, navigate, goBack };
   }, [route, _routes, baseRoute, navigate, goBack]);
 
   return React.createElement(RouterContext.Provider, { value }, children);
@@ -196,11 +295,12 @@ export function RouterProvider({
 // ---------------------------------------------------------------------------
 
 interface RouteRendererProps {
-  routes: Map<string, RouteDef>;
+  routes: Map<string, FlattenedRouteDef>;
 }
 
 /**
  * Renders the matched route component with no props.
+ * For nested routes, wraps the child in OutletContext and renders the parent.
  * Views read shared data from AppContext via useAppContext().
  */
 export function RouteRenderer({ routes }: RouteRendererProps) {
@@ -209,5 +309,19 @@ export function RouteRenderer({ routes }: RouteRendererProps) {
   const match = findMatch(routes, route);
   if (!match) return null;
 
+  // Nested route: parent renders <Outlet /> which picks up the child
+  if (match.parentComponent && match.childComponent) {
+    const outletValue: OutletContextValue = {
+      component: match.childComponent,
+      layout: match.childLayout ?? "full",
+    };
+    return React.createElement(
+      OutletContext.Provider,
+      { value: outletValue },
+      React.createElement(match.parentComponent),
+    );
+  }
+
+  // Flat route — render component directly (backward compatible)
   return React.createElement(match.component);
 }

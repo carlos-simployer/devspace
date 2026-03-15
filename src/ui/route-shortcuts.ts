@@ -620,21 +620,37 @@ export function getRouteShortcuts(route: string): Record<string, ShortcutDef> {
   return ROUTE_SHORTCUTS[route] ?? {};
 }
 
+/**
+ * Strip :param segments from a matched route pattern to get the shortcut key.
+ * e.g. "jira/detail/:key" -> "jira/detail"
+ *      "jira" -> "jira" (unchanged)
+ *      "config/edit/:field" -> "config/edit"
+ */
+export function getShortcutRoute(matchedPath: string): string {
+  return matchedPath
+    .split("/")
+    .filter((seg) => !seg.startsWith(":"))
+    .join("/");
+}
+
 /** Get shortcuts for the bottom bar of a route. */
 export function getBarShortcuts(
   route: string,
+  matchedPath?: string,
 ): Array<{ key: string; label: string }> {
+  const lookupRoute = matchedPath ? getShortcutRoute(matchedPath) : route;
   // Try exact route first, then fall back to base route
-  const barActions = ROUTE_BAR[route] ?? ROUTE_BAR[getBaseRoute(route)] ?? [];
+  const barActions =
+    ROUTE_BAR[lookupRoute] ?? ROUTE_BAR[getBaseRoute(lookupRoute)] ?? [];
   if (barActions.length === 0) return [];
 
-  const base = getBaseRoute(route);
+  const base = getBaseRoute(lookupRoute);
   const result: Array<{ key: string; label: string }> = [];
 
   for (const actionName of barActions) {
     // Search in the route's shortcuts, then base route, then globals
     const def =
-      findShortcutByAction(actionName, route) ??
+      findShortcutByAction(actionName, lookupRoute) ??
       findShortcutByAction(actionName, base) ??
       findShortcutByAction(actionName, "_global");
     if (def?.label) {
@@ -645,13 +661,17 @@ export function getBarShortcuts(
 }
 
 /** Get shortcuts for the help overlay (route-specific + globals). */
-export function getHelpShortcuts(route: string): Array<[string, string]> {
-  const base = getBaseRoute(route);
+export function getHelpShortcuts(
+  route: string,
+  matchedPath?: string,
+): Array<[string, string]> {
+  const lookupRoute = matchedPath ? getShortcutRoute(matchedPath) : route;
+  const base = getBaseRoute(lookupRoute);
   const seen = new Set<string>();
   const result: Array<[string, string]> = [];
 
   // Collect from exact route, then base route, then globals
-  for (const scope of [route, base, "_global"]) {
+  for (const scope of [lookupRoute, base, "_global"]) {
     const shortcuts = ROUTE_SHORTCUTS[scope];
     if (!shortcuts) continue;
     for (const def of Object.values(shortcuts)) {
@@ -672,9 +692,11 @@ export function matchShortcut(
   input: string,
   key: InkKey,
   route: string,
+  matchedPath?: string,
 ): string | null {
+  const lookupRoute = matchedPath ? getShortcutRoute(matchedPath) : route;
   // Route-specific shortcuts first
-  const routeShortcuts = ROUTE_SHORTCUTS[route];
+  const routeShortcuts = ROUTE_SHORTCUTS[lookupRoute];
   if (routeShortcuts) {
     for (const def of Object.values(routeShortcuts)) {
       if (matchKey(def.key, input, key)) return def.action;

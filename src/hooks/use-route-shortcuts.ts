@@ -24,7 +24,7 @@ export function useRouteShortcuts(
     onUnhandled?: (input: string, key: any) => void;
   },
 ) {
-  const { route, navigate, baseRoute: _baseRoute } = useRouter();
+  const { route, navigate, baseRoute: _baseRoute, matchedPath } = useRouter();
   const enabled = options?.active ?? true;
 
   useInput((input, key) => {
@@ -38,7 +38,7 @@ export function useRouteShortcuts(
         return;
       }
       // While on help, still allow tab switching and quit
-      const action = matchShortcut(input, key, route);
+      const action = matchShortcut(input, key, route, matchedPath);
       if (action === "nextView") {
         handleViewSwitch(route, navigate, false);
         return;
@@ -61,7 +61,7 @@ export function useRouteShortcuts(
     }
 
     // ── Match shortcuts for the current route ──────────────────────────
-    const action = matchShortcut(input, key, route);
+    const action = matchShortcut(input, key, route, matchedPath);
 
     if (action) {
       // Check if handler exists AND the action belongs to this route or is global

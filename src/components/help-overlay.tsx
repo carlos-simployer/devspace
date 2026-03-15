@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import { getHelpShortcuts } from "../ui/route-shortcuts.ts";
 import { getTheme } from "../ui/theme.ts";
 import { Overlay } from "../ui/overlay.tsx";
+import { useRouter } from "../ui/router.ts";
 
 interface Props {
   route: string;
@@ -11,7 +12,8 @@ interface Props {
 }
 
 export function HelpOverlay({ route, height, width }: Props) {
-  const shortcuts = getHelpShortcuts(route);
+  const { matchedPath } = useRouter();
+  const shortcuts = getHelpShortcuts(route, matchedPath);
   const theme = getTheme();
 
   // Group: view-specific first, then globals

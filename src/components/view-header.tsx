@@ -3,6 +3,7 @@ import { Box } from "ink";
 import type { DOMElement } from "ink";
 import { getBarShortcuts } from "../ui/route-shortcuts.ts";
 import { getBaseRoute } from "../ui/tabs.ts";
+import { useRouter } from "../ui/router.ts";
 import { TabBar } from "./tab-bar.tsx";
 import { Shortcuts } from "./shortcuts.tsx";
 
@@ -12,8 +13,9 @@ interface Props {
 }
 
 export function ViewHeader({ route, headerRef }: Props) {
-  const barItems = getBarShortcuts(route);
-  const baseItems = getBarShortcuts(getBaseRoute(route));
+  const { matchedPath } = useRouter();
+  const barItems = getBarShortcuts(route, matchedPath);
+  const baseItems = getBarShortcuts(getBaseRoute(route), matchedPath);
   const items = barItems.length > 0 ? barItems : baseItems;
 
   const activeView = getBaseRoute(route);
