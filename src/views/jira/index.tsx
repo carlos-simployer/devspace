@@ -109,8 +109,14 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   };
 
   // Search mode captures all input before useShortcuts can match
+  const searchJustActivated = useRef(false);
   useInput(
     (input, key) => {
+      // Skip the "/" character that triggered search mode
+      if (searchJustActivated.current) {
+        searchJustActivated.current = false;
+        if (input === "/") return;
+      }
       if (key.escape) {
         setSearchMode(false);
         setSearchText("");
@@ -131,48 +137,54 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     { isActive: searchMode },
   );
 
-  useShortcuts({
-    quit: onQuit,
-    open: () => {
-      if (selectedIssue) {
-        openInBrowser(`https://${config.jiraSite}/browse/${selectedIssue.key}`);
-      }
-    },
-    detail: () => {
-      if (selectedIssue) {
-        setView("jira.detail");
-      }
-    },
-    filterMine: () => {
-      setFilterMode("mine");
-      setSelectedIndex(0);
-    },
-    filterTeam: () => {
-      setFilterMode("team");
-      setSelectedIndex(0);
-    },
-    filterPerson: () => {
-      setView("jira.memberSelect");
-    },
-    search: () => {
-      setSearchMode(true);
-      setSearchText("");
-    },
-    refresh: () => {
-      refetch();
-    },
-    up: () => {
-      setSelectedIndex((i) => Math.max(0, i - 1));
-    },
-    down: () => {
-      setSelectedIndex((i) => Math.min(filteredIssues.length - 1, i + 1));
-    },
-    clearSearch: () => {
-      if (searchText) {
+  useShortcuts(
+    {
+      quit: onQuit,
+      open: () => {
+        if (selectedIssue) {
+          openInBrowser(
+            `https://${config.jiraSite}/browse/${selectedIssue.key}`,
+          );
+        }
+      },
+      detail: () => {
+        if (selectedIssue) {
+          setView("jira.detail");
+        }
+      },
+      filterMine: () => {
+        setFilterMode("mine");
+        setSelectedIndex(0);
+      },
+      filterTeam: () => {
+        setFilterMode("team");
+        setSelectedIndex(0);
+      },
+      filterPerson: () => {
+        setView("jira.memberSelect");
+      },
+      search: () => {
+        searchJustActivated.current = true;
+        setSearchMode(true);
         setSearchText("");
-      }
+      },
+      refresh: () => {
+        refetch();
+      },
+      up: () => {
+        setSelectedIndex((i) => Math.max(0, i - 1));
+      },
+      down: () => {
+        setSelectedIndex((i) => Math.min(filteredIssues.length - 1, i + 1));
+      },
+      clearSearch: () => {
+        if (searchText) {
+          setSearchText("");
+        }
+      },
     },
-  });
+    { active: !searchMode },
+  );
 
   if (!isConfigured) {
     return (

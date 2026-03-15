@@ -27,13 +27,16 @@ export function useShortcuts(
   handlers: ShortcutHandlers,
   options?: {
     scope?: ViewId;
+    active?: boolean;
     onUnhandled?: (input: string, key: any) => void;
   },
 ) {
   const { view, setView, baseView } = useView();
   const scope = options?.scope ?? baseView;
+  const enabled = options?.active ?? true;
 
   useInput((input, key) => {
+    if (!enabled) return;
     // Only fire if current view is within our scope
     // e.g. scope="jira" fires for view="jira" but NOT for "jira.memberSelect"
     // scope="jira.detail" fires for view="jira.detail" only
