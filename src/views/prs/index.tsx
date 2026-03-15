@@ -647,7 +647,7 @@ export function PRView({
           lastRefresh={lastRefresh}
           secondsUntilRefresh={secondsUntilRefresh}
           fetching={fetching}
-          searchText={searchMode ? searchText : ""}
+          searchText={searchMode ? searchText : null}
           selectedPR={selectedPR}
           width={width}
           sortMode={sortMode}

@@ -37,7 +37,7 @@ interface Props {
   selectedIndex: number;
   height: number;
   width: number;
-  searchText: string;
+  searchText: string | null;
   loading: boolean;
 }
 

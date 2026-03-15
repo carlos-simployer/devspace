@@ -11,7 +11,7 @@ interface Props {
   lastRefresh: Date | null;
   secondsUntilRefresh: number;
   fetching: boolean;
-  searchText: string;
+  searchText: string | null;
   selectedPR: PullRequest | null;
   width: number;
   sortMode: SortMode;
@@ -78,12 +78,12 @@ export function StatusBar({
           </Text>
           <Text dimColor>│</Text>
           <Text dimColor> {refreshText} </Text>
-          {searchText && (
+          {searchText !== null && (
             <>
               <Text dimColor>│</Text>
               <Text color={getTheme().input.search}>
                 {" "}
-                Search: {searchText}{" "}
+                Search: /{searchText}
               </Text>
             </>
           )}

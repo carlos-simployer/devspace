@@ -10,7 +10,7 @@ interface Props {
   selectedIssue: JiraIssue | null;
   width: number;
   fetching: boolean;
-  searchText: string;
+  searchText: string | null;
   error: string | null;
 }
 
@@ -55,10 +55,10 @@ export function JiraStatusBar({
               <Text color={theme.status.pending}> Refreshing... </Text>
             </>
           )}
-          {searchText && (
+          {searchText !== null && (
             <>
               <Text dimColor>|</Text>
-              <Text color={theme.input.search}> Search: {searchText} </Text>
+              <Text color={theme.input.search}> Search: /{searchText} </Text>
             </>
           )}
           {error && (

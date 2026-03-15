@@ -259,7 +259,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           selectedIndex={selectedIndex}
           height={mainHeight}
           width={width}
-          searchText={searchMode ? searchText : ""}
+          searchText={searchMode ? searchText : null}
           loading={loading}
         />
       </Box>
@@ -273,7 +273,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           selectedIssue={selectedIssue}
           width={width}
           fetching={loading}
-          searchText={searchMode ? searchText : ""}
+          searchText={searchMode ? searchText : null}
           error={error}
         />
       </Box>
