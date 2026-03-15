@@ -497,6 +497,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     help: "Clear search / close",
   },
 
+  // ── Jira Sort ────────────────────────────────────────────────────────
+  { action: "close", key: "escape", view: "jira.sort", help: "Cancel" },
+  { action: "select", key: "return", view: "jira.sort", help: "Apply" },
+  { action: "toggle", key: " ", view: "jira.sort", help: "Toggle field" },
+  { action: "up", key: "up", view: "jira.sort", help: "Navigate up" },
+  { action: "down", key: "down", view: "jira.sort", help: "Navigate down" },
+
   // ── Jira Status Filter ──────────────────────────────────────────────
   { action: "close", key: "escape", view: "jira.statusFilter", help: "Close" },
   {

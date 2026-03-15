@@ -45,19 +45,26 @@ export function groupByStatus(
   return ordered;
 }
 
-export type JiraSortMode = "updated" | "priority" | "assignee" | "key";
+export type JiraSortField =
+  | "updated"
+  | "priority"
+  | "assignee"
+  | "key"
+  | "type";
 
-export const JIRA_SORT_MODES: JiraSortMode[] = [
+export const ALL_SORT_FIELDS: JiraSortField[] = [
   "updated",
   "priority",
   "assignee",
+  "type",
   "key",
 ];
 
-export const JIRA_SORT_LABELS: Record<JiraSortMode, string> = {
+export const SORT_FIELD_LABELS: Record<JiraSortField, string> = {
   updated: "Updated",
   priority: "Priority",
   assignee: "Assignee",
+  type: "Type",
   key: "Key",
 };
 
@@ -69,52 +76,64 @@ const PRIORITY_ORDER: Record<string, number> = {
   lowest: 4,
 };
 
-/** Sort issues within each status group. Does not modify the input. */
+const TYPE_ORDER: Record<string, number> = {
+  bug: 0,
+  story: 1,
+  task: 2,
+  "sub-task": 3,
+  subtask: 3,
+  epic: 4,
+};
+
+/**
+ * Sort issues within each status group by multiple fields.
+ * Fields are applied in priority order — first field is primary sort.
+ * Does not modify the input.
+ */
 export function sortIssuesInGroups(
   groups: StatusGroup[],
-  sortMode: JiraSortMode,
+  sortFields: JiraSortField[],
 ): StatusGroup[] {
+  if (sortFields.length === 0) return groups;
   return groups.map((group) => ({
     ...group,
-    issues: [...group.issues].sort((a, b) => compareIssues(a, b, sortMode)),
+    issues: [...group.issues].sort((a, b) => {
+      for (const field of sortFields) {
+        const cmp = compareByField(a, b, field);
+        if (cmp !== 0) return cmp;
+      }
+      return 0;
+    }),
   }));
 }
 
-function compareIssues(
+function compareByField(
   a: JiraIssue,
   b: JiraIssue,
-  sortMode: JiraSortMode,
+  field: JiraSortField,
 ): number {
-  switch (sortMode) {
+  switch (field) {
     case "updated":
-      // Newest first
       return (
         new Date(b.fields.updated).getTime() -
         new Date(a.fields.updated).getTime()
       );
     case "priority": {
-      // Highest priority first, then by updated
       const pa = PRIORITY_ORDER[a.fields.priority.name.toLowerCase()] ?? 5;
       const pb = PRIORITY_ORDER[b.fields.priority.name.toLowerCase()] ?? 5;
-      if (pa !== pb) return pa - pb;
-      return (
-        new Date(b.fields.updated).getTime() -
-        new Date(a.fields.updated).getTime()
-      );
+      return pa - pb;
     }
     case "assignee": {
-      // Alphabetical by assignee name, unassigned last
       const na = a.fields.assignee?.displayName ?? "\uffff";
       const nb = b.fields.assignee?.displayName ?? "\uffff";
-      const cmp = na.localeCompare(nb);
-      if (cmp !== 0) return cmp;
-      return (
-        new Date(b.fields.updated).getTime() -
-        new Date(a.fields.updated).getTime()
-      );
+      return na.localeCompare(nb);
+    }
+    case "type": {
+      const ta = TYPE_ORDER[a.fields.issuetype.name.toLowerCase()] ?? 99;
+      const tb = TYPE_ORDER[b.fields.issuetype.name.toLowerCase()] ?? 99;
+      return ta - tb;
     }
     case "key": {
-      // Issue number descending (newest issues first)
       const numA = parseInt(a.key.split("-")[1] ?? "0", 10);
       const numB = parseInt(b.key.split("-")[1] ?? "0", 10);
       return numB - numA;

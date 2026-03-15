@@ -65,6 +65,7 @@ export function useJiraIssues(
   const {
     data: issues,
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
@@ -94,6 +95,7 @@ export function useJiraIssues(
   return {
     issues: issues ?? [],
     loading: isLoading,
+    fetching: isFetching,
     error: error?.message ?? null,
     refetch,
   };

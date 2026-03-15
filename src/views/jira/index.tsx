@@ -10,15 +10,15 @@ import { getTheme } from "../../ui/theme.ts";
 import {
   groupByStatus,
   sortIssuesInGroups,
-  JIRA_SORT_MODES,
-  JIRA_SORT_LABELS,
-  type JiraSortMode,
+  SORT_FIELD_LABELS,
+  type JiraSortField,
 } from "../../utils/jira-status.ts";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { IssueList } from "./issue-list.tsx";
 import { JiraStatusBar } from "./status-bar.tsx";
 import { MemberSelect } from "./member-select.tsx";
 import { StatusFilter } from "./status-filter.tsx";
+import { SortOverlay } from "./sort-overlay.tsx";
 import { IssueDetail } from "./issue-detail/index.tsx";
 
 interface Props {
@@ -45,6 +45,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const showDetail = view === "jira.detail";
   const showMemberSelect = view === "jira.memberSelect";
   const showStatusFilter = view === "jira.statusFilter";
+  const showSort = view === "jira.sort";
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
@@ -53,7 +54,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   );
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState(false);
-  const [sortMode, setSortMode] = useState<JiraSortMode>("updated");
+  const [sortFields, setSortFields] = useState<JiraSortField[]>(["updated"]);
   const [enabledStatuses, setEnabledStatuses] = useState<Set<string>>(
     () => new Set(config.jiraStatusOrder),
   );
@@ -61,7 +62,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const isConfigured =
     !!config.jiraSite && !!config.jiraEmail && !!config.jiraToken;
 
-  const { issues, loading, error, refetch } = useJiraIssues(
+  const { issues, loading, fetching, error, refetch } = useJiraIssues(
     config,
     filterMode,
     filterAccountIds.size > 0 ? filterAccountIds : undefined,
@@ -95,7 +96,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     }
     // Group by status, sort within groups, flatten
     const groups = groupByStatus(filtered, statusOrder);
-    const sorted = sortIssuesInGroups(groups, sortMode);
+    const sorted = sortIssuesInGroups(groups, sortFields);
     return sorted.flatMap((g) => g.issues);
   }, [
     issues,
@@ -103,7 +104,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     statusOrder,
     enabledStatuses,
     allStatusesEnabled,
-    sortMode,
+    sortFields,
   ]);
 
   // Clamp selectedIndex to valid range
@@ -199,10 +200,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         setView("jira.statusFilter");
       },
       sort: () => {
-        setSortMode((prev) => {
-          const idx = JIRA_SORT_MODES.indexOf(prev);
-          return JIRA_SORT_MODES[(idx + 1) % JIRA_SORT_MODES.length]!;
-        });
+        setView("jira.sort");
       },
       search: () => {
         searchJustActivated.current = true;
@@ -259,6 +257,29 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           enabledStatuses={enabledStatuses}
           onApply={(enabled) => {
             setEnabledStatuses(enabled);
+            setSelectedIndex(0);
+            setView("jira");
+          }}
+          onClose={() => setView("jira")}
+          height={height}
+          width={width}
+        />
+      </Box>
+    );
+  }
+
+  if (showSort) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <SortOverlay
+          activeSortFields={sortFields}
+          onApply={(fields) => {
+            setSortFields(fields.length > 0 ? fields : ["updated"]);
             setSelectedIndex(0);
             setView("jira");
           }}
@@ -342,10 +363,10 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           issueCount={filteredIssues.length}
           selectedIssue={selectedIssue}
           width={width}
-          fetching={loading}
+          fetching={fetching}
           searchText={searchMode ? searchText : null}
           statusFilterActive={!allStatusesEnabled}
-          sortLabel={JIRA_SORT_LABELS[sortMode]}
+          sortLabel={sortFields.map((f) => SORT_FIELD_LABELS[f]).join(" > ")}
           error={error}
         />
       </Box>

@@ -6,7 +6,7 @@ import {
   getStatusColor,
   getIssueTypeIcon,
   getPriorityIcon,
-  type JiraSortMode,
+  type JiraSortField,
 } from "./jira-status.ts";
 import { getTheme } from "../ui/theme.ts";
 
@@ -297,7 +297,7 @@ describe("sortIssuesInGroups", () => {
       makeJiraIssue({ key: "UUX-3", updated: "2025-01-02T00:00:00Z" }),
     ];
     const groups = makeGroup(issues);
-    const sorted = sortIssuesInGroups(groups, "updated");
+    const sorted = sortIssuesInGroups(groups, ["updated"]);
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
       "UUX-2",
       "UUX-3",
@@ -312,7 +312,7 @@ describe("sortIssuesInGroups", () => {
       makeJiraIssue({ key: "UUX-3", priorityName: "Medium" }),
     ];
     const groups = makeGroup(issues);
-    const sorted = sortIssuesInGroups(groups, "priority");
+    const sorted = sortIssuesInGroups(groups, ["priority"]);
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
       "UUX-2",
       "UUX-3",
@@ -334,7 +334,7 @@ describe("sortIssuesInGroups", () => {
       }),
     ];
     const groups = makeGroup(issues);
-    const sorted = sortIssuesInGroups(groups, "priority");
+    const sorted = sortIssuesInGroups(groups, ["priority", "updated"]);
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual(["UUX-2", "UUX-1"]);
   });
 
@@ -345,7 +345,7 @@ describe("sortIssuesInGroups", () => {
       makeJiraIssue({ key: "UUX-3", assigneeName: "Alice" }),
     ];
     const groups = makeGroup(issues);
-    const sorted = sortIssuesInGroups(groups, "assignee");
+    const sorted = sortIssuesInGroups(groups, ["assignee"]);
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
       "UUX-3",
       "UUX-2",
@@ -360,7 +360,7 @@ describe("sortIssuesInGroups", () => {
       makeJiraIssue({ key: "UUX-42" }),
     ];
     const groups = makeGroup(issues);
-    const sorted = sortIssuesInGroups(groups, "key");
+    const sorted = sortIssuesInGroups(groups, ["key"]);
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
       "UUX-100",
       "UUX-42",
@@ -375,7 +375,7 @@ describe("sortIssuesInGroups", () => {
     ];
     const groups = makeGroup(issues);
     const originalKeys = groups[0]!.issues.map((i) => i.key);
-    sortIssuesInGroups(groups, "updated");
+    sortIssuesInGroups(groups, ["updated"]);
     expect(groups[0]!.issues.map((i) => i.key)).toEqual(originalKeys);
   });
 
@@ -405,10 +405,62 @@ describe("sortIssuesInGroups", () => {
       }),
     ];
     const groups = groupByStatus(issues, ["In Progress", "To Do"]);
-    const sorted = sortIssuesInGroups(groups, "updated");
+    const sorted = sortIssuesInGroups(groups, ["updated"]);
     expect(sorted[0]!.status).toBe("In Progress");
     expect(sorted[0]!.issues.map((i) => i.key)).toEqual(["UUX-2", "UUX-4"]);
     expect(sorted[1]!.status).toBe("To Do");
     expect(sorted[1]!.issues.map((i) => i.key)).toEqual(["UUX-3", "UUX-1"]);
+  });
+
+  it("should sort by type (bug first, then story, task, etc.)", () => {
+    const issues = [
+      makeJiraIssue({ key: "UUX-1", issueTypeName: "Task" }),
+      makeJiraIssue({ key: "UUX-2", issueTypeName: "Bug" }),
+      makeJiraIssue({ key: "UUX-3", issueTypeName: "Story" }),
+    ];
+    const groups = makeGroup(issues);
+    const sorted = sortIssuesInGroups(groups, ["type"]);
+    expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
+      "UUX-2",
+      "UUX-3",
+      "UUX-1",
+    ]);
+  });
+
+  it("should sort by multiple fields in priority order", () => {
+    const issues = [
+      makeJiraIssue({
+        key: "UUX-1",
+        priorityName: "High",
+        assigneeName: "Zara",
+      }),
+      makeJiraIssue({
+        key: "UUX-2",
+        priorityName: "High",
+        assigneeName: "Alice",
+      }),
+      makeJiraIssue({
+        key: "UUX-3",
+        priorityName: "Low",
+        assigneeName: "Alice",
+      }),
+    ];
+    const groups = makeGroup(issues);
+    const sorted = sortIssuesInGroups(groups, ["priority", "assignee"]);
+    expect(sorted[0]!.issues.map((i) => i.key)).toEqual([
+      "UUX-2",
+      "UUX-1",
+      "UUX-3",
+    ]);
+  });
+
+  it("should return unmodified groups when sortFields is empty", () => {
+    const issues = [
+      makeJiraIssue({ key: "UUX-2" }),
+      makeJiraIssue({ key: "UUX-1" }),
+    ];
+    const groups = makeGroup(issues);
+    const sorted = sortIssuesInGroups(groups, []);
+    expect(sorted[0]!.issues.map((i) => i.key)).toEqual(["UUX-2", "UUX-1"]);
   });
 });

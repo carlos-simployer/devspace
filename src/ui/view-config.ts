@@ -24,6 +24,7 @@ export type ViewId =
   | "jira.search"
   | "jira.memberSelect"
   | "jira.statusFilter"
+  | "jira.sort"
   | "config"
   | "config.addOrg"
   | "config.editAzureOrg"
@@ -145,6 +146,7 @@ export const VIEW_CONFIG: Record<string, ViewDef> = {
   "jira.help": { bar: [] },
   "jira.search": { bar: [] },
   "jira.statusFilter": { bar: [] },
+  "jira.sort": { bar: [] },
   "jira.memberSelect": { bar: [] },
 
   // --- Config (always last) ---
