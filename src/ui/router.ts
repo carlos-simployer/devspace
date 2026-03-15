@@ -178,6 +178,7 @@ export function RouterProvider({
   const value = useMemo(() => {
     let params: Record<string, string> = {};
     for (const [pattern] of _routes) {
+      if (!pattern.includes(":")) continue;
       const matched = matchRoute(pattern, route);
       if (matched) {
         params = matched;

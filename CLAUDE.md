@@ -147,25 +147,29 @@ src/
 │   ├── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
 │   ├── azure-status.ts          # Azure pipeline/release status → icon/color mapping
 │   └── query-persister.ts       # React Query file-based cache persistence
-├── app.tsx                      # RouterProvider, ViewHeader, view switching by baseRoute
+├── app.tsx                      # AppContext.Provider + RouterProvider + ViewHeader shell
+├── app-context.ts               # AppContext (React context providing shared data to all views)
+├── routes.ts                    # Route definitions mapping paths to view components
 ├── index.tsx                    # Entry point: auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
 
 ### Entry & Auth Flow
 
-`src/index.tsx` resolves auth (`gh auth token` -> `GITHUB_TOKEN` env -> exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">` before rendering `AppInner`.
+`src/index.tsx` resolves auth (`gh auth token` -> `GITHUB_TOKEN` env -> exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">`, then `AppInner` provides `<AppContext.Provider>` with all shared state before rendering `<RouteRenderer>`.
 
-### View Architecture (Router-based)
+### View Architecture (Router + AppContext)
 
-`src/app.tsx` wraps the entire app in a `RouterProvider` (from `src/ui/router.ts`) and renders a shared `ViewHeader` component (TabBar + Shortcuts bar). Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"config/addOrg"`).
+`src/app.tsx` wraps the entire app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer`, which matches the current route to a component defined in `src/routes.ts` and renders it with no props. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"config/addOrg"`).
 
-The router system consists of 3 key files:
-- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`. Routes are defined in `app.tsx` via `defineRoutes()` with path patterns (supporting `:param` placeholders), component references, and optional `layout: "overlay"` flag.
+The architecture consists of 5 key files:
+- **`src/app-context.ts`** — `AppContext` (React context) and `useAppContext()` hook. Provides all shared data to views: config + all config mutators, GraphQL client, token, org repos, dependency data, notifications, layout dimensions, and `onQuit`. Views call `useAppContext()` to access everything they need — no props are passed from `app.tsx` to views.
+- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. Maps route path strings to view components. Sub-routes (e.g. `"prs/detail"`, `"jira/help"`) point to the same parent component which handles its own sub-views internally.
+- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`. Routes support `:param` placeholders and optional `layout: "overlay"` flag. `RouteRenderer` renders the matched component with zero props via `React.createElement(match.component)`.
 - **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
 - **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 
-Each view in `src/views/` is self-contained:
+**All views take zero props.** Each view in `src/views/` calls `useAppContext()` to get shared data and `useRouter()` for navigation:
 - **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, uses `useRouter()` + `matchShortcut()` directly (manages its own header/TabBar instead of using the shared `ViewHeader`)
 - **DependencyTracker** (`views/dependencies/index.tsx`) — uses `useRouteShortcuts`
 - **PipelinesView** (`views/pipelines/index.tsx`) — uses `useRouteShortcuts`
@@ -235,7 +239,7 @@ A minimal `useInput` handles only Escape to close the overlay (since `TextInput`
 
 ### State & Data
 
-No external state management. Each view manages its own state via React hooks.
+No external state management library. Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`. Each view manages its own view-specific state via local React hooks.
 
 - **useConfig** — reads/writes `~/.config/github-pr-dash/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.

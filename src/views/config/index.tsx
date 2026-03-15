@@ -86,7 +86,18 @@ export function ConfigView() {
 
   const startEditing = (field: string) => {
     setEditingField(field);
-    navigate("config/addOrg");
+    const routeMap: Record<string, string> = {
+      "add-org": "config/addOrg",
+      "github-token": "config/addOrg",
+      "azure-org": "config/editAzureOrg",
+      "azure-project": "config/editAzureProject",
+      "azure-token": "config/editAzureOrg",
+      "jira-site": "config/editJiraSite",
+      "jira-email": "config/editJiraEmail",
+      "jira-token": "config/editJiraToken",
+      "jira-project": "config/editJiraProject",
+    };
+    navigate(routeMap[field] ?? "config/addOrg");
   };
   const stopEditing = () => {
     setEditingField(null);

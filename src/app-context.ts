@@ -1,3 +1,4 @@
+// Do NOT import from views/ or routes.ts to avoid circular deps
 import { createContext, useContext } from "react";
 import type { GraphQLClient } from "./api/client.ts";
 import type {
@@ -64,5 +65,9 @@ export interface AppContextValue {
 export const AppContext = createContext<AppContextValue>(null!);
 
 export function useAppContext(): AppContextValue {
-  return useContext(AppContext);
+  const ctx = useContext(AppContext);
+  if (ctx === null) {
+    throw new Error("useAppContext must be used within AppContext.Provider");
+  }
+  return ctx;
 }

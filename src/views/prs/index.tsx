@@ -14,6 +14,7 @@ import { usePRDetail } from "../../hooks/use-pr-detail.ts";
 import { useRouter } from "../../ui/router.ts";
 import { matchShortcut, getBarShortcuts } from "../../ui/route-shortcuts.ts";
 import { TABS, getTabNumberKeys, getBaseRoute } from "../../ui/tabs.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import { Sidebar } from "./sidebar.tsx";
 import { PRList } from "./pr-list.tsx";
 import { StatusBar } from "./status-bar.tsx";
@@ -141,10 +142,12 @@ export function PRView() {
 
   useEffect(() => {
     if (headerRef.current) {
-      setMeasuredHeader(measureElement(headerRef.current).height);
+      const h = measureElement(headerRef.current).height;
+      setMeasuredHeader((prev) => (prev === h ? prev : h));
     }
     if (statusRef.current) {
-      setMeasuredStatus(measureElement(statusRef.current).height);
+      const h = measureElement(statusRef.current).height;
+      setMeasuredStatus((prev) => (prev === h ? prev : h));
     }
   });
 
@@ -152,11 +155,6 @@ export function PRView() {
     setStatusMessage(msg);
     if (statusMessageTimer.current) clearTimeout(statusMessageTimer.current);
     statusMessageTimer.current = setTimeout(() => setStatusMessage(""), 3000);
-  }, []);
-
-  const openInBrowser = useCallback(async (url: string) => {
-    const { default: open } = await import("open");
-    await open(url);
   }, []);
 
   const submitComment = useCallback(

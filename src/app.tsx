@@ -76,11 +76,13 @@ function AppInner({ client, org, token }: Props) {
 
   useEffect(() => {
     if (viewHeaderRef.current) {
-      setMeasuredViewHeader(measureElement(viewHeaderRef.current).height);
+      const h = measureElement(viewHeaderRef.current).height;
+      setMeasuredViewHeader((prev) => (prev === h ? prev : h));
     }
   });
 
-  const contentHeight = height - measuredViewHeader;
+  const contentHeight =
+    baseRoute === "prs" ? height : height - measuredViewHeader;
 
   const appCtx = useMemo(
     () => ({

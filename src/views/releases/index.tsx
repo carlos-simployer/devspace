@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Box, Text } from "ink";
 import type { FocusArea } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import {
   useReleaseDefinitions,
   useReleases,
@@ -49,11 +50,6 @@ export function ReleasesView() {
 
   const { definitions: allDefinitions, loading: allDefsLoading } =
     useAllReleaseDefinitions(config.azureOrg, config.azureProject);
-
-  const openInBrowser = useCallback(async (url: string) => {
-    const { default: open } = await import("open");
-    await open(url);
-  }, []);
 
   useRouteShortcuts(
     {

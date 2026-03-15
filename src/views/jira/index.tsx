@@ -8,6 +8,7 @@ import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import {
   groupByStatus,
   sortIssuesInGroups,
@@ -37,7 +38,7 @@ export function JiraView() {
 
   // Derive sub-view state from router route
   const showHelp = route === "jira/help";
-  const showDetail = route.startsWith("jira/detail");
+  const showDetail = route.startsWith("jira/detail/");
   const showMemberSelect = route === "jira/memberSelect";
   const showStatusFilter = route === "jira/statusFilter";
   const showSort = route === "jira/sort";
@@ -127,14 +128,10 @@ export function JiraView() {
 
   useEffect(() => {
     if (statusRef.current) {
-      setMeasuredStatus(measureElement(statusRef.current).height);
+      const h = measureElement(statusRef.current).height;
+      setMeasuredStatus((prev) => (prev === h ? prev : h));
     }
   });
-
-  const openInBrowser = async (url: string) => {
-    const { default: open } = await import("open");
-    await open(url);
-  };
 
   // Search mode captures all input before useRouteShortcuts can match
   const searchJustActivated = useRef(false);

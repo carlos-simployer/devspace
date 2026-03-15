@@ -91,7 +91,11 @@ export function useRouteShortcuts(
           return;
         }
         if (action === "help") {
-          navigate(`${route}/help`);
+          if (route.endsWith("/help")) {
+            navigate(route.replace(/\/help$/, ""));
+          } else {
+            navigate(`${getBaseRoute(route)}/help`);
+          }
           return;
         }
         if (action === "quit" && handlers.quit) {

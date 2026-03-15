@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Box, Text } from "ink";
 import type { FocusArea } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import { usePipelines } from "../../hooks/use-pipelines.ts";
 import { useAllPipelineDefinitions } from "../../hooks/use-pipelines.ts";
 import { usePipelineRuns } from "../../hooks/use-pipeline-runs.ts";
@@ -57,11 +58,6 @@ export function PipelinesView() {
     config.azureProject,
     showRuns ? (selectedPipeline?.id ?? null) : null,
   );
-
-  const openInBrowser = useCallback(async (url: string) => {
-    const { default: open } = await import("open");
-    await open(url);
-  }, []);
 
   useRouteShortcuts(
     {

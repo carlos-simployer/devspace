@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Box } from "ink";
 import type { FocusArea, TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import { PackageList } from "./package-list.tsx";
 import { DepResults } from "./dep-results.tsx";
 import { DepStatusBar } from "./dep-status-bar.tsx";
@@ -25,7 +26,7 @@ export function DependencyTracker() {
   const trackedPackages = config.trackedPackages;
   const { route, navigate } = useRouter();
   const showHelp = route === "dependencies/help";
-  const showPackageSearch = route.startsWith("dependencies/search");
+  const showPackageSearch = route === "dependencies/search";
 
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [packageIndex, setPackageIndex] = useState(0);
@@ -60,11 +61,6 @@ export function DependencyTracker() {
       fetchPackage(selectedName);
     }
   }, [selectedName, fetchPackage]);
-
-  const openInBrowser = useCallback(async (url: string) => {
-    const { default: open } = await import("open");
-    await open(url);
-  }, []);
 
   useRouteShortcuts(
     {
