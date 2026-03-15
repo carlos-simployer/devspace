@@ -46,8 +46,5 @@ function JiraLayout() {
 - `matchedPath` in RouterContext (pattern like "jira/detail/:key" for shortcut lookup)
 - Fixes parameterized route shortcut bug
 
-### Jira decomposition (proof of concept)
-- JiraLayout: shared state (selectedIndex, filterMode, searchText, sortFields, etc.)
-- JiraIssueListView: index route with list + status bar + search input handling
-- Child components read from JiraContext instead of props
-- Other views (PRs, Deps, etc.) remain flat — migrate later
+### All views decomposed
+All 7 views (PRs, Dependencies, Pipelines, Releases, Projects, Jira, Config) now use nested routes with the same pattern: Layout (context + Outlet) -> child routes (list view, help view, overlays, detail panels).
