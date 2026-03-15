@@ -37,18 +37,7 @@ export function StatusFilter({
     {
       close: onClose,
       select: () => {
-        // Enter on "All" toggles all, on a status applies and closes
-        const item = items[selectedIndex];
-        if (!item) return;
-        if (item.isAll) {
-          if (allEnabled) {
-            setEnabled(new Set());
-          } else {
-            setEnabled(new Set(statuses));
-          }
-        } else {
-          onApply(enabled);
-        }
+        onApply(enabled);
       },
       toggle: () => {
         const item = items[selectedIndex];
