@@ -20,7 +20,7 @@ import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
 import { useRouter } from "../../ui/router.ts";
 import { matchShortcut, getBarShortcuts } from "../../ui/route-shortcuts.ts";
-import { getTabNumberKeys } from "../../ui/tabs.ts";
+import { TABS, getTabNumberKeys, getBaseRoute } from "../../ui/tabs.ts";
 import { Sidebar } from "./sidebar.tsx";
 import { PRList } from "./pr-list.tsx";
 import { StatusBar } from "./status-bar.tsx";
@@ -306,31 +306,18 @@ export function PRView({
       return;
     }
     if (action === "nextView") {
-      const VIEWS = [
-        "prs",
-        "dependencies",
-        "pipelines",
-        "releases",
-        "projects",
-        "jira",
-        "config",
-      ];
-      const idx = VIEWS.indexOf("prs");
-      navigate(VIEWS[(idx + 1) % VIEWS.length]!);
+      const tabRoutes = TABS.map((t) => t.route);
+      const currentIdx = tabRoutes.indexOf(getBaseRoute(route));
+      const next = tabRoutes[(currentIdx + 1) % tabRoutes.length]!;
+      navigate(next);
       return;
     }
     if (action === "prevView") {
-      const VIEWS = [
-        "prs",
-        "dependencies",
-        "pipelines",
-        "releases",
-        "projects",
-        "jira",
-        "config",
-      ];
-      const idx = VIEWS.indexOf("prs");
-      navigate(VIEWS[(idx - 1 + VIEWS.length) % VIEWS.length]!);
+      const tabRoutes = TABS.map((t) => t.route);
+      const currentIdx = tabRoutes.indexOf(getBaseRoute(route));
+      const next =
+        tabRoutes[(currentIdx - 1 + tabRoutes.length) % tabRoutes.length]!;
+      navigate(next);
       return;
     }
 
@@ -519,11 +506,10 @@ export function PRView({
   if (showHelp) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={"prs" as any} route={route} />
+        <ViewHeader route={route} />
         <HelpOverlay
           height={height - sharedHeaderHeight}
           width={width}
-          view="prs"
           route="prs"
         />
       </Box>
@@ -533,7 +519,7 @@ export function PRView({
   if (showDetail && prs[listIndex]) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={"prs.detail" as any} route={route} />
+        <ViewHeader route={route} />
         <PRDetailPanel
           pr={prs[listIndex]!}
           detail={prDetail}
@@ -551,7 +537,7 @@ export function PRView({
   if (showNotifications) {
     return (
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={"prs.notifications" as any} route={route} />
+        <ViewHeader route={route} />
         <NotificationsView
           notifications={notifications}
           loading={notifLoading}

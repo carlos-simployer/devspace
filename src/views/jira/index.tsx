@@ -181,6 +181,8 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     { isActive: searchMode && route === "jira" },
   );
 
+  const isMainView = route === "jira";
+
   useRouteShortcuts(
     {
       quit: onQuit,
@@ -233,7 +235,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         }
       },
     },
-    { active: !searchMode },
+    { active: !searchMode && isMainView },
   );
 
   if (!isConfigured) {
@@ -331,9 +333,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   }
 
   if (showHelp) {
-    return (
-      <HelpOverlay height={height} width={width} view="jira" route="jira" />
-    );
+    return <HelpOverlay height={height} width={width} route="jira" />;
   }
 
   if (showDetail && selectedIssue) {

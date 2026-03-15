@@ -111,7 +111,6 @@ export function ProjectsView({
         );
         if (dependents.length > 0) {
           setConfirmKill(selected.name);
-          navigate("projects/confirm");
         } else {
           stop(selected.name);
         }
@@ -154,7 +153,6 @@ export function ProjectsView({
             stop(confirmKill);
           }
           setConfirmKill(null);
-          navigate("projects");
         }
       },
     },
@@ -175,12 +173,7 @@ export function ProjectsView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay
-          height={height}
-          width={width}
-          view="projects"
-          route="projects"
-        />
+        <HelpOverlay height={height} width={width} route="projects" />
       </Box>
     );
   }

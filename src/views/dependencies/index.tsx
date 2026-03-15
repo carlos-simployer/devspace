@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import type { FocusArea, TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
@@ -160,12 +160,7 @@ export function DependencyTracker({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay
-          height={height}
-          width={width}
-          view="dependencies"
-          route="dependencies"
-        />
+        <HelpOverlay height={height} width={width} route="dependencies" />
       </Box>
     );
   }

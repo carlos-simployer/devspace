@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
 import { exec } from "child_process";
@@ -106,25 +106,19 @@ export function ConfigView({
   width,
   onQuit,
 }: Props) {
-  const { route, navigate } = useRouter();
+  const { navigate } = useRouter();
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
 
-  // Sync editing state to router
-  useEffect(() => {
-    if (editingField) {
-      navigate("config/addOrg"); // any edit overlay
-    } else if (
-      route !== "config" &&
-      route !== "config/addOrg" &&
-      !route.startsWith("config/edit")
-    ) {
-      // don't reset if on a different view entirely
-    } else if (!editingField && route !== "config") {
-      navigate("config");
-    }
-  }, [editingField]);
+  const startEditing = (field: string) => {
+    setEditingField(field);
+    navigate("config/addOrg");
+  };
+  const stopEditing = () => {
+    setEditingField(null);
+    navigate("config");
+  };
 
   const theme = getTheme();
 
@@ -250,7 +244,7 @@ export function ConfigView({
   // Handle escape in edit overlays
   useInput(
     (_input, key) => {
-      if (key.escape) setEditingField(null);
+      if (key.escape) stopEditing();
     },
     { isActive: !!editingField },
   );
@@ -258,7 +252,7 @@ export function ConfigView({
   useRouteShortcuts({
     quit: onQuit,
     add: () => {
-      if (section === "github") setEditingField("add-org");
+      if (section === "github") startEditing("add-org");
     },
     remove: () => {
       if (section === "github" && selectedIndex < orgs.length) {
@@ -274,12 +268,12 @@ export function ConfigView({
       if (!item) return;
 
       if (section === "github") {
-        if (item.key === "add-org") setEditingField("add-org");
-        if (item.key === "github-token") setEditingField("github-token");
+        if (item.key === "add-org") startEditing("add-org");
+        if (item.key === "github-token") startEditing("github-token");
       } else if (section === "azure") {
-        setEditingField(item.key);
+        startEditing(item.key);
       } else if (section === "jira") {
-        setEditingField(item.key);
+        startEditing(item.key);
       } else if (section === "system") {
         if (item.key.startsWith("refresh-")) {
           const val = parseInt(item.key.split("-")[1]!, 10);
@@ -340,8 +334,6 @@ export function ConfigView({
       <Text dimColor> {"\u2190/\u2192"} switch section</Text>
     </Box>
   );
-
-  const contentHeight = height - 4; // tab bar + status bar
 
   return (
     <Box height={height} width={width} flexDirection="column">
@@ -581,7 +573,7 @@ export function ConfigView({
                     if (editingField === "jira-token") setJiraToken(v);
                     if (editingField === "jira-project") setJiraProject(v);
                   }
-                  setEditingField(null);
+                  stopEditing();
                 }}
               />
             </Box>

@@ -146,12 +146,7 @@ export function ReleasesView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay
-          height={height}
-          width={width}
-          view="releases"
-          route="releases"
-        />
+        <HelpOverlay height={height} width={width} route="releases" />
       </Box>
     );
   }

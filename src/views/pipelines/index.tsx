@@ -153,12 +153,7 @@ export function PipelinesView({
   if (showHelp) {
     return (
       <Box height={height} width={width}>
-        <HelpOverlay
-          height={height}
-          width={width}
-          view="pipelines"
-          route="pipelines"
-        />
+        <HelpOverlay height={height} width={width} route="pipelines" />
       </Box>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Box, useApp, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
@@ -15,8 +15,6 @@ import { ReleasesView } from "./views/releases/index.tsx";
 import { ProjectsView } from "./views/projects/index.tsx";
 import { JiraView } from "./views/jira/index.tsx";
 import { ViewHeader } from "./components/view-header.tsx";
-import type { ViewId, BaseView } from "./ui/view-config.ts";
-import { ViewContext } from "./ui/view-context.ts";
 import { RouterProvider, defineRoutes, useRouter } from "./ui/router.ts";
 
 // Placeholder component for route definitions (not rendered via RouteRenderer)
@@ -80,7 +78,7 @@ interface Props {
 }
 
 /**
- * Inner app — lives inside RouterProvider so it can sync ViewContext ↔ Router.
+ * Inner app — lives inside RouterProvider so it can use the router.
  */
 function AppInner({ client, org, token }: Props) {
   const { exit } = useApp();
@@ -109,7 +107,7 @@ function AppInner({ client, org, token }: Props) {
     setJiraEmail,
     setJiraToken,
     setJiraProject,
-    setJiraAccountId,
+    setJiraAccountId: _setJiraAccountId,
     setGithubToken,
     setAzureToken,
     isFirstLaunch,
@@ -127,14 +125,7 @@ function AppInner({ client, org, token }: Props) {
   } = useNotifications(token);
 
   // Router — all views use router for sub-navigation
-  const { route, navigate: routerNavigate, baseRoute } = useRouter();
-
-  // Derive view and baseView from the router for ViewContext compatibility
-  const view = route.replace(/\//g, ".") as ViewId;
-  const baseView = baseRoute as BaseView;
-  const setView = (v: ViewId) => {
-    routerNavigate(v.replace(/\./g, "/"));
-  };
+  const { route, baseRoute } = useRouter();
 
   // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
@@ -146,132 +137,123 @@ function AppInner({ client, org, token }: Props) {
     }
   });
 
-  const viewCtx = useMemo(
-    () => ({ view, setView, baseView }),
-    [view, baseView],
-  );
-
   const contentHeight = height - measuredViewHeader;
 
   // PRView still manages its own header
-  if (baseView === "prs") {
+  if (baseRoute === "prs") {
     return (
-      <ViewContext.Provider value={viewCtx}>
-        <PRView
-          client={client}
-          token={token}
-          config={config}
-          addRepo={addRepo}
-          removeRepo={removeRepo}
-          markViewed={markViewed}
-          isFirstLaunch={isFirstLaunch}
-          orgRepos={orgRepos}
-          reposLoading={reposLoading}
-          notifications={notifications}
-          notifLoading={notifLoading}
-          unreadCount={unreadCount}
-          onQuit={exit}
-          height={height}
-          width={width}
-        />
-      </ViewContext.Provider>
+      <PRView
+        client={client}
+        token={token}
+        config={config}
+        addRepo={addRepo}
+        removeRepo={removeRepo}
+        markViewed={markViewed}
+        isFirstLaunch={isFirstLaunch}
+        orgRepos={orgRepos}
+        reposLoading={reposLoading}
+        notifications={notifications}
+        notifLoading={notifLoading}
+        unreadCount={unreadCount}
+        onQuit={exit}
+        height={height}
+        width={width}
+      />
     );
   }
 
   return (
-    <ViewContext.Provider value={viewCtx}>
-      <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} route={route} headerRef={viewHeaderRef} />
+    <Box height={height} width={width} flexDirection="column">
+      <ViewHeader route={route} headerRef={viewHeaderRef} />
 
-        {baseView === "dependencies" && (
-          <DependencyTracker
-            packages={depPackages}
-            fetchPackage={depFetchPackage}
-            trackedPackages={config.trackedPackages}
-            addPackage={addPackage}
-            removePackage={removePackage}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+      {baseRoute === "dependencies" && (
+        <DependencyTracker
+          packages={depPackages}
+          fetchPackage={depFetchPackage}
+          trackedPackages={config.trackedPackages}
+          addPackage={addPackage}
+          removePackage={removePackage}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
 
-        {baseView === "pipelines" && (
-          <PipelinesView
-            config={config}
-            addPinnedPipeline={addPinnedPipeline}
-            removePinnedPipeline={removePinnedPipeline}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+      {baseRoute === "pipelines" && (
+        <PipelinesView
+          config={config}
+          addPinnedPipeline={addPinnedPipeline}
+          removePinnedPipeline={removePinnedPipeline}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
 
-        {baseView === "releases" && (
-          <ReleasesView
-            config={config}
-            addPinnedReleaseDefinition={addPinnedReleaseDefinition}
-            removePinnedReleaseDefinition={removePinnedReleaseDefinition}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+      {baseRoute === "releases" && (
+        <ReleasesView
+          config={config}
+          addPinnedReleaseDefinition={addPinnedReleaseDefinition}
+          removePinnedReleaseDefinition={removePinnedReleaseDefinition}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
 
-        {baseView === "projects" && (
-          <ProjectsView
-            localProjects={config.localProjects}
-            addLocalProject={addLocalProject}
-            removeLocalProject={removeLocalProject}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+      {baseRoute === "projects" && (
+        <ProjectsView
+          localProjects={config.localProjects}
+          addLocalProject={addLocalProject}
+          removeLocalProject={removeLocalProject}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
 
-        {baseView === "jira" && (
-          <JiraView
-            config={config}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+      {baseRoute === "jira" && (
+        <JiraView
+          config={config}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
 
-        {baseView === "config" && (
-          <ConfigView
-            orgs={config.orgs}
-            addOrg={addOrg}
-            removeOrg={removeOrg}
-            refreshInterval={config.refreshInterval}
-            setRefreshInterval={setRefreshInterval}
-            themeName={config.theme}
-            setThemeName={setThemeName}
-            azureOrg={config.azureOrg}
-            azureProject={config.azureProject}
-            setAzureOrg={setAzureOrg}
-            setAzureProject={setAzureProject}
-            jiraSite={config.jiraSite}
-            jiraEmail={config.jiraEmail}
-            jiraToken={config.jiraToken}
-            jiraProject={config.jiraProject}
-            setJiraSite={setJiraSite}
-            setJiraEmail={setJiraEmail}
-            setJiraToken={setJiraToken}
-            setJiraProject={setJiraProject}
-            githubToken={config.githubToken}
-            setGithubToken={setGithubToken}
-            azureToken={config.azureToken}
-            setAzureToken={setAzureToken}
-            persistCache={config.persistCache}
-            setPersistCache={setPersistCache}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-      </Box>
-    </ViewContext.Provider>
+      {baseRoute === "config" && (
+        <ConfigView
+          orgs={config.orgs}
+          addOrg={addOrg}
+          removeOrg={removeOrg}
+          refreshInterval={config.refreshInterval}
+          setRefreshInterval={setRefreshInterval}
+          themeName={config.theme}
+          setThemeName={setThemeName}
+          azureOrg={config.azureOrg}
+          azureProject={config.azureProject}
+          setAzureOrg={setAzureOrg}
+          setAzureProject={setAzureProject}
+          jiraSite={config.jiraSite}
+          jiraEmail={config.jiraEmail}
+          jiraToken={config.jiraToken}
+          jiraProject={config.jiraProject}
+          setJiraSite={setJiraSite}
+          setJiraEmail={setJiraEmail}
+          setJiraToken={setJiraToken}
+          setJiraProject={setJiraProject}
+          githubToken={config.githubToken}
+          setGithubToken={setGithubToken}
+          azureToken={config.azureToken}
+          setAzureToken={setAzureToken}
+          persistCache={config.persistCache}
+          setPersistCache={setPersistCache}
+          height={contentHeight}
+          width={width}
+          onQuit={exit}
+        />
+      )}
+    </Box>
   );
 }
 

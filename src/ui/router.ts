@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { Box } from "ink";
 import { getBaseRoute } from "./tabs.ts";
@@ -148,17 +149,18 @@ export function RouterProvider({
 }: RouterProviderProps) {
   const [route, setRoute] = useState(initialRoute);
   const [_history, setHistory] = useState<string[]>([]);
-  const [params, setParams] = useState<Record<string, string>>({});
 
-  const navigate = useCallback(
-    (path: string) => {
-      setHistory((prev) => [...prev, route]);
-      setRoute(path);
-      // Extract params from the new route against all patterns
-      // (will be recalculated in context value via match)
-    },
-    [route],
-  );
+  // Use a ref so navigate always reads the current route without a dep
+  const routeRef = useRef(initialRoute);
+  routeRef.current = route;
+
+  const navigate = useCallback((path: string) => {
+    setHistory((prev) => {
+      const capped = prev.length >= 50 ? prev.slice(-49) : prev;
+      return [...capped, routeRef.current];
+    });
+    setRoute(path);
+  }, []); // stable — no deps
 
   const goBack = useCallback(() => {
     setHistory((prev) => {
@@ -172,31 +174,18 @@ export function RouterProvider({
 
   const baseRoute = getBaseRoute(route);
 
-  // Recalculate params when route changes by matching against route defs
-  React.useEffect(() => {
-    // We need access to routes to match params — but routes are in the
-    // _routes prop. We match the current route against patterns.
+  // Derive params synchronously — no useEffect / useState needed
+  const value = useMemo(() => {
+    let params: Record<string, string> = {};
     for (const [pattern] of _routes) {
-      if (!pattern.includes(":")) continue;
       const matched = matchRoute(pattern, route);
       if (matched) {
-        setParams(matched);
-        return;
+        params = matched;
+        break;
       }
     }
-    setParams({});
-  }, [route, _routes]);
-
-  const value = useMemo(
-    () => ({
-      route,
-      params,
-      baseRoute,
-      navigate,
-      goBack,
-    }),
-    [route, params, baseRoute, navigate, goBack],
-  );
+    return { route, params, baseRoute, navigate, goBack };
+  }, [route, _routes, baseRoute, navigate, goBack]);
 
   return React.createElement(RouterContext.Provider, { value }, children);
 }
