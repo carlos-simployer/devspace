@@ -67,31 +67,29 @@ export function IssueDetail({
   const viewportHeight = height - 2 - tabBarLines - footerLines;
   const maxScroll = Math.max(0, lines.length - viewportHeight);
 
-  useShortcuts({
-    close: () => setView("jira"),
-    open: () => {
-      const url = `https://${jiraSite}/browse/${issue.key}`;
-      onOpenInBrowser(url);
+  useShortcuts(
+    {
+      close: () => setView("jira"),
+      open: () => {
+        onOpenInBrowser(`https://${jiraSite}/browse/${issue.key}`);
+      },
+      overviewTab: () => {
+        setTab("overview");
+        setScrollOffset(0);
+      },
+      commentsTab: () => {
+        setTab("comments");
+        setScrollOffset(0);
+      },
+      subtasksTab: () => {
+        setTab("subtasks");
+        setScrollOffset(0);
+      },
+      up: () => setScrollOffset((s) => Math.max(0, s - 1)),
+      down: () => setScrollOffset((s) => Math.min(maxScroll, s + 1)),
     },
-    overviewTab: () => {
-      setTab("overview");
-      setScrollOffset(0);
-    },
-    commentsTab: () => {
-      setTab("comments");
-      setScrollOffset(0);
-    },
-    subtasksTab: () => {
-      setTab("subtasks");
-      setScrollOffset(0);
-    },
-    up: () => {
-      setScrollOffset((s) => Math.max(0, s - 1));
-    },
-    down: () => {
-      setScrollOffset((s) => Math.min(maxScroll, s + 1));
-    },
-  });
+    { scope: "jira.detail" },
+  );
 
   const actualOffset = Math.min(scrollOffset, maxScroll);
   const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);
