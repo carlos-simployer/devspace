@@ -48,7 +48,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
-  const [filterAccountId, setFilterAccountId] = useState("");
+  const [filterAccountIds, setFilterAccountIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState(false);
   const [sortMode, setSortMode] = useState<JiraSortMode>("updated");
@@ -62,7 +64,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const { issues, loading, error, refetch } = useJiraIssues(
     config,
     filterMode,
-    filterAccountId || undefined,
+    filterAccountIds.size > 0 ? filterAccountIds : undefined,
   );
 
   const statusOrder =
@@ -277,9 +279,14 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         justifyContent="center"
       >
         <MemberSelect
-          onSelect={(accountId) => {
-            setFilterAccountId(accountId);
-            setFilterMode("person");
+          selectedIds={filterAccountIds}
+          onApply={(ids) => {
+            setFilterAccountIds(ids);
+            if (ids.size > 0) {
+              setFilterMode("person");
+            } else {
+              setFilterMode("team");
+            }
             setSelectedIndex(0);
             setView("jira");
           }}

@@ -552,11 +552,12 @@ export const SHORTCUTS: ShortcutDef[] = [
 
   // ── Jira Member Select ──────────────────────────────────────────────
   { action: "close", key: "escape", view: "jira.memberSelect", help: "Cancel" },
+  { action: "select", key: "return", view: "jira.memberSelect", help: "Apply" },
   {
-    action: "select",
-    key: "return",
+    action: "toggle",
+    key: " ",
     view: "jira.memberSelect",
-    help: "Select member",
+    help: "Toggle member",
   },
   { action: "up", key: "up", view: "jira.memberSelect", help: "Navigate up" },
   {

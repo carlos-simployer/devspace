@@ -28,52 +28,95 @@ const TEAM_MEMBERS: TeamMember[] = [
 ];
 
 interface Props {
-  onSelect: (accountId: string) => void;
+  selectedIds: Set<string>;
+  onApply: (accountIds: Set<string>) => void;
   onClose: () => void;
   height: number;
   width: number;
 }
 
-export function MemberSelect({ onSelect, onClose, height, width }: Props) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export function MemberSelect({
+  selectedIds,
+  onApply,
+  onClose,
+  height,
+  width,
+}: Props) {
+  const [cursorIndex, setCursorIndex] = useState(0);
+  const [enabled, setEnabled] = useState<Set<string>>(
+    () => new Set(selectedIds),
+  );
+
+  const allEnabled = enabled.size === TEAM_MEMBERS.length;
+  const items = [
+    {
+      label: allEnabled ? "Deselect All" : "Select All",
+      isAll: true,
+      accountId: "",
+    },
+    ...TEAM_MEMBERS.map((m) => ({
+      label: m.name,
+      isAll: false,
+      accountId: m.accountId,
+    })),
+  ];
 
   const boxWidth = Math.min(50, width - 4);
-  const boxHeight = Math.min(height - 4, TEAM_MEMBERS.length + 5);
-  const innerWidth = boxWidth - 4; // border (2) + paddingX (2)
+  const boxHeight = Math.min(height - 4, items.length + 5);
+  const innerWidth = boxWidth - 4;
 
   useShortcuts(
     {
-      close: () => onClose(),
+      close: onClose,
       select: () => {
-        const member = TEAM_MEMBERS[selectedIndex];
-        if (member) onSelect(member.accountId);
+        onApply(enabled);
       },
-      up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-      down: () =>
-        setSelectedIndex((i) => Math.min(TEAM_MEMBERS.length - 1, i + 1)),
+      toggle: () => {
+        const item = items[cursorIndex];
+        if (!item) return;
+        if (item.isAll) {
+          if (allEnabled) {
+            setEnabled(new Set());
+          } else {
+            setEnabled(new Set(TEAM_MEMBERS.map((m) => m.accountId)));
+          }
+        } else {
+          setEnabled((prev) => {
+            const next = new Set(prev);
+            if (next.has(item.accountId)) {
+              next.delete(item.accountId);
+            } else {
+              next.add(item.accountId);
+            }
+            return next;
+          });
+        }
+      },
+      up: () => setCursorIndex((i) => Math.max(0, i - 1)),
+      down: () => setCursorIndex((i) => Math.min(items.length - 1, i + 1)),
     },
     { scope: "jira.memberSelect" },
   );
 
   return (
     <Overlay
-      title="Select Team Member"
+      title="Filter by Team Member"
       width={boxWidth}
       height={boxHeight}
-      footer={
-        <Text dimColor>
-          Enter: select | Esc: cancel | {"\u2191\u2193"}: navigate
-        </Text>
-      }
+      footer={<Text dimColor>Space: toggle | Enter: apply | Esc: cancel</Text>}
     >
-      {TEAM_MEMBERS.map((member, i) => {
-        const isActive = i === selectedIndex;
-        const label = member.name.padEnd(innerWidth);
+      {items.map((item, i) => {
+        const isActive = i === cursorIndex;
+        const isEnabled = item.isAll ? allEnabled : enabled.has(item.accountId);
+        const checkbox = isEnabled ? "[x]" : "[ ]";
+        const label = `${checkbox} ${item.label}`.padEnd(innerWidth);
+
         return (
-          <Box key={member.accountId}>
+          <Box key={item.accountId || "all"}>
             <Text
               backgroundColor={isActive ? "blue" : undefined}
               color={isActive ? "white" : undefined}
+              bold={item.isAll}
             >
               {label}
             </Text>
