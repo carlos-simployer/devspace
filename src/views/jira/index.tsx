@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Box, Text, measureElement } from "ink";
+import { Box, Text, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import type { Config, JiraFilterMode } from "../../api/types.ts";
 import { useView } from "../../ui/view-context.ts";
@@ -42,7 +42,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
   const [filterAccountId, setFilterAccountId] = useState("");
   const [searchText, setSearchText] = useState("");
-  const searchMode = view === "jira.search";
+  const [searchMode, setSearchMode] = useState(false);
 
   const isConfigured =
     !!config.jiraSite && !!config.jiraEmail && !!config.jiraToken;
@@ -108,76 +108,71 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     await open(url);
   };
 
-  useShortcuts(
-    {
-      quit: onQuit,
-      open: () => {
-        if (selectedIssue) {
-          openInBrowser(
-            `https://${config.jiraSite}/browse/${selectedIssue.key}`,
-          );
-        }
-      },
-      detail: () => {
-        if (selectedIssue) {
-          setView("jira.detail");
-        }
-      },
-      filterMine: () => {
-        setFilterMode("mine");
-        setSelectedIndex(0);
-      },
-      filterTeam: () => {
-        setFilterMode("team");
-        setSelectedIndex(0);
-      },
-      filterPerson: () => {
-        setView("jira.memberSelect");
-      },
-      search: () => {
+  // Search mode captures all input before useShortcuts can match
+  useInput(
+    (input, key) => {
+      if (key.escape) {
+        setSearchMode(false);
         setSearchText("");
-        setView("jira.search");
-      },
-      refresh: () => {
-        refetch();
-      },
-      up: () => {
-        setSelectedIndex((i) => Math.max(0, i - 1));
-      },
-      down: () => {
-        setSelectedIndex((i) => Math.min(filteredIssues.length - 1, i + 1));
-      },
-      clearSearch: () => {
-        if (searchText) {
-          setSearchText("");
-        }
-      },
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setSearchText((s) => s.slice(0, -1));
+        return;
+      }
+      if (key.return) {
+        setSearchMode(false);
+        return;
+      }
+      if (input && !key.ctrl && !key.meta) {
+        setSearchText((s) => s + input);
+      }
     },
-    {
-      onUnhandled: (input, key) => {
-        // Search mode — raw text entry, bypass shortcut matching
-        if (searchMode) {
-          if (key.escape) {
-            setSearchText("");
-            setView("jira");
-            return;
-          }
-          if (key.backspace || key.delete) {
-            setSearchText((s) => s.slice(0, -1));
-            return;
-          }
-          if (key.return) {
-            setView("jira");
-            return;
-          }
-          if (input && !key.ctrl && !key.meta) {
-            setSearchText((s) => s + input);
-            return;
-          }
-        }
-      },
-    },
+    { isActive: searchMode },
   );
+
+  useShortcuts({
+    quit: onQuit,
+    open: () => {
+      if (selectedIssue) {
+        openInBrowser(`https://${config.jiraSite}/browse/${selectedIssue.key}`);
+      }
+    },
+    detail: () => {
+      if (selectedIssue) {
+        setView("jira.detail");
+      }
+    },
+    filterMine: () => {
+      setFilterMode("mine");
+      setSelectedIndex(0);
+    },
+    filterTeam: () => {
+      setFilterMode("team");
+      setSelectedIndex(0);
+    },
+    filterPerson: () => {
+      setView("jira.memberSelect");
+    },
+    search: () => {
+      setSearchMode(true);
+      setSearchText("");
+    },
+    refresh: () => {
+      refetch();
+    },
+    up: () => {
+      setSelectedIndex((i) => Math.max(0, i - 1));
+    },
+    down: () => {
+      setSelectedIndex((i) => Math.min(filteredIssues.length - 1, i + 1));
+    },
+    clearSearch: () => {
+      if (searchText) {
+        setSearchText("");
+      }
+    },
+  });
 
   if (!isConfigured) {
     return (
