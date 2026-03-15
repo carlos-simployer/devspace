@@ -1,6 +1,6 @@
 import { useInput } from "ink";
 import { useView } from "../ui/view-context.ts";
-import { matchShortcut, getTabNumberKeys } from "../ui/index.ts";
+import { matchShortcut, getTabNumberKeys, SHORTCUTS } from "../ui/index.ts";
 import type { ViewId, BaseView } from "../ui/view-config.ts";
 
 type ShortcutHandlers = Record<string, () => void>;
@@ -8,38 +8,78 @@ type ShortcutHandlers = Record<string, () => void>;
 /**
  * Keyboard shortcut hook that replaces useInput in views.
  *
- * Reads the current view from ViewContext. Only fires handlers for
- * shortcuts matching the active view or global shortcuts.
+ * Reads the current view from ViewContext. Only fires handlers when
+ * the current view matches the `scope` parameter.
  *
- * Global shortcuts (quit, help, tab switching) are handled automatically
- * unless overridden by a view-specific handler.
+ * If `scope` is omitted, it defaults to the base view (e.g. "jira").
+ * The hook only fires when:
+ * - The current view === scope (exact match), OR
+ * - The current view starts with scope + "." (sub-view of this scope)
+ *   AND the matched action belongs to the current view or is global
  *
+ * Global shortcuts (quit, help, tab switching) are handled automatically.
+ *
+ * @param scope - ViewId this hook is responsible for (e.g. "jira", "config")
  * @param handlers - Map of action name → callback
  * @param options.onUnhandled - Fallback for keys not matching any shortcut
  */
 export function useShortcuts(
   handlers: ShortcutHandlers,
   options?: {
+    scope?: ViewId;
     onUnhandled?: (input: string, key: any) => void;
   },
 ) {
-  const { view, setView } = useView();
+  const { view, setView, baseView } = useView();
+  const scope = options?.scope ?? baseView;
 
   useInput((input, key) => {
+    // Only fire if current view is within our scope
+    // e.g. scope="jira" fires for view="jira" but NOT for "jira.memberSelect"
+    // scope="jira.detail" fires for view="jira.detail" only
+    const isActive = view === scope;
+    if (!isActive) {
+      // Still handle global navigation (tab switching, quit) from any scope
+      // within the same base view
+      if (!view.startsWith(scope.split(".")[0]!)) return;
+
+      const action = matchShortcut(input, key, view);
+      if (action === "nextView") {
+        handleViewSwitch(view, setView, false);
+        return;
+      }
+      if (action === "prevView") {
+        handleViewSwitch(view, setView, true);
+        return;
+      }
+      if (action === "quit" && handlers.quit) {
+        handlers.quit();
+        return;
+      }
+      // Tab number keys
+      const tabKeys = getTabNumberKeys();
+      if (tabKeys[input]) {
+        setView(tabKeys[input]!);
+        return;
+      }
+      return;
+    }
+
     const action = matchShortcut(input, key, view);
 
     if (action) {
-      // View-provided handler takes priority
-      if (handlers[action]) {
+      // Check if handler exists AND the action actually belongs to this view
+      // (not a different sub-view that happens to share the action name)
+      const shortcutDef = SHORTCUTS.find(
+        (s) => s.action === action && (s.view === view || !s.view),
+      );
+
+      if (shortcutDef && handlers[action]) {
         handlers[action]();
         return;
       }
 
       // Built-in global handlers
-      if (action === "quit" && handlers.quit) {
-        handlers.quit();
-        return;
-      }
       if (action === "nextView") {
         handleViewSwitch(view, setView, false);
         return;
@@ -49,7 +89,6 @@ export function useShortcuts(
         return;
       }
       if (action === "help") {
-        // Toggle help: if already in help, go back; else go to help
         if (view.endsWith(".help")) {
           setView(view.replace(".help", "") as ViewId);
         } else {
@@ -59,7 +98,7 @@ export function useShortcuts(
       }
     }
 
-    // Tab number keys (1-6)
+    // Tab number keys
     const tabKeys = getTabNumberKeys();
     if (tabKeys[input]) {
       setView(tabKeys[input]!);

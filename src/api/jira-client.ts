@@ -4,19 +4,27 @@ function authHeader(email: string, token: string): string {
   return `Basic ${Buffer.from(email + ":" + token).toString("base64")}`;
 }
 
+function cleanSiteUrl(site: string): string {
+  return site.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
 async function jiraFetch<T>(
   site: string,
   email: string,
   token: string,
   path: string,
+  options?: { method?: string; body?: any },
 ): Promise<T> {
-  const url = `https://${site}/rest/api/3/${path}`;
+  const url = `https://${cleanSiteUrl(site)}/rest/api/3/${path}`;
 
   const res = await fetch(url, {
+    method: options?.method ?? "GET",
     headers: {
       Authorization: authHeader(email, token),
       Accept: "application/json",
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
     },
+    ...(options?.body ? { body: JSON.stringify(options.body) } : {}),
   });
 
   if (!res.ok) {
@@ -38,20 +46,28 @@ export async function searchJiraIssues(
   email: string,
   token: string,
   jql: string,
-  fields: string = "summary,status,issuetype,priority,assignee,created,updated,labels",
+  fields: string[] = [
+    "summary",
+    "status",
+    "issuetype",
+    "priority",
+    "assignee",
+    "created",
+    "updated",
+    "labels",
+  ],
   maxResults: number = 50,
 ): Promise<JiraIssue[]> {
-  const params = new URLSearchParams({
-    jql,
-    fields,
-    maxResults: String(maxResults),
-  });
-
+  // Jira Cloud deprecated /search — use /search/jql (since May 2025)
   const data = await jiraFetch<JiraSearchResponse>(
     site,
     email,
     token,
-    `search?${params.toString()}`,
+    "search/jql",
+    {
+      method: "POST",
+      body: { jql, fields, maxResults },
+    },
   );
 
   return data.issues;

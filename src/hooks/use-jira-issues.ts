@@ -12,7 +12,7 @@ function buildJql(
 
   switch (filterMode) {
     case "mine":
-      return `${base} AND assignee = "${jiraAccountId}" AND statusCategory != Done ORDER BY status ASC, updated DESC`;
+      return `${base} AND assignee = currentUser() AND statusCategory != Done ORDER BY status ASC, updated DESC`;
     case "team":
       return `${base} AND statusCategory != Done ORDER BY status ASC, updated DESC`;
     case "person":
@@ -20,8 +20,20 @@ function buildJql(
   }
 }
 
-function buildDoneJql(project: string): string {
-  return `project = ${project} AND status = Done ORDER BY updated DESC`;
+function buildDoneJql(
+  project: string,
+  filterMode: JiraFilterMode,
+  filterAccountId?: string,
+): string {
+  const base = `project = ${project} AND status = Done`;
+  switch (filterMode) {
+    case "mine":
+      return `${base} AND assignee = currentUser() ORDER BY updated DESC`;
+    case "person":
+      return `${base} AND assignee = "${filterAccountId}" ORDER BY updated DESC`;
+    case "team":
+      return `${base} ORDER BY updated DESC`;
+  }
 }
 
 export function useJiraIssues(
@@ -52,7 +64,7 @@ export function useJiraIssues(
         jiraAccountId,
         filterAccountId,
       );
-      const doneJql = buildDoneJql(jiraProject);
+      const doneJql = buildDoneJql(jiraProject, filterMode, filterAccountId);
 
       const [openIssues, doneIssues] = await Promise.all([
         searchJiraIssues(jiraSite, jiraEmail, jiraToken, jql),

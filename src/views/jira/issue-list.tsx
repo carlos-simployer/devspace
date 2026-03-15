@@ -127,14 +127,14 @@ export function IssueList({
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box marginBottom={1}>
-        <Text bold>
-          {"".padEnd(JIRA_COL.selector)}
-          <Text dimColor>{"Key".padEnd(JIRA_COL.key)}</Text>
-          {"Tp".padEnd(JIRA_COL.type)}
-          {"Summary".padEnd(titleWidth)}
-          {"Assignee".padEnd(JIRA_COL.assignee)}
-          {"Pri".padEnd(JIRA_COL.priority)}
-          {"Updated".padEnd(JIRA_COL.updated)}
+        <Text bold dimColor>
+          {"".padEnd(JIRA_COL.selector) +
+            "Key".padEnd(JIRA_COL.key) +
+            "Type".padEnd(JIRA_COL.type) +
+            "Summary".padEnd(titleWidth) +
+            "Assignee".padEnd(JIRA_COL.assignee) +
+            "Priority".padEnd(JIRA_COL.priority) +
+            "Updated".padEnd(JIRA_COL.updated)}
         </Text>
       </Box>
       {loading ? (

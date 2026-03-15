@@ -7,8 +7,8 @@ import { useShortcuts } from "../../hooks/use-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { groupByStatus } from "../../utils/jira-status.ts";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
-import { ViewHeader } from "../../components/view-header.tsx";
 import { IssueList } from "./issue-list.tsx";
 import { JiraStatusBar } from "./status-bar.tsx";
 import { MemberSelect } from "./member-select.tsx";
@@ -58,16 +58,21 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       ? config.jiraStatusOrder
       : DEFAULT_STATUS_ORDER;
 
-  // Filter issues by search text for the flat list (IssueList also filters,
-  // but we need the filtered count for selectedIndex clamping)
+  // Filter + reorder by status groups so selectedIndex matches display order
   const filteredIssues = useMemo(() => {
-    if (!searchText) return issues;
-    return issues.filter(
-      (issue) =>
-        issue.fields.summary.toLowerCase().includes(searchText.toLowerCase()) ||
-        issue.key.toLowerCase().includes(searchText.toLowerCase()),
-    );
-  }, [issues, searchText]);
+    const filtered = searchText
+      ? issues.filter(
+          (issue) =>
+            issue.fields.summary
+              .toLowerCase()
+              .includes(searchText.toLowerCase()) ||
+            issue.key.toLowerCase().includes(searchText.toLowerCase()),
+        )
+      : issues;
+    // Reorder to match the grouped display order
+    const groups = groupByStatus(filtered, statusOrder);
+    return groups.flatMap((g) => g.issues);
+  }, [issues, searchText, statusOrder]);
 
   // Clamp selectedIndex to valid range
   useEffect(() => {
@@ -89,15 +94,10 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   );
 
   // Layout measurement
-  const headerRef = useRef<DOMElement>(null);
   const statusRef = useRef<DOMElement>(null);
-  const [measuredHeader, setMeasuredHeader] = useState(4);
   const [measuredStatus, setMeasuredStatus] = useState(3);
 
   useEffect(() => {
-    if (headerRef.current) {
-      setMeasuredHeader(measureElement(headerRef.current).height);
-    }
     if (statusRef.current) {
       setMeasuredStatus(measureElement(statusRef.current).height);
     }
@@ -179,80 +179,71 @@ export function JiraView({ config, height, width, onQuit }: Props) {
     },
   );
 
-  // Height of the shared header (TabBar + Shortcuts + border)
-  const sharedHeaderHeight = 3;
-
   if (!isConfigured) {
     return (
-      <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
-        <Box
-          flexGrow={1}
-          alignItems="center"
-          justifyContent="center"
-          flexDirection="column"
-        >
-          <Text bold color={getTheme().status.pending}>
-            Jira not configured
-          </Text>
-          <Text dimColor>
-            Press 7 to open Config and set up Jira credentials.
-          </Text>
-        </Box>
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
+      >
+        <Text bold color={getTheme().status.pending}>
+          Jira not configured
+        </Text>
+        <Text dimColor>
+          Press 7 to open Config and set up Jira credentials.
+        </Text>
+      </Box>
+    );
+  }
+
+  if (showMemberSelect) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <MemberSelect
+          onSelect={(accountId) => {
+            setFilterAccountId(accountId);
+            setFilterMode("person");
+            setSelectedIndex(0);
+            setView("jira");
+          }}
+          onClose={() => setView("jira")}
+          height={height}
+          width={width}
+        />
       </Box>
     );
   }
 
   if (showHelp) {
-    return (
-      <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
-        <HelpOverlay
-          height={height - sharedHeaderHeight}
-          width={width}
-          view="jira"
-        />
-      </Box>
-    );
+    return <HelpOverlay height={height} width={width} view="jira" />;
   }
 
   if (showDetail && selectedIssue) {
     return (
-      <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} />
-        <IssueDetail
-          issue={selectedIssue}
-          detailIssue={detailIssue}
-          detailLoading={detailLoading}
-          detailError={detailError}
-          height={height - sharedHeaderHeight}
-          width={width}
-          onOpenInBrowser={openInBrowser}
-          jiraSite={config.jiraSite}
-        />
-      </Box>
+      <IssueDetail
+        issue={selectedIssue}
+        detailIssue={detailIssue}
+        detailLoading={detailLoading}
+        detailError={detailError}
+        height={height}
+        width={width}
+        onOpenInBrowser={openInBrowser}
+        jiraSite={config.jiraSite}
+      />
     );
   }
 
-  const mainHeight = Math.max(1, height - measuredHeader - measuredStatus);
+  const mainHeight = Math.max(1, height - measuredStatus);
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Tab bar + Header */}
-      <Box
-        ref={headerRef}
-        width={width}
-        flexDirection="column"
-        paddingX={1}
-        borderStyle="single"
-        borderTop={false}
-        borderLeft={false}
-        borderRight={false}
-        borderBottom
-      >
-        <ViewHeader view={view} headerRef={undefined} />
-      </Box>
-
       {/* Main issue list */}
       <Box flexGrow={1} height={mainHeight}>
         <IssueList
@@ -279,27 +270,6 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           error={error}
         />
       </Box>
-
-      {/* Member select overlay */}
-      {showMemberSelect && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 15) / 2)}
-        >
-          <MemberSelect
-            onSelect={(accountId) => {
-              setFilterAccountId(accountId);
-              setFilterMode("person");
-              setSelectedIndex(0);
-              setView("jira");
-            }}
-            onClose={() => setView("jira")}
-            height={height}
-            width={width}
-          />
-        </Box>
-      )}
     </Box>
   );
 }

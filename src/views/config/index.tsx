@@ -52,10 +52,10 @@ function formatInterval(seconds: number): string {
   return `${seconds}s`;
 }
 
-type Section = "orgs" | "settings" | "theme" | "azure" | "jira" | "cache";
+type Section = "orgs" | "refresh" | "theme" | "azure" | "jira" | "cache";
 const SECTIONS: Section[] = [
   "orgs",
-  "settings",
+  "refresh",
   "theme",
   "azure",
   "jira",
@@ -205,7 +205,7 @@ export function ConfigView({
   const items =
     section === "orgs"
       ? orgItems
-      : section === "settings"
+      : section === "refresh"
         ? refreshPresetItems
         : section === "theme"
           ? themeItems
@@ -265,7 +265,7 @@ export function ConfigView({
         if (selectedIndex === orgs.length) {
           setShowAddOrg(true);
         }
-      } else if (section === "settings") {
+      } else if (section === "refresh") {
         const preset = refreshPresetItems[selectedIndex];
         if (preset) setRefreshInterval(preset.value);
       } else if (section === "theme") {
@@ -355,16 +355,16 @@ export function ConfigView({
           })}
         </Box>
 
-        {/* Settings */}
+        {/* Refresh */}
         <Box flexDirection="column" paddingX={2} width="16%">
-          <Text bold inverse={section === "settings"}>
+          <Text bold inverse={section === "refresh"}>
             {" "}
-            Settings{" "}
+            Refresh{" "}
           </Text>
           <Text dimColor>PR auto-refresh interval.</Text>
           <Box height={1} />
           {refreshPresetItems.map((item, i) => {
-            const isActive = section === "settings" && i === selectedIndex;
+            const isActive = section === "refresh" && i === selectedIndex;
 
             return (
               <Box key={item.value}>

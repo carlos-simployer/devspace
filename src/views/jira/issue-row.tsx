@@ -7,12 +7,12 @@ import { getTheme } from "../../ui/theme.ts";
 
 /** Column widths for issue list layout */
 export const JIRA_COL = {
-  selector: 2, // "> " or "  "
+  selector: 3, // "> " or "  "
   key: 12, // "UUX-1629"
-  type: 3, // issue type icon
-  assignee: 15,
-  priority: 3,
-  updated: 8,
+  type: 9, // "Sub-task" + space
+  assignee: 18,
+  priority: 9, // "Highest" + space
+  updated: 8, // "Updated" + space
 } as const;
 
 export function getIssueTitleWidth(totalWidth: number): number {
@@ -32,12 +32,17 @@ interface Props {
   width: number;
 }
 
+function typeLabel(typeName: string): string {
+  return typeName;
+}
+
+function prioLabel(priorityName: string): string {
+  return priorityName;
+}
+
 export function IssueRow({ issue, isSelected, width }: Props) {
   const titleWidth = getIssueTitleWidth(width);
   const updated = relativeTime(issue.fields.updated);
-
-  const typeIcon = getIssueTypeIcon(issue.fields.issuetype.name);
-  const priorityIcon = getPriorityIcon(issue.fields.priority.name);
   const assigneeName = issue.fields.assignee?.displayName ?? "Unassigned";
 
   const truncTitle =
@@ -45,19 +50,22 @@ export function IssueRow({ issue, isSelected, width }: Props) {
       ? issue.fields.summary.slice(0, titleWidth - 1) + "\u2026"
       : issue.fields.summary;
 
-  const selector = (isSelected ? "> " : "  ").slice(0, JIRA_COL.selector);
+  const sel = isSelected ? " > " : "   ";
   const key = issue.key.padEnd(JIRA_COL.key);
-  const typeCol = typeIcon.padEnd(JIRA_COL.type);
+  const tp = typeLabel(issue.fields.issuetype.name).padEnd(JIRA_COL.type);
   const title = truncTitle.padEnd(titleWidth);
   const assignee = assigneeName
     .slice(0, JIRA_COL.assignee - 1)
     .padEnd(JIRA_COL.assignee);
-  const priority = priorityIcon.padEnd(JIRA_COL.priority);
-  const updatedText = updated.text.padEnd(JIRA_COL.updated);
+  const prio = prioLabel(issue.fields.priority.name).padEnd(JIRA_COL.priority);
+  const upd = updated.text.padEnd(JIRA_COL.updated);
 
   if (isSelected) {
+    const content = sel + key + tp + title + assignee + prio + upd;
     const line =
-      selector + key + typeCol + title + assignee + priority + updatedText;
+      content.length < width
+        ? content + " ".repeat(width - content.length)
+        : content;
     return (
       <Box>
         <Text inverse bold>
@@ -70,16 +78,14 @@ export function IssueRow({ issue, isSelected, width }: Props) {
   return (
     <Box>
       <Text>
-        <Text>{selector}</Text>
+        {sel}
         <Text bold>{key}</Text>
-        <Text color={getTypeColor(issue.fields.issuetype.name)}>{typeCol}</Text>
-        <Text>{title}</Text>
+        <Text color={getTypeColor(issue.fields.issuetype.name)}>{tp}</Text>
+        {title}
         <Text dimColor>{assignee}</Text>
-        <Text color={getPriorityColor(issue.fields.priority.name)}>
-          {priority}
-        </Text>
+        <Text color={getPriorityColor(issue.fields.priority.name)}>{prio}</Text>
         <Text bold={updated.isRecent} dimColor={!updated.isRecent}>
-          {updatedText}
+          {upd}
         </Text>
       </Text>
     </Box>
