@@ -45,6 +45,83 @@ export function groupByStatus(
   return ordered;
 }
 
+export type JiraSortMode = "updated" | "priority" | "assignee" | "key";
+
+export const JIRA_SORT_MODES: JiraSortMode[] = [
+  "updated",
+  "priority",
+  "assignee",
+  "key",
+];
+
+export const JIRA_SORT_LABELS: Record<JiraSortMode, string> = {
+  updated: "Updated",
+  priority: "Priority",
+  assignee: "Assignee",
+  key: "Key",
+};
+
+const PRIORITY_ORDER: Record<string, number> = {
+  highest: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+  lowest: 4,
+};
+
+/** Sort issues within each status group. Does not modify the input. */
+export function sortIssuesInGroups(
+  groups: StatusGroup[],
+  sortMode: JiraSortMode,
+): StatusGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    issues: [...group.issues].sort((a, b) => compareIssues(a, b, sortMode)),
+  }));
+}
+
+function compareIssues(
+  a: JiraIssue,
+  b: JiraIssue,
+  sortMode: JiraSortMode,
+): number {
+  switch (sortMode) {
+    case "updated":
+      // Newest first
+      return (
+        new Date(b.fields.updated).getTime() -
+        new Date(a.fields.updated).getTime()
+      );
+    case "priority": {
+      // Highest priority first, then by updated
+      const pa = PRIORITY_ORDER[a.fields.priority.name.toLowerCase()] ?? 5;
+      const pb = PRIORITY_ORDER[b.fields.priority.name.toLowerCase()] ?? 5;
+      if (pa !== pb) return pa - pb;
+      return (
+        new Date(b.fields.updated).getTime() -
+        new Date(a.fields.updated).getTime()
+      );
+    }
+    case "assignee": {
+      // Alphabetical by assignee name, unassigned last
+      const na = a.fields.assignee?.displayName ?? "\uffff";
+      const nb = b.fields.assignee?.displayName ?? "\uffff";
+      const cmp = na.localeCompare(nb);
+      if (cmp !== 0) return cmp;
+      return (
+        new Date(b.fields.updated).getTime() -
+        new Date(a.fields.updated).getTime()
+      );
+    }
+    case "key": {
+      // Issue number descending (newest issues first)
+      const numA = parseInt(a.key.split("-")[1] ?? "0", 10);
+      const numB = parseInt(b.key.split("-")[1] ?? "0", 10);
+      return numB - numA;
+    }
+  }
+}
+
 export function getStatusColor(category: string): string {
   const theme = getTheme();
 

@@ -481,6 +481,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     label: "Status",
     help: "Filter by status",
   },
+  {
+    action: "sort",
+    key: "s",
+    view: "jira",
+    label: "Sort",
+    help: "Cycle sort mode",
+  },
   { action: "up", key: "up", view: "jira", help: "Navigate up" },
   { action: "down", key: "down", view: "jira", help: "Navigate down" },
   {

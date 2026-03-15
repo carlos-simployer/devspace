@@ -12,6 +12,7 @@ interface Props {
   fetching: boolean;
   searchText: string | null;
   statusFilterActive: boolean;
+  sortLabel: string;
   error: string | null;
 }
 
@@ -30,6 +31,7 @@ export function JiraStatusBar({
   fetching,
   searchText,
   statusFilterActive,
+  sortLabel,
   error,
 }: Props) {
   const theme = getTheme();
@@ -51,6 +53,8 @@ export function JiraStatusBar({
           <Text bold> {projectKey || "No project"} </Text>
           <Text dimColor>|</Text>
           <Text> {issueCount} issues </Text>
+          <Text dimColor>|</Text>
+          <Text> Sort: {sortLabel} </Text>
           {fetching && (
             <>
               <Text dimColor>|</Text>

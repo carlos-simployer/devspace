@@ -133,6 +133,7 @@ export const VIEW_CONFIG: Record<string, ViewDef> = {
       "filterTeam",
       "filterPerson",
       "filterStatus",
+      "sort",
       "search",
       "refresh",
       "help",

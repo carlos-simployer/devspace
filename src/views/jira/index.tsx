@@ -7,7 +7,13 @@ import { useShortcuts } from "../../hooks/use-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
-import { groupByStatus } from "../../utils/jira-status.ts";
+import {
+  groupByStatus,
+  sortIssuesInGroups,
+  JIRA_SORT_MODES,
+  JIRA_SORT_LABELS,
+  type JiraSortMode,
+} from "../../utils/jira-status.ts";
 import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { IssueList } from "./issue-list.tsx";
 import { JiraStatusBar } from "./status-bar.tsx";
@@ -45,6 +51,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const [filterAccountId, setFilterAccountId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState(false);
+  const [sortMode, setSortMode] = useState<JiraSortMode>("updated");
   const [enabledStatuses, setEnabledStatuses] = useState<Set<string>>(
     () => new Set(config.jiraStatusOrder),
   );
@@ -84,10 +91,18 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           issue.key.toLowerCase().includes(searchText.toLowerCase()),
       );
     }
-    // Reorder to match the grouped display order
+    // Group by status, sort within groups, flatten
     const groups = groupByStatus(filtered, statusOrder);
-    return groups.flatMap((g) => g.issues);
-  }, [issues, searchText, statusOrder, enabledStatuses, allStatusesEnabled]);
+    const sorted = sortIssuesInGroups(groups, sortMode);
+    return sorted.flatMap((g) => g.issues);
+  }, [
+    issues,
+    searchText,
+    statusOrder,
+    enabledStatuses,
+    allStatusesEnabled,
+    sortMode,
+  ]);
 
   // Clamp selectedIndex to valid range
   useEffect(() => {
@@ -180,6 +195,12 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       },
       filterStatus: () => {
         setView("jira.statusFilter");
+      },
+      sort: () => {
+        setSortMode((prev) => {
+          const idx = JIRA_SORT_MODES.indexOf(prev);
+          return JIRA_SORT_MODES[(idx + 1) % JIRA_SORT_MODES.length]!;
+        });
       },
       search: () => {
         searchJustActivated.current = true;
@@ -317,6 +338,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           fetching={loading}
           searchText={searchMode ? searchText : null}
           statusFilterActive={!allStatusesEnabled}
+          sortLabel={JIRA_SORT_LABELS[sortMode]}
           error={error}
         />
       </Box>
