@@ -1,31 +1,27 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type { RepoNode } from "../../api/types.ts";
 import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useAppContext } from "../../app-context.ts";
+import { usePrsContext } from "./prs-context.ts";
 
-interface Props {
-  repos: RepoNode[];
-  pinnedRepos: string[]; // qualified: "org/repo"
-  loading: boolean;
-  onSelect: (qualifiedRepo: string) => void;
-  onRemove: (qualifiedRepo: string) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+/**
+ * RepoSearch — reads data from PrsContext.
+ * Rendered as an overlay route child of PrsLayout.
+ */
+export function RepoSearch() {
+  const { height, width } = useAppContext();
+  const { navigate } = useRouter();
+  const {
+    orgRepos: repos,
+    repos: pinnedRepos,
+    reposLoading: loading,
+    addRepo,
+    removeRepo,
+  } = usePrsContext();
 
-export function RepoSearch({
-  repos,
-  pinnedRepos,
-  loading,
-  onSelect,
-  onRemove,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -61,15 +57,15 @@ export function RepoSearch({
     const repo = filtered[index];
     if (!repo) return;
     if (pinnedRepos.includes(repo.qualified)) {
-      onRemove(repo.qualified);
+      removeRepo(repo.qualified);
     } else {
-      onSelect(repo.qualified);
+      addRepo(repo.qualified);
     }
   };
 
   useInput((input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("prs");
       return;
     }
 

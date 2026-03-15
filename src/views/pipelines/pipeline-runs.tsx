@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type {
-  AzurePipelineDefinition,
-  AzureBuildRun,
-} from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useRouter } from "../../ui/router.ts";
 import {
   getBuildStatusIcon,
   formatBranch,
@@ -13,6 +11,8 @@ import {
 } from "../../utils/azure-status.ts";
 import { relativeTime } from "../../utils/time.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { openInBrowser } from "../../utils/browser.ts";
+import { usePipelinesContext } from "./pipelines-context.ts";
 
 const COL = {
   selector: 2,
@@ -37,33 +37,22 @@ function getMessageWidth(totalWidth: number): number {
   return Math.max(16, totalWidth - fixed - 4); // -4 for padding
 }
 
-interface Props {
-  pipeline: AzurePipelineDefinition;
-  runs: AzureBuildRun[];
-  loading: boolean;
-  error: string | null;
-  height: number;
-  width: number;
-  azureOrg: string;
-  azureProject: string;
-  onClose: () => void;
-  onOpenInBrowser: (url: string) => void;
-}
+export function PipelineRuns() {
+  const { config, contentHeight: height, width } = useAppContext();
+  const { navigate } = useRouter();
+  const {
+    selectedPipeline,
+    runs,
+    runsLoading: loading,
+    runsError: error,
+  } = usePipelinesContext();
 
-export function PipelineRuns({
-  pipeline,
-  runs,
-  loading,
-  error,
-  height,
-  width,
-  azureOrg,
-  azureProject,
-  onClose,
-  onOpenInBrowser,
-}: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
+
+  const pipeline = selectedPipeline;
+  const azureOrg = config.azureOrg;
+  const azureProject = config.azureProject;
 
   const contentWidth = width - 4;
   const messageWidth = getMessageWidth(contentWidth);
@@ -73,7 +62,7 @@ export function PipelineRuns({
 
   useInput((input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("pipelines");
       return;
     }
 
@@ -97,10 +86,14 @@ export function PipelineRuns({
       const run = runs[selectedIndex];
       if (run) {
         const url = `https://dev.azure.com/${azureOrg}/${azureProject}/_build/results?buildId=${run.id}`;
-        onOpenInBrowser(url);
+        openInBrowser(url);
       }
     }
   });
+
+  if (!pipeline) {
+    return null;
+  }
 
   const visible = runs.slice(scrollOffset, scrollOffset + listHeight);
 
@@ -117,7 +110,7 @@ export function PipelineRuns({
         <Text bold color={getTheme().ui.heading}>
           {pipeline.name}
         </Text>
-        <Text dimColor> — Run History</Text>
+        <Text dimColor> {"\u2014"} Run History</Text>
       </Box>
 
       {/* Column header */}
@@ -133,7 +126,7 @@ export function PipelineRuns({
           {"Duration".padEnd(COL.duration)}
         </Text>
       </Box>
-      <Text dimColor>{"─".repeat(contentWidth)}</Text>
+      <Text dimColor>{"\u2500".repeat(contentWidth)}</Text>
 
       {/* Content */}
       {loading ? (
@@ -220,7 +213,7 @@ export function PipelineRuns({
       {/* Footer */}
       <Box position="absolute" marginTop={height - 2} marginLeft={2}>
         <Text dimColor>
-          ↑↓: navigate | Enter/o: open in browser | Esc: back
+          {"\u2191\u2193"}: navigate | Enter/o: open in browser | Esc: back
         </Text>
       </Box>
     </Box>

@@ -1,10 +1,29 @@
 import { defineRoutes } from "./ui/router.ts";
-import { PRView } from "./views/prs/index.tsx";
-import { DependencyTracker } from "./views/dependencies/index.tsx";
-import { ConfigView } from "./views/config/index.tsx";
-import { PipelinesView } from "./views/pipelines/index.tsx";
-import { ReleasesView } from "./views/releases/index.tsx";
-import { ProjectsView } from "./views/projects/index.tsx";
+import { PrsLayout } from "./views/prs/prs-layout.tsx";
+import { PrListView } from "./views/prs/pr-list-view.tsx";
+import { PRDetailPanel } from "./views/prs/pr-detail/index.tsx";
+import { PrsHelpView } from "./views/prs/prs-help-view.tsx";
+import { NotificationsView } from "./views/prs/notifications-view.tsx";
+import { RepoSearch } from "./views/prs/repo-search.tsx";
+import { DepsLayout } from "./views/dependencies/deps-layout.tsx";
+import { DepsListView } from "./views/dependencies/deps-list-view.tsx";
+import { DepsHelpView } from "./views/dependencies/deps-help-view.tsx";
+import { PackageSearch } from "./views/dependencies/package-search.tsx";
+import { PipelinesLayout } from "./views/pipelines/pipelines-layout.tsx";
+import { PipelinesListView } from "./views/pipelines/pipelines-list-view.tsx";
+import { PipelinesHelpView } from "./views/pipelines/pipelines-help-view.tsx";
+import { PipelineSearch } from "./views/pipelines/pipeline-search.tsx";
+import { PipelineRuns } from "./views/pipelines/pipeline-runs.tsx";
+import { ReleasesLayout } from "./views/releases/releases-layout.tsx";
+import { ReleasesListView } from "./views/releases/releases-list-view.tsx";
+import { ReleasesHelpView } from "./views/releases/releases-help-view.tsx";
+import { DefinitionSearch } from "./views/releases/definition-search.tsx";
+import { ProjectsLayout } from "./views/projects/projects-layout.tsx";
+import { ProjectsListView } from "./views/projects/projects-list-view.tsx";
+import { ProjectsHelpView } from "./views/projects/projects-help-view.tsx";
+import { ConfigLayout } from "./views/config/config-layout.tsx";
+import { ConfigMainView } from "./views/config/config-main-view.tsx";
+import { ConfigHelpView } from "./views/config/config-help-view.tsx";
 import { JiraLayout } from "./views/jira/jira-layout.tsx";
 import { JiraIssueListView } from "./views/jira/issue-list-view.tsx";
 import { IssueDetail } from "./views/jira/issue-detail/index.tsx";
@@ -14,34 +33,59 @@ import { MemberSelect } from "./views/jira/member-select.tsx";
 import { JiraHelpView } from "./views/jira/jira-help-view.tsx";
 
 export const routes = defineRoutes({
-  // PRs — PRView handles its own sub-views internally
-  prs: { component: PRView },
-  "prs/detail": { component: PRView },
-  "prs/help": { component: PRView, layout: "overlay" },
-  "prs/notifications": { component: PRView },
-  "prs/search": { component: PRView, layout: "overlay" },
+  // PRs — nested routes via Outlet system
+  prs: {
+    component: PrsLayout,
+    children: {
+      "": { component: PrListView },
+      detail: { component: PRDetailPanel },
+      help: { component: PrsHelpView, layout: "overlay" },
+      notifications: { component: NotificationsView },
+      search: { component: RepoSearch, layout: "overlay" },
+    },
+  },
 
-  // Dependencies — DependencyTracker handles its own sub-views
-  dependencies: { component: DependencyTracker },
-  "dependencies/help": { component: DependencyTracker, layout: "overlay" },
-  "dependencies/search": { component: DependencyTracker, layout: "overlay" },
+  // Dependencies — nested routes via Outlet system
+  dependencies: {
+    component: DepsLayout,
+    children: {
+      "": { component: DepsListView },
+      help: { component: DepsHelpView, layout: "overlay" },
+      search: { component: PackageSearch, layout: "overlay" },
+    },
+  },
 
-  // Pipelines — PipelinesView handles its own sub-views
-  pipelines: { component: PipelinesView },
-  "pipelines/help": { component: PipelinesView, layout: "overlay" },
-  "pipelines/search": { component: PipelinesView, layout: "overlay" },
-  "pipelines/runs": { component: PipelinesView },
+  // Pipelines — nested routes via Outlet system
+  pipelines: {
+    component: PipelinesLayout,
+    children: {
+      "": { component: PipelinesListView },
+      help: { component: PipelinesHelpView, layout: "overlay" },
+      search: { component: PipelineSearch, layout: "overlay" },
+      runs: { component: PipelineRuns },
+    },
+  },
 
-  // Releases — ReleasesView handles its own sub-views
-  releases: { component: ReleasesView },
-  "releases/help": { component: ReleasesView, layout: "overlay" },
-  "releases/search": { component: ReleasesView, layout: "overlay" },
+  // Releases — nested routes via Outlet system
+  releases: {
+    component: ReleasesLayout,
+    children: {
+      "": { component: ReleasesListView },
+      help: { component: ReleasesHelpView, layout: "overlay" },
+      search: { component: DefinitionSearch, layout: "overlay" },
+    },
+  },
 
-  // Projects — ProjectsView handles its own sub-views
-  projects: { component: ProjectsView },
-  "projects/help": { component: ProjectsView, layout: "overlay" },
-  "projects/add": { component: ProjectsView, layout: "overlay" },
-  "projects/confirm": { component: ProjectsView, layout: "overlay" },
+  // Projects — nested routes via Outlet system
+  projects: {
+    component: ProjectsLayout,
+    children: {
+      "": { component: ProjectsListView },
+      help: { component: ProjectsHelpView, layout: "overlay" },
+      add: { component: ProjectsListView, layout: "overlay" },
+      confirm: { component: ProjectsListView, layout: "overlay" },
+    },
+  },
 
   // Jira — nested routes via Outlet system
   jira: {
@@ -57,13 +101,19 @@ export const routes = defineRoutes({
     },
   },
 
-  // Config — ConfigView handles its own sub-views
-  config: { component: ConfigView },
-  "config/addOrg": { component: ConfigView, layout: "overlay" },
-  "config/editAzureOrg": { component: ConfigView, layout: "overlay" },
-  "config/editAzureProject": { component: ConfigView, layout: "overlay" },
-  "config/editJiraSite": { component: ConfigView, layout: "overlay" },
-  "config/editJiraEmail": { component: ConfigView, layout: "overlay" },
-  "config/editJiraToken": { component: ConfigView, layout: "overlay" },
-  "config/editJiraProject": { component: ConfigView, layout: "overlay" },
+  // Config — nested routes via Outlet system
+  config: {
+    component: ConfigLayout,
+    children: {
+      "": { component: ConfigMainView },
+      help: { component: ConfigHelpView, layout: "overlay" },
+      addOrg: { component: ConfigMainView, layout: "overlay" },
+      editAzureOrg: { component: ConfigMainView, layout: "overlay" },
+      editAzureProject: { component: ConfigMainView, layout: "overlay" },
+      editJiraSite: { component: ConfigMainView, layout: "overlay" },
+      editJiraEmail: { component: ConfigMainView, layout: "overlay" },
+      editJiraToken: { component: ConfigMainView, layout: "overlay" },
+      editJiraProject: { component: ConfigMainView, layout: "overlay" },
+    },
+  },
 });

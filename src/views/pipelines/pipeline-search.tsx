@@ -1,31 +1,24 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type { AzurePipelineDefinition } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useRouter } from "../../ui/router.ts";
 import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { usePipelinesContext } from "./pipelines-context.ts";
 
-interface Props {
-  definitions: AzurePipelineDefinition[];
-  pinnedIds: number[];
-  loading: boolean;
-  onSelect: (id: number) => void;
-  onRemove: (id: number) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function PipelineSearch() {
+  const {
+    config,
+    addPinnedPipeline,
+    removePinnedPipeline,
+    contentHeight: height,
+    width,
+  } = useAppContext();
+  const { definitions, defsLoading: loading } = usePipelinesContext();
+  const { navigate } = useRouter();
+  const pinnedIds = config.pinnedPipelines;
 
-export function PipelineSearch({
-  definitions,
-  pinnedIds,
-  loading,
-  onSelect,
-  onRemove,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -47,15 +40,15 @@ export function PipelineSearch({
     const def = filtered[index];
     if (!def) return;
     if (pinnedIds.includes(def.id)) {
-      onRemove(def.id);
+      removePinnedPipeline(def.id);
     } else {
-      onSelect(def.id);
+      addPinnedPipeline(def.id);
     }
   };
 
   useInput((input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("pipelines");
       return;
     }
 
@@ -122,7 +115,7 @@ export function PipelineSearch({
       <Box>
         <Text>Search: </Text>
         <Text>{query}</Text>
-        <Text dimColor>█</Text>
+        <Text dimColor>{"\u2588"}</Text>
       </Box>
       {loading ? (
         <Spinner label="Loading pipeline definitions..." />
@@ -151,7 +144,7 @@ export function PipelineSearch({
       )}
       <Box marginTop={0}>
         <Text dimColor>
-          Enter: {"{add/remove}"} | Esc: close | ↑↓: navigate
+          Enter: {"{add/remove}"} | Esc: close | {"\u2191\u2193"}: navigate
         </Text>
       </Box>
     </Box>
