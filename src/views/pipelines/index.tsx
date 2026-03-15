@@ -177,6 +177,32 @@ export function PipelinesView({
     );
   }
 
+  if (showSearch) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <PipelineSearch
+          definitions={definitions}
+          pinnedIds={config.pinnedPipelines}
+          loading={defsLoading}
+          onSelect={(id) => {
+            addPinnedPipeline(id);
+          }}
+          onRemove={(id) => {
+            removePinnedPipeline(id);
+          }}
+          onClose={() => setView("pipelines")}
+          height={height}
+          width={width}
+        />
+      </Box>
+    );
+  }
+
   const statusBarHeight = 3;
   const mainHeight = height - statusBarHeight;
 
@@ -218,30 +244,6 @@ export function PipelinesView({
         fetching={fetching}
         width={width}
       />
-
-      {/* Pipeline search overlay */}
-      {showSearch && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 20) / 2)}
-        >
-          <PipelineSearch
-            definitions={definitions}
-            pinnedIds={config.pinnedPipelines}
-            loading={defsLoading}
-            onSelect={(id) => {
-              addPinnedPipeline(id);
-            }}
-            onRemove={(id) => {
-              removePinnedPipeline(id);
-            }}
-            onClose={() => setView("pipelines")}
-            height={height}
-            width={width}
-          />
-        </Box>
-      )}
     </Box>
   );
 }

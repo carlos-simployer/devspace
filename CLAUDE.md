@@ -160,7 +160,49 @@ Each view in `src/views/` is self-contained:
 
 Views use `useShortcuts` from `src/hooks/use-shortcuts.ts` instead of raw `useInput`. This hook reads the current `ViewId` from `ViewContext`, matches keyboard input against the shortcut registry, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-7) are handled automatically.
 
-Sub-view navigation uses `setView` from the context (e.g., `setView("prs.detail")`, `setView("jira.detail")`, `setView("jira.memberSelect")`). Views derive boolean state from the current ViewId (e.g., `showHelp = view === "jira.help"`).
+#### View Sub-state Pattern
+
+Sub-view navigation uses `setView` from the context (e.g., `setView("prs.detail")`, `setView("jira.detail")`, `setView("jira.memberSelect")`). Views derive boolean state from the current ViewId:
+
+```tsx
+const showHelp = view === "jira.help";
+const showDetail = view === "jira.detail";
+const showMemberSelect = view === "jira.memberSelect";
+```
+
+Early returns render sub-views in priority order: not-configured, then full-screen overlays (member-select, help, detail, search), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current `ViewId`.
+
+#### Overlay Pattern
+
+There are two types of overlays:
+
+**Full-screen overlays** (search, member select, help, detail panels) use the early-return pattern — the overlay replaces the view content entirely while the shared `ViewHeader` from `app.tsx` stays visible above:
+
+```tsx
+if (showSearch) {
+  return (
+    <Box height={height} width={width} alignItems="center" justifyContent="center">
+      <PipelineSearch ... />
+    </Box>
+  );
+}
+```
+
+These set the view via context (`setView("pipelines.search")`). The main view's `useShortcuts` won't fire because scope awareness prevents it.
+
+**Small input overlays** (config edit dialogs, confirm dialogs) use `position="absolute"` centered on screen, rendered within the main view's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Overlay state must be synced to `ViewContext` so main shortcuts don't interfere:
+
+```tsx
+// In config view: sync local overlay state → ViewContext
+useEffect(() => {
+  if (showAddOrg) setView("config.addOrg");
+  else if (showEditAzureOrg) setView("config.editAzureOrg");
+  // ...
+  else if (view.startsWith("config.")) setView("config");
+}, [showAddOrg, showEditAzureOrg, ...]);
+```
+
+A minimal `useInput` handles only Escape to close the overlay (since `TextInput` captures all other keys).
 
 ### State & Data
 
@@ -256,6 +298,12 @@ Query helpers derive UI from the registry:
 - `matchShortcut(input, key, viewId)` — matches Ink's `useInput` args against the registry; view-specific shortcuts take precedence over globals
 
 **Adding a new shortcut:** Add one entry to the `SHORTCUTS` array in `shortcut-registry.ts`, then add a handler for that action name in the view's `useShortcuts` call. If it should appear in the bottom bar, also add its action name to `VIEW_CONFIG[viewId].bar` in `view-config.ts`.
+
+**Scope awareness:** `useShortcuts(handlers, { scope: "jira.detail" })` only fires when `view === scope` (exact match). When `scope` is omitted, it defaults to `baseView` (e.g. `"jira"`), which means handlers fire only on the exact base view — not on sub-views like `"jira.detail"` or `"jira.memberSelect"`. Sub-view components MUST specify their scope explicitly. Global shortcuts (quit, tab switching) still work from any sub-view within the same base view.
+
+**When to use `useShortcuts` vs `useInput`:**
+- `useShortcuts` — for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
+- `useInput` — only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`) should use `useShortcuts` with scope, not `useInput`.
 
 ### Status Mapping
 

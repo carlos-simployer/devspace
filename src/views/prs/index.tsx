@@ -562,6 +562,32 @@ export function PRView({
     );
   }
 
+  if (showRepoSearch) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <RepoSearch
+          repos={orgRepos}
+          pinnedRepos={config.repos}
+          loading={reposLoading}
+          onSelect={(repo) => {
+            addRepo(repo);
+          }}
+          onRemove={(repo) => {
+            removeRepo(repo);
+          }}
+          onClose={() => setView("prs")}
+          height={height}
+          width={width}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box height={height} width={width} flexDirection="column">
       {/* Tab bar + Header */}
@@ -629,30 +655,6 @@ export function PRView({
           commentInput={commentMode ? commentText : ""}
         />
       </Box>
-
-      {/* Repo search overlay */}
-      {showRepoSearch && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 20) / 2)}
-        >
-          <RepoSearch
-            repos={orgRepos}
-            pinnedRepos={config.repos}
-            loading={reposLoading}
-            onSelect={(repo) => {
-              addRepo(repo);
-            }}
-            onRemove={(repo) => {
-              removeRepo(repo);
-            }}
-            onClose={() => setView("prs")}
-            height={height}
-            width={width}
-          />
-        </Box>
-      )}
     </Box>
   );
 }

@@ -167,6 +167,27 @@ export function DependencyTracker({
     );
   }
 
+  if (showPackageSearch) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <PackageSearch
+          trackedPackages={trackedPackages}
+          onSelect={(pkg) => {
+            addPackage(pkg);
+          }}
+          onClose={() => setView("dependencies")}
+          height={height}
+          width={width}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box height={height} width={width} flexDirection="column">
       {/* Main area */}
@@ -191,25 +212,6 @@ export function DependencyTracker({
 
       {/* Status bar */}
       <DepStatusBar selectedPackage={selectedPackage} width={width} />
-
-      {/* Package search overlay */}
-      {showPackageSearch && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 20) / 2)}
-        >
-          <PackageSearch
-            trackedPackages={trackedPackages}
-            onSelect={(pkg) => {
-              addPackage(pkg);
-            }}
-            onClose={() => setView("dependencies")}
-            height={height}
-            width={width}
-          />
-        </Box>
-      )}
     </Box>
   );
 }

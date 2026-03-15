@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
+import { useShortcuts } from "../../hooks/use-shortcuts.ts";
 
 interface TeamMember {
   name: string;
@@ -40,27 +41,19 @@ export function MemberSelect({ onSelect, onClose, height, width }: Props) {
   const boxHeight = Math.min(height - 4, TEAM_MEMBERS.length + 5);
   const innerWidth = boxWidth - 4; // border (2) + paddingX (2)
 
-  useInput((input, key) => {
-    if (key.escape) {
-      onClose();
-      return;
-    }
-    if (key.upArrow) {
-      setSelectedIndex((i) => Math.max(0, i - 1));
-      return;
-    }
-    if (key.downArrow) {
-      setSelectedIndex((i) => Math.min(TEAM_MEMBERS.length - 1, i + 1));
-      return;
-    }
-    if (key.return) {
-      const member = TEAM_MEMBERS[selectedIndex];
-      if (member) {
-        onSelect(member.accountId);
-      }
-      return;
-    }
-  });
+  useShortcuts(
+    {
+      close: () => onClose(),
+      select: () => {
+        const member = TEAM_MEMBERS[selectedIndex];
+        if (member) onSelect(member.accountId);
+      },
+      up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
+      down: () =>
+        setSelectedIndex((i) => Math.min(TEAM_MEMBERS.length - 1, i + 1)),
+    },
+    { scope: "jira.memberSelect" },
+  );
 
   return (
     <Overlay

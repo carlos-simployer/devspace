@@ -153,6 +153,32 @@ export function ReleasesView({
     );
   }
 
+  if (showSearch) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <DefinitionSearch
+          definitions={allDefinitions}
+          pinnedIds={config.pinnedReleaseDefinitions}
+          loading={allDefsLoading}
+          onSelect={(id) => {
+            addPinnedReleaseDefinition(id);
+          }}
+          onRemove={(id) => {
+            removePinnedReleaseDefinition(id);
+          }}
+          onClose={() => setView("releases")}
+          height={height}
+          width={width}
+        />
+      </Box>
+    );
+  }
+
   const statusBarHeight = 3;
   const mainHeight = height - statusBarHeight;
 
@@ -195,30 +221,6 @@ export function ReleasesView({
         fetching={fetching}
         width={width}
       />
-
-      {/* Definition search overlay */}
-      {showSearch && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 60) / 2)}
-          marginTop={Math.floor((height - 20) / 2)}
-        >
-          <DefinitionSearch
-            definitions={allDefinitions}
-            pinnedIds={config.pinnedReleaseDefinitions}
-            loading={allDefsLoading}
-            onSelect={(id) => {
-              addPinnedReleaseDefinition(id);
-            }}
-            onRemove={(id) => {
-              removePinnedReleaseDefinition(id);
-            }}
-            onClose={() => setView("releases")}
-            height={height}
-            width={width}
-          />
-        </Box>
-      )}
     </Box>
   );
 }

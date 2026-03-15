@@ -463,7 +463,7 @@ export const SHORTCUTS: ShortcutDef[] = [
     action: "filterPerson",
     key: "u",
     view: "jira",
-    label: "Person",
+    label: "User",
     help: "Filter: select person",
   },
   { action: "search", key: "/", view: "jira", help: "Search/filter issues" },
