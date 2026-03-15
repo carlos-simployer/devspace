@@ -69,6 +69,8 @@ export function useConfig(orgArg?: string) {
           "Done",
         ],
         jiraAccountId: "",
+        githubToken: "",
+        azureToken: "",
       };
     }
 
@@ -119,6 +121,8 @@ export function useConfig(orgArg?: string) {
         "Done",
       ],
       jiraAccountId: raw.jiraAccountId || "",
+      githubToken: raw.githubToken || "",
+      azureToken: raw.azureToken || "",
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -384,6 +388,20 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setGithubToken = useCallback(
+    (githubToken: string) => {
+      setConfig((prev) => ({ ...prev, githubToken }));
+    },
+    [setConfig],
+  );
+
+  const setAzureToken = useCallback(
+    (azureToken: string) => {
+      setConfig((prev) => ({ ...prev, azureToken }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -421,6 +439,8 @@ export function useConfig(orgArg?: string) {
     setJiraToken,
     setJiraProject,
     setJiraAccountId,
+    setGithubToken,
+    setAzureToken,
     isFirstLaunch,
   };
 }

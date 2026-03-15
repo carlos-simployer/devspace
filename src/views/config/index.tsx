@@ -39,6 +39,10 @@ interface Props {
   setJiraEmail: (email: string) => void;
   setJiraToken: (token: string) => void;
   setJiraProject: (project: string) => void;
+  githubToken: string;
+  setGithubToken: (token: string) => void;
+  azureToken: string;
+  setAzureToken: (token: string) => void;
   persistCache: boolean;
   setPersistCache: (enabled: boolean) => void;
   onSwitchView: (target?: AppView, reverse?: boolean) => void;
@@ -94,6 +98,10 @@ export function ConfigView({
   setJiraEmail,
   setJiraToken,
   setJiraProject,
+  githubToken,
+  setGithubToken,
+  azureToken,
+  setAzureToken,
   persistCache,
   setPersistCache,
   onSwitchView: _onSwitchView,
@@ -139,6 +147,11 @@ export function ConfigView({
             type: "action" as const,
             color: theme.list.addAction,
           },
+          {
+            key: "github-token",
+            label: `API Token: ${githubToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set] (using gh CLI)"}`,
+            type: "text" as const,
+          },
         ];
       case "azure":
         return [
@@ -150,6 +163,11 @@ export function ConfigView({
           {
             key: "azure-project",
             label: `Project: ${azureProject || "[not set]"}`,
+            type: "text" as const,
+          },
+          {
+            key: "azure-token",
+            label: `PAT: ${azureToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set] (using az CLI)"}`,
             type: "text" as const,
           },
         ];
@@ -260,6 +278,7 @@ export function ConfigView({
 
       if (section === "github") {
         if (item.key === "add-org") setEditingField("add-org");
+        if (item.key === "github-token") setEditingField("github-token");
       } else if (section === "azure") {
         setEditingField(item.key);
       } else if (section === "jira") {
@@ -509,8 +528,10 @@ export function ConfigView({
           >
             <Text bold color={theme.ui.activeIndicator}>
               {editingField === "add-org" && "Add Organization"}
+              {editingField === "github-token" && "GitHub API Token"}
               {editingField === "azure-org" && "Azure DevOps Organization"}
               {editingField === "azure-project" && "Azure DevOps Project"}
+              {editingField === "azure-token" && "Azure DevOps PAT"}
               {editingField === "jira-site" && "Jira Site"}
               {editingField === "jira-email" && "Jira Email"}
               {editingField === "jira-token" && "Jira API Token"}
@@ -519,8 +540,10 @@ export function ConfigView({
             <Box>
               <Text>
                 {editingField === "add-org" && "Name: "}
+                {editingField === "github-token" && "Token: "}
                 {editingField === "azure-org" && "Org: "}
                 {editingField === "azure-project" && "Project: "}
+                {editingField === "azure-token" && "PAT: "}
                 {editingField === "jira-site" && "Site: "}
                 {editingField === "jira-email" && "Email: "}
                 {editingField === "jira-token" && "Token: "}
@@ -530,26 +553,32 @@ export function ConfigView({
                 placeholder={
                   editingField === "add-org"
                     ? "type org name..."
-                    : editingField === "azure-org"
-                      ? azureOrg || "type org name..."
-                      : editingField === "azure-project"
-                        ? azureProject || "type project name..."
-                        : editingField === "jira-site"
-                          ? jiraSite || "yourcompany.atlassian.net"
-                          : editingField === "jira-email"
-                            ? jiraEmail || "user@company.com"
-                            : editingField === "jira-token"
-                              ? "paste API token..."
-                              : editingField === "jira-project"
-                                ? jiraProject || "e.g. UUX"
-                                : ""
+                    : editingField === "github-token"
+                      ? "paste GitHub PAT (leave empty to use gh CLI)..."
+                      : editingField === "azure-org"
+                        ? azureOrg || "type org name..."
+                        : editingField === "azure-project"
+                          ? azureProject || "type project name..."
+                          : editingField === "azure-token"
+                            ? "paste Azure DevOps PAT (leave empty to use az CLI)..."
+                            : editingField === "jira-site"
+                              ? jiraSite || "yourcompany.atlassian.net"
+                              : editingField === "jira-email"
+                                ? jiraEmail || "user@company.com"
+                                : editingField === "jira-token"
+                                  ? "paste API token..."
+                                  : editingField === "jira-project"
+                                    ? jiraProject || "e.g. UUX"
+                                    : ""
                 }
                 onSubmit={(val) => {
                   const v = val.trim();
                   if (v) {
                     if (editingField === "add-org") addOrg(v);
+                    if (editingField === "github-token") setGithubToken(v);
                     if (editingField === "azure-org") setAzureOrg(v);
                     if (editingField === "azure-project") setAzureProject(v);
+                    if (editingField === "azure-token") setAzureToken(v);
                     if (editingField === "jira-site") setJiraSite(v);
                     if (editingField === "jira-email") setJiraEmail(v);
                     if (editingField === "jira-token") setJiraToken(v);

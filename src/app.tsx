@@ -53,6 +53,8 @@ export function App({ client, org, token }: Props) {
     setJiraToken,
     setJiraProject,
     setJiraAccountId,
+    setGithubToken,
+    setAzureToken,
     isFirstLaunch,
   } = useConfig(org);
   const { repos: orgRepos, loading: reposLoading } = useRepos(
@@ -222,6 +224,10 @@ export function App({ client, org, token }: Props) {
             setJiraEmail={setJiraEmail}
             setJiraToken={setJiraToken}
             setJiraProject={setJiraProject}
+            githubToken={config.githubToken}
+            setGithubToken={setGithubToken}
+            azureToken={config.azureToken}
+            setAzureToken={setAzureToken}
             persistCache={config.persistCache}
             setPersistCache={setPersistCache}
             onSwitchView={switchView}

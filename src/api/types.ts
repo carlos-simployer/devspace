@@ -119,6 +119,8 @@ export interface Config {
   jiraProject: string; // e.g. "UUX"
   jiraStatusOrder: string[]; // e.g. ["In Progress", "In Review", "To Do", "Done"]
   jiraAccountId: string; // for "my issues" filter
+  githubToken: string; // GitHub PAT (fallback when gh CLI unavailable)
+  azureToken: string; // Azure DevOps PAT (fallback when az CLI unavailable)
 }
 
 // --- Azure DevOps types ---

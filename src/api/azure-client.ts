@@ -4,7 +4,14 @@ import type {
   AzureReleaseDefinition,
   AzureRelease,
 } from "./types.ts";
-import { getAzureToken } from "./azure-auth.ts";
+import { getAzureToken, type AzureAuthType } from "./azure-auth.ts";
+
+function buildAuthHeader(token: string, authType: AzureAuthType): string {
+  if (authType === "basic") {
+    return `Basic ${Buffer.from(":" + token).toString("base64")}`;
+  }
+  return `Bearer ${token}`;
+}
 
 async function azureFetch<T>(
   baseHost: string,
@@ -12,13 +19,14 @@ async function azureFetch<T>(
   project: string,
   path: string,
   token: string,
+  authType: AzureAuthType = "bearer",
 ): Promise<T> {
   const separator = path.includes("?") ? "&" : "?";
   const url = `https://${baseHost}/${org}/${project}/_apis/${path}${separator}api-version=7.1`;
 
   const res = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: buildAuthHeader(token, authType),
       Accept: "application/json",
     },
   });
@@ -39,15 +47,16 @@ export async function fetchPipelineDefinitions(
   org: string,
   project: string,
 ): Promise<AzurePipelineDefinition[]> {
-  const token = await getAzureToken();
-  if (!token) throw new Error("No Azure DevOps token available");
+  const auth = await getAzureToken();
+  if (!auth) throw new Error("No Azure DevOps token available");
 
   const data = await azureFetch<AzureListResponse<any>>(
     "dev.azure.com",
     org,
     project,
     "build/definitions?includeLatestBuilds=true",
-    token,
+    auth.token,
+    auth.authType,
   );
 
   return data.value.map((d: any) => ({
@@ -64,15 +73,16 @@ export async function fetchPipelineRuns(
   definitionId: number,
   top: number = 20,
 ): Promise<AzureBuildRun[]> {
-  const token = await getAzureToken();
-  if (!token) throw new Error("No Azure DevOps token available");
+  const auth = await getAzureToken();
+  if (!auth) throw new Error("No Azure DevOps token available");
 
   const data = await azureFetch<AzureListResponse<any>>(
     "dev.azure.com",
     org,
     project,
     `build/builds?definitions=${definitionId}&$top=${top}`,
-    token,
+    auth.token,
+    auth.authType,
   );
 
   return data.value.map(mapBuildRun);
@@ -82,15 +92,16 @@ export async function fetchReleaseDefinitions(
   org: string,
   project: string,
 ): Promise<AzureReleaseDefinition[]> {
-  const token = await getAzureToken();
-  if (!token) throw new Error("No Azure DevOps token available");
+  const auth = await getAzureToken();
+  if (!auth) throw new Error("No Azure DevOps token available");
 
   const data = await azureFetch<AzureListResponse<any>>(
     "vsrm.dev.azure.com",
     org,
     project,
     "release/definitions",
-    token,
+    auth.token,
+    auth.authType,
   );
 
   return data.value.map((d: any) => ({
@@ -109,15 +120,16 @@ export async function fetchReleases(
   definitionId: number,
   top: number = 25,
 ): Promise<AzureRelease[]> {
-  const token = await getAzureToken();
-  if (!token) throw new Error("No Azure DevOps token available");
+  const auth = await getAzureToken();
+  if (!auth) throw new Error("No Azure DevOps token available");
 
   const data = await azureFetch<AzureListResponse<any>>(
     "vsrm.dev.azure.com",
     org,
     project,
     `release/releases?definitionId=${definitionId}&$top=${top}&$expand=environments,artifacts`,
-    token,
+    auth.token,
+    auth.authType,
   );
 
   return data.value.map((r: any) => ({

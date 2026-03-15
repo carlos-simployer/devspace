@@ -1,6 +1,9 @@
 import React from "react";
 import { render } from "ink";
 import { execSync } from "child_process";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createClient } from "./api/client.ts";
@@ -23,6 +26,21 @@ org = org || process.env.GITHUB_ORG;
 
 // Resolve auth token
 function getToken(): string {
+  // Check config file first
+  try {
+    const configPath = join(
+      homedir(),
+      ".config",
+      "github-pr-dash",
+      "config.json",
+    );
+    const raw = JSON.parse(readFileSync(configPath, "utf-8"));
+    if (raw.githubToken) return raw.githubToken;
+  } catch {
+    // no config or no token
+  }
+
+  // Try gh CLI
   try {
     const ghToken = execSync("gh auth token", {
       encoding: "utf-8",
@@ -37,7 +55,7 @@ function getToken(): string {
   if (envToken) return envToken;
 
   console.error(
-    "No GitHub token found. Install gh CLI and run `gh auth login`, or set GITHUB_TOKEN.",
+    "No GitHub token found. Set token in Config tab, install gh CLI, or set GITHUB_TOKEN.",
   );
   return process.exit(1) as never;
 }
