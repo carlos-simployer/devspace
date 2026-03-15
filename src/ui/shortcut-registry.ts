@@ -566,6 +566,27 @@ export const SHORTCUTS: ShortcutDef[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Display helpers
+// ---------------------------------------------------------------------------
+
+const KEY_DISPLAY: Record<string, string> = {
+  escape: "esc",
+  return: "enter",
+  tab: "tab",
+  "shift+tab": "shift+tab",
+  up: "\u2191",
+  down: "\u2193",
+  left: "\u2190",
+  right: "\u2192",
+  backspace: "bksp",
+  delete: "del",
+};
+
+function displayKey(key: string): string {
+  return KEY_DISPLAY[key] ?? key;
+}
+
+// ---------------------------------------------------------------------------
 // Query helpers
 // ---------------------------------------------------------------------------
 
@@ -585,7 +606,7 @@ export function getBarShortcuts(
         (s.view === viewId || s.view === getBaseView(viewId) || !s.view),
     );
     if (def?.label) {
-      result.push({ key: def.key, label: def.label });
+      result.push({ key: displayKey(def.key), label: def.label });
     }
   }
   return result;
@@ -598,7 +619,7 @@ export function getHelpShortcuts(viewId: ViewId): Array<[string, string]> {
     (s) => s.view === viewId || s.view === base || !s.view,
   )
     .filter((s) => !s.key.includes(" ")) // skip display-only entries like "[ ]"
-    .map((s) => [s.key, s.help]);
+    .map((s) => [displayKey(s.key), s.help]);
 }
 
 /** Get active shortcuts for a view (for input matching). View-specific first, then globals. */

@@ -42,7 +42,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
   const [filterAccountId, setFilterAccountId] = useState("");
   const [searchText, setSearchText] = useState("");
-  const [searchMode, setSearchMode] = useState(false);
+  const searchMode = view === "jira.search";
 
   const isConfigured =
     !!config.jiraSite && !!config.jiraEmail && !!config.jiraToken;
@@ -135,8 +135,8 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         setView("jira.memberSelect");
       },
       search: () => {
-        setSearchMode(true);
         setSearchText("");
+        setView("jira.search");
       },
       refresh: () => {
         refetch();
@@ -158,8 +158,8 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         // Search mode — raw text entry, bypass shortcut matching
         if (searchMode) {
           if (key.escape) {
-            setSearchMode(false);
             setSearchText("");
+            setView("jira");
             return;
           }
           if (key.backspace || key.delete) {
@@ -167,7 +167,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
             return;
           }
           if (key.return) {
-            setSearchMode(false);
+            setView("jira");
             return;
           }
           if (input && !key.ctrl && !key.meta) {
