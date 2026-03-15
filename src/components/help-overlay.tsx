@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import type { ViewId } from "../ui/view-config.ts";
 import { getHelpShortcuts } from "../ui/shortcut-registry.ts";
 import { getTheme } from "../ui/theme.ts";
+import { Overlay } from "../ui/overlay.tsx";
 
 interface Props {
   view: ViewId;
@@ -20,49 +21,50 @@ export function HelpOverlay({ view, height, width }: Props) {
     ([key]) => key === "q" || key === "?",
   );
 
+  const totalLines = viewShortcuts.length + globalShortcuts.length + 5; // title + header + footer + margins
+  const boxWidth = Math.min(50, width - 4);
+  const boxHeight = Math.min(height - 2, totalLines);
+
   return (
     <Box
-      flexDirection="column"
-      width={width}
       height={height}
-      paddingX={2}
-      paddingY={1}
+      width={width}
+      alignItems="center"
+      justifyContent="center"
     >
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold color={theme.ui.heading}>
-          Keyboard Shortcuts
-        </Text>
-      </Box>
-      {viewShortcuts.map(([key, desc]) => (
-        <Box key={key + desc}>
-          <Text bold color={theme.ui.shortcutKey}>
-            {"  "}
-            {key!.padEnd(12)}
-          </Text>
-          <Text>{desc}</Text>
-        </Box>
-      ))}
-      {globalShortcuts.length > 0 && (
-        <>
-          <Box marginTop={1}>
-            <Text bold color={theme.ui.heading}>
-              Global
+      <Overlay
+        title="Keyboard Shortcuts"
+        titleColor={theme.ui.heading}
+        width={boxWidth}
+        height={boxHeight}
+        footer={<Text dimColor>Press ? to close</Text>}
+      >
+        {viewShortcuts.map(([key, desc]) => (
+          <Box key={key + desc}>
+            <Text bold color={theme.ui.shortcutKey}>
+              {key!.padEnd(12)}
             </Text>
+            <Text>{desc}</Text>
           </Box>
-          {globalShortcuts.map(([key, desc]) => (
-            <Box key={key + desc}>
-              <Text bold color={theme.ui.shortcutKey}>
-                {"  "}
-                {key!.padEnd(12)}
+        ))}
+        {globalShortcuts.length > 0 && (
+          <>
+            <Box marginTop={1}>
+              <Text bold color={theme.ui.heading}>
+                Global
               </Text>
-              <Text>{desc}</Text>
             </Box>
-          ))}
-        </>
-      )}
-      <Box marginTop={1} justifyContent="center">
-        <Text dimColor>Press ? to close</Text>
-      </Box>
+            {globalShortcuts.map(([key, desc]) => (
+              <Box key={key + desc}>
+                <Text bold color={theme.ui.shortcutKey}>
+                  {key!.padEnd(12)}
+                </Text>
+                <Text>{desc}</Text>
+              </Box>
+            ))}
+          </>
+        )}
+      </Overlay>
     </Box>
   );
 }
