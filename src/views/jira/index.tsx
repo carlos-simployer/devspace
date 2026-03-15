@@ -12,6 +12,7 @@ import { HelpOverlay } from "../../components/help-overlay.tsx";
 import { IssueList } from "./issue-list.tsx";
 import { JiraStatusBar } from "./status-bar.tsx";
 import { MemberSelect } from "./member-select.tsx";
+import { StatusFilter } from "./status-filter.tsx";
 import { IssueDetail } from "./issue-detail/index.tsx";
 
 interface Props {
@@ -37,12 +38,16 @@ export function JiraView({ config, height, width, onQuit }: Props) {
   const showHelp = view === "jira.help";
   const showDetail = view === "jira.detail";
   const showMemberSelect = view === "jira.memberSelect";
+  const showStatusFilter = view === "jira.statusFilter";
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
   const [filterAccountId, setFilterAccountId] = useState("");
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState(false);
+  const [enabledStatuses, setEnabledStatuses] = useState<Set<string>>(
+    () => new Set(config.jiraStatusOrder),
+  );
 
   const isConfigured =
     !!config.jiraSite && !!config.jiraEmail && !!config.jiraToken;
@@ -58,21 +63,31 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       ? config.jiraStatusOrder
       : DEFAULT_STATUS_ORDER;
 
+  const allStatusesEnabled = enabledStatuses.size === statusOrder.length;
+
   // Filter + reorder by status groups so selectedIndex matches display order
   const filteredIssues = useMemo(() => {
-    const filtered = searchText
-      ? issues.filter(
-          (issue) =>
-            issue.fields.summary
-              .toLowerCase()
-              .includes(searchText.toLowerCase()) ||
-            issue.key.toLowerCase().includes(searchText.toLowerCase()),
-        )
-      : issues;
+    let filtered = issues;
+    // Status filter
+    if (!allStatusesEnabled) {
+      filtered = filtered.filter((issue) =>
+        enabledStatuses.has(issue.fields.status.name),
+      );
+    }
+    // Search filter
+    if (searchText) {
+      filtered = filtered.filter(
+        (issue) =>
+          issue.fields.summary
+            .toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          issue.key.toLowerCase().includes(searchText.toLowerCase()),
+      );
+    }
     // Reorder to match the grouped display order
     const groups = groupByStatus(filtered, statusOrder);
     return groups.flatMap((g) => g.issues);
-  }, [issues, searchText, statusOrder]);
+  }, [issues, searchText, statusOrder, enabledStatuses, allStatusesEnabled]);
 
   // Clamp selectedIndex to valid range
   useEffect(() => {
@@ -163,6 +178,9 @@ export function JiraView({ config, height, width, onQuit }: Props) {
       filterPerson: () => {
         setView("jira.memberSelect");
       },
+      filterStatus: () => {
+        setView("jira.statusFilter");
+      },
       search: () => {
         searchJustActivated.current = true;
         setSearchMode(true);
@@ -201,6 +219,30 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         <Text dimColor>
           Press 7 to open Config and set up Jira credentials.
         </Text>
+      </Box>
+    );
+  }
+
+  if (showStatusFilter) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <StatusFilter
+          statuses={statusOrder}
+          enabledStatuses={enabledStatuses}
+          onApply={(enabled) => {
+            setEnabledStatuses(enabled);
+            setSelectedIndex(0);
+            setView("jira");
+          }}
+          onClose={() => setView("jira")}
+          height={height}
+          width={width}
+        />
       </Box>
     );
   }
@@ -274,6 +316,7 @@ export function JiraView({ config, height, width, onQuit }: Props) {
           width={width}
           fetching={loading}
           searchText={searchMode ? searchText : null}
+          statusFilterActive={!allStatusesEnabled}
           error={error}
         />
       </Box>

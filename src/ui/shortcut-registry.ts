@@ -474,6 +474,13 @@ export const SHORTCUTS: ShortcutDef[] = [
     label: "Refresh",
     help: "Force refresh",
   },
+  {
+    action: "filterStatus",
+    key: "f",
+    view: "jira",
+    label: "Status",
+    help: "Filter by status",
+  },
   { action: "up", key: "up", view: "jira", help: "Navigate up" },
   { action: "down", key: "down", view: "jira", help: "Navigate down" },
   {
@@ -481,6 +488,28 @@ export const SHORTCUTS: ShortcutDef[] = [
     key: "escape",
     view: "jira",
     help: "Clear search / close",
+  },
+
+  // ── Jira Status Filter ──────────────────────────────────────────────
+  { action: "close", key: "escape", view: "jira.statusFilter", help: "Close" },
+  {
+    action: "select",
+    key: "return",
+    view: "jira.statusFilter",
+    help: "Toggle all",
+  },
+  {
+    action: "toggle",
+    key: " ",
+    view: "jira.statusFilter",
+    help: "Toggle status",
+  },
+  { action: "up", key: "up", view: "jira.statusFilter", help: "Navigate up" },
+  {
+    action: "down",
+    key: "down",
+    view: "jira.statusFilter",
+    help: "Navigate down",
   },
 
   // ── Jira Detail ─────────────────────────────────────────────────────

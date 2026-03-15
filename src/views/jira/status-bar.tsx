@@ -11,6 +11,7 @@ interface Props {
   width: number;
   fetching: boolean;
   searchText: string | null;
+  statusFilterActive: boolean;
   error: string | null;
 }
 
@@ -28,6 +29,7 @@ export function JiraStatusBar({
   width,
   fetching,
   searchText,
+  statusFilterActive,
   error,
 }: Props) {
   const theme = getTheme();
@@ -53,6 +55,12 @@ export function JiraStatusBar({
             <>
               <Text dimColor>|</Text>
               <Text color={theme.status.pending}> Refreshing... </Text>
+            </>
+          )}
+          {statusFilterActive && (
+            <>
+              <Text dimColor>|</Text>
+              <Text color={theme.input.search}> Status filtered </Text>
             </>
           )}
           {searchText !== null && (
