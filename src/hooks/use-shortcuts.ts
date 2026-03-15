@@ -46,6 +46,14 @@ export function useShortcuts(
       // within the same base view
       if (!view.startsWith(scope.split(".")[0]!)) return;
 
+      // Help overlay: ? toggles, Esc closes
+      if (view.endsWith(".help")) {
+        if (input === "?" || key.escape) {
+          setView(view.replace(".help", "") as ViewId);
+          return;
+        }
+      }
+
       const action = matchShortcut(input, key, view);
       if (action === "nextView") {
         handleViewSwitch(view, setView, false);
@@ -99,12 +107,6 @@ export function useShortcuts(
         }
         return;
       }
-    }
-
-    // Esc closes help overlay from any .help view
-    if (key.escape && view.endsWith(".help")) {
-      setView(view.replace(".help", "") as ViewId);
-      return;
     }
 
     // Tab number keys
