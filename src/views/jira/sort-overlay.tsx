@@ -29,7 +29,7 @@ export function SortOverlay({
   ]);
 
   const boxWidth = Math.min(45, width - 4);
-  const boxHeight = Math.min(height - 4, ALL_SORT_FIELDS.length + 5);
+  const boxHeight = Math.min(height - 4, ALL_SORT_FIELDS.length + 6);
   const innerWidth = boxWidth - 4;
 
   useShortcuts(
@@ -64,7 +64,6 @@ export function SortOverlay({
       height={boxHeight}
       footer={<Text dimColor>Space: toggle | Enter: apply | Esc: cancel</Text>}
     >
-      <Text dimColor>Selected fields sort in priority order.</Text>
       {ALL_SORT_FIELDS.map((field, i) => {
         const isActive = i === cursorIndex;
         const sortIdx = selected.indexOf(field);

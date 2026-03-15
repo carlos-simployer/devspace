@@ -50,14 +50,16 @@ export type JiraSortField =
   | "priority"
   | "assignee"
   | "key"
-  | "type";
+  | "type"
+  | "summary";
 
 export const ALL_SORT_FIELDS: JiraSortField[] = [
-  "updated",
-  "priority",
-  "assignee",
-  "type",
   "key",
+  "type",
+  "summary",
+  "assignee",
+  "priority",
+  "updated",
 ];
 
 export const SORT_FIELD_LABELS: Record<JiraSortField, string> = {
@@ -66,6 +68,7 @@ export const SORT_FIELD_LABELS: Record<JiraSortField, string> = {
   assignee: "Assignee",
   type: "Type",
   key: "Key",
+  summary: "Summary",
 };
 
 const PRIORITY_ORDER: Record<string, number> = {
@@ -133,6 +136,8 @@ function compareByField(
       const tb = TYPE_ORDER[b.fields.issuetype.name.toLowerCase()] ?? 99;
       return ta - tb;
     }
+    case "summary":
+      return a.fields.summary.localeCompare(b.fields.summary);
     case "key": {
       const numA = parseInt(a.key.split("-")[1] ?? "0", 10);
       const numB = parseInt(b.key.split("-")[1] ?? "0", 10);
