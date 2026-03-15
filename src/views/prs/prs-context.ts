@@ -11,6 +11,9 @@ import type { GitHubNotification } from "../../hooks/use-notifications.ts";
 import type { GraphQLClient } from "../../api/client.ts";
 
 export interface PrsContextValue {
+  // Layout
+  contentHeight: number;
+
   // Selection
   selectedPR: PullRequest | null;
   listIndex: number;

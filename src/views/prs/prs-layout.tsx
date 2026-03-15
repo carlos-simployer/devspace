@@ -171,6 +171,7 @@ export function PrsLayout() {
 
   const ctx: PrsContextValue = useMemo(
     () => ({
+      contentHeight: height - measuredHeader,
       selectedPR,
       listIndex,
       setListIndex,
@@ -263,6 +264,8 @@ export function PrsLayout() {
       markViewed,
       submitComment,
       client,
+      height,
+      measuredHeader,
     ],
   );
 

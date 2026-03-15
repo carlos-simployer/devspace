@@ -328,23 +328,18 @@ export function PrListView() {
     },
   );
 
-  // The parent PrsLayout handles the header — we get the remaining height
-  // from our Box. We measure the status bar to compute mainHeight.
-  // Since the parent wraps us in a flexGrow=1 container, we derive
-  // available height from the parent's contentHeight minus measuredStatus.
-  // But we don't have the parent's explicit pixel height passed down,
-  // so we rely on flex layout: our Box is flexGrow=1 and we measure statusRef.
+  const mainHeight = ctx.contentHeight - measuredStatus;
 
   return (
     <Box flexGrow={1} width={width} flexDirection="column">
       {/* Main area */}
-      <Box flexGrow={1}>
+      <Box flexGrow={1} height={mainHeight}>
         <Sidebar
           repos={repos}
           selectedRepo={selectedRepo}
           selectedIndex={sidebarIndex}
           isFocused={focus === "sidebar"}
-          height={0}
+          height={mainHeight}
           width={sidebarWidth}
           allPRs={allPRs}
           multiOrg={multiOrg}
@@ -352,7 +347,7 @@ export function PrListView() {
         <PRList
           prs={prs}
           selectedIndex={listIndex}
-          height={0}
+          height={mainHeight}
           width={listWidth}
           isFocused={focus === "list"}
           searchText={searchText}
