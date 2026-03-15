@@ -84,7 +84,7 @@
 - **Simple states** — Todo / in-progress / done, cycle with keystroke
 - **Priority** — High / normal / low with color coding
 - **Due dates** — Optional, highlighted when overdue
-- **Stored locally** — `~/.config/github-pr-dash/tasks.json`, no sync needed
+- **Stored locally** — `~/.config/devspace/tasks.json`, no sync needed
 - **Cross-view integrations:**
   - Auto-create "Review PR #342" task when assigned a review
   - Pin a Jira ticket ID to a task for quick reference/link

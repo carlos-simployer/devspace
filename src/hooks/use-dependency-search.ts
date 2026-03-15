@@ -7,7 +7,7 @@ import { searchPackageUsage } from "../api/dependency-queries.ts";
 
 const CACHE_MAX_AGE = 60 * 60_000; // 1 hour — skip fetch if cached within this
 
-const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
+const CONFIG_DIR = join(homedir(), ".config", "devspace");
 const CACHE_PATH = join(CONFIG_DIR, "dep-cache.json");
 
 interface CacheEntry {

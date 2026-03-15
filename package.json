@@ -1,11 +1,11 @@
 {
-  "name": "github-pr-dash",
+  "name": "devspace",
   "version": "1.0.0",
   "type": "module",
-  "description": "Terminal dashboard for GitHub pull requests",
+  "description": "Terminal dashboard for developer workflows",
   "main": "dist/index.js",
   "bin": {
-    "github-pr-dash": "dist/index.js"
+    "devspace": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.tsx",

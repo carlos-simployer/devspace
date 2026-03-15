@@ -10,7 +10,7 @@ Projects view currently captures stdout/stderr in-memory only (max 500 lines). L
 ### Key design: child writes directly to log file, parent tails it
 
 ```
-Child process → writes stdout/stderr to → ~/.config/github-pr-dash/logs/project-name.log
+Child process → writes stdout/stderr to → ~/.config/devspace/logs/project-name.log
                                               ↑
 Parent (LogTailer) → reads new lines from ──┘ → in-memory logs[] → UI
 ```
@@ -20,7 +20,7 @@ This naturally supports detach mode — the child keeps writing to the file afte
 ### Phase 1: File-based logs (3 new files + 1 modified)
 
 **New: `src/utils/log-file.ts`**
-- `getLogPath(name)` → `~/.config/github-pr-dash/logs/<name>.log`
+- `getLogPath(name)` → `~/.config/devspace/logs/<name>.log`
 - `openLogFile(name)` → opens/overwrites, returns fd (child inherits this)
 - `truncateLogFile(name)` → truncates to 0 bytes (for "clear logs")
 - `readTailLines(name, n)` → reads last N lines (for reconnect)
@@ -91,7 +91,7 @@ This naturally supports detach mode — the child keeps writing to the file afte
 
 ## Verification
 
-1. Start a project → check `~/.config/github-pr-dash/logs/` for log file
+1. Start a project → check `~/.config/devspace/logs/` for log file
 2. Quit app → verify log file persists with output
 3. Restart app → log panel shows previous output
 4. Enable "Keep Projects Running" in Config

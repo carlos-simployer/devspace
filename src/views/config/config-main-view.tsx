@@ -258,12 +258,7 @@ export function ConfigMainView() {
       }
     },
     editConfig: () => {
-      const configPath = join(
-        homedir(),
-        ".config",
-        "github-pr-dash",
-        "config.json",
-      );
+      const configPath = join(homedir(), ".config", "devspace", "config.json");
       try {
         exec(`code "${configPath}"`);
       } catch {

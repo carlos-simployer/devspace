@@ -1,5 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  renameSync,
+} from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import type { Config, ConfigV1, LocalProject } from "../api/types.ts";
@@ -10,7 +16,17 @@ import {
 } from "../utils/config-migration.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
 
-const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
+const OLD_CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
+const CONFIG_DIR = join(homedir(), ".config", "devspace");
+
+// Auto-migrate from old config directory
+if (existsSync(OLD_CONFIG_DIR) && !existsSync(CONFIG_DIR)) {
+  try {
+    renameSync(OLD_CONFIG_DIR, CONFIG_DIR);
+  } catch {
+    // fallback: just use new dir
+  }
+}
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 function readRawConfig(): any {
