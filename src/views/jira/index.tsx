@@ -155,19 +155,30 @@ export function JiraView({ config, height, width, onQuit }: Props) {
         setSearchText("");
         return;
       }
-      if (key.backspace || key.delete) {
-        setSearchText((s) => s.slice(0, -1));
+      if (key.upArrow) {
+        setSelectedIndex((i) => Math.max(0, i - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setSelectedIndex((i) => Math.min(filteredIssues.length - 1, i + 1));
         return;
       }
       if (key.return) {
-        setSearchMode(false);
+        // Open detail for selected issue (keep search active)
+        if (selectedIssue) {
+          setView("jira.detail");
+        }
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setSearchText((s) => s.slice(0, -1));
         return;
       }
       if (input && !key.ctrl && !key.meta) {
         setSearchText((s) => s + input);
       }
     },
-    { isActive: searchMode },
+    { isActive: searchMode && view === "jira" },
   );
 
   useShortcuts(
