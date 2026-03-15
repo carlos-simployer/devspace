@@ -12,6 +12,9 @@ interface Props {
 export function TabBar({ activeView }: Props) {
   return (
     <Box>
+      <Text bold color="cyan">
+        devspace{" "}
+      </Text>
       {TABS.map((tab) => (
         <TabItem
           key={tab.route}
