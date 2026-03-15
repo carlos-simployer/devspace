@@ -1,6 +1,10 @@
 import { useInput } from "ink";
 import { useRouter } from "../ui/router.ts";
-import { matchShortcut, ROUTE_SHORTCUTS } from "../ui/route-shortcuts.ts";
+import {
+  matchShortcut,
+  ROUTE_SHORTCUTS,
+  getShortcutRoute,
+} from "../ui/route-shortcuts.ts";
 import { getBaseRoute, getTabNumberKeys, TABS } from "../ui/tabs.ts";
 
 type ShortcutHandlers = Record<string, () => void>;
@@ -65,7 +69,8 @@ export function useRouteShortcuts(
 
     if (action) {
       // Check if handler exists AND the action belongs to this route or is global
-      const routeShortcuts = ROUTE_SHORTCUTS[route];
+      const shortcutKey = getShortcutRoute(matchedPath);
+      const routeShortcuts = ROUTE_SHORTCUTS[shortcutKey];
       const globalShortcuts = ROUTE_SHORTCUTS._global;
       const isRouteAction = routeShortcuts
         ? Object.values(routeShortcuts).some((s) => s.action === action)
