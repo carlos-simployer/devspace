@@ -33,6 +33,8 @@ src/
 │   ├── queries.ts               # PR search + detail queries
 │   ├── dependency-queries.ts    # Dependency search queries
 │   ├── mutations.ts             # PR review/comment mutations
+│   ├── azure-auth.ts            # Azure DevOps PAT auth helper
+│   ├── azure-client.ts          # Azure DevOps REST API client
 │   ├── jira-client.ts           # Jira Cloud REST API client (Basic auth, search, issue detail, myself)
 │   └── types.ts                 # All shared TypeScript interfaces
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
@@ -44,22 +46,22 @@ src/
 │   ├── route-shortcuts.test.ts  # Tests for route-based shortcut system
 │   ├── tabs.ts                  # TABS array, getTabViews, getTabNumberKeys, getBaseRoute
 │   ├── tabs.test.ts             # Tests for tab system
-│   ├── shortcut-registry.ts     # [LEGACY] Old view-based shortcut registry (still imported by bridge components)
-│   ├── shortcut-registry.test.ts # [LEGACY] Tests for old shortcut registry
-│   ├── view-config.ts           # [LEGACY] ViewId/BaseView types, VIEW_CONFIG (still used by bridge in app.tsx)
-│   ├── view-context.ts          # [LEGACY] ViewContext/useView (still used by bridge in app.tsx)
 │   ├── selectable-list-item.tsx # Blue-bg selected row component
+│   ├── selectable-list-item.test.tsx # Tests for selectable list item
 │   ├── tab-item.tsx             # Single tab label component
 │   ├── use-list-viewport.ts     # Viewport windowing hook for scrollable lists
 │   ├── overlay.tsx              # Overlay wrapper component
+│   ├── overlay.test.tsx         # Tests for overlay component
 │   ├── status-bar-layout.tsx    # Status bar wrapper
 │   └── keyboard-hint.tsx        # Dim hint text component
 ├── views/                       # View modules (each owns its state + shortcuts)
 │   ├── prs/                     # PR dashboard view
 │   │   ├── index.tsx            # PRView — owns all PR state, uses useRouter + matchShortcut
 │   │   ├── sidebar.tsx          # Pinned repos sidebar
+│   │   ├── sidebar.test.tsx     # Tests for sidebar
 │   │   ├── pr-list.tsx          # Scrollable PR list
 │   │   ├── pr-row.tsx           # Single PR row
+│   │   ├── pr-row.test.tsx      # Tests for PR row
 │   │   ├── status-bar.tsx       # Filter, count, refresh timer
 │   │   ├── repo-search.tsx      # Repo search overlay
 │   │   ├── notifications-view.tsx # GitHub notifications panel
@@ -123,8 +125,7 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (replaces useShortcuts)
-│   ├── use-shortcuts.ts         # [LEGACY] Old view-based shortcut hook (zero imports, safe to delete)
+│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (auto-scopes from current route)
 │   ├── use-local-processes.ts   # Child process management for local projects
 │   ├── use-pipelines.ts         # Azure DevOps pipeline data
 │   ├── use-pipeline-runs.ts     # Pipeline run history
@@ -143,8 +144,10 @@ src/
 │   ├── config-migration.ts      # Config v1 → v2 migration
 │   ├── reviewers.ts             # Reviewer info + hex color conversion
 │   ├── fuzzy.ts                 # Fuzzy match/score for search
-│   └── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
-├── app.tsx                      # RouterProvider + ViewContext bridge, ViewHeader, view switching
+│   ├── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
+│   ├── azure-status.ts          # Azure pipeline/release status → icon/color mapping
+│   └── query-persister.ts       # React Query file-based cache persistence
+├── app.tsx                      # RouterProvider, ViewHeader, view switching by baseRoute
 ├── index.tsx                    # Entry point: auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
@@ -162,10 +165,8 @@ The router system consists of 3 key files:
 - **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. Query helpers: `getBarShortcuts(route)`, `getHelpShortcuts(route)`, `matchShortcut(input, key, route)`.
 - **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 
-**Legacy bridge:** `app.tsx` still maintains a `ViewContext.Provider` that derives `ViewId`/`BaseView` from the router state for backward compatibility with shared components (`view-header.tsx`, `help-overlay.tsx`, `tab-bar.tsx`). These components accept an optional `route` prop and prefer the new route-based system when provided, falling back to the legacy view-based system otherwise.
-
 Each view in `src/views/` is self-contained:
-- **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, uses `useRouter()` + `matchShortcut()` directly (not yet migrated to `useRouteShortcuts`)
+- **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, uses `useRouter()` + `matchShortcut()` directly (manages its own header/TabBar instead of using the shared `ViewHeader`)
 - **DependencyTracker** (`views/dependencies/index.tsx`) — uses `useRouteShortcuts`
 - **PipelinesView** (`views/pipelines/index.tsx`) — uses `useRouteShortcuts`
 - **ReleasesView** (`views/releases/index.tsx`) — uses `useRouteShortcuts`
@@ -309,11 +310,6 @@ Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **StatusBarLayout** — consistent status bar wrapper
 - **KeyboardHint** — dim hint text for keyboard shortcuts
 
-**Legacy (still present, pending removal):**
-- **view-config.ts** — `ViewId`/`BaseView` types, `VIEW_CONFIG`. Used by the ViewContext bridge in `app.tsx` and shared components.
-- **view-context.ts** — `ViewContext`/`useView()`. Used by the bridge layer in `app.tsx`.
-- **shortcut-registry.ts** — old flat `SHORTCUTS` array. Used by legacy fallback paths in `view-header.tsx` and `help-overlay.tsx`.
-
 Import these via `from "../ui/index.ts"` or directly (e.g. `from "../ui/router.ts"`, `from "../ui/route-shortcuts.ts"`).
 
 ### Shortcut System (Route-based)
@@ -349,6 +345,8 @@ Query helpers:
 `src/utils/status.ts` maps `reviewDecision` and `statusCheckRollup.state` from the GraphQL response to icons and colors defined in `src/ui/theme.ts`.
 
 `src/utils/jira-status.ts` groups Jira issues by status name, maps status categories (`new`/`indeterminate`/`done`) to theme colors, and provides icons for issue types (bug, story, epic, task, sub-task) and priority levels.
+
+`src/utils/azure-status.ts` maps Azure DevOps pipeline build results and release environment statuses to icons and theme colors.
 
 ## Code Conventions
 

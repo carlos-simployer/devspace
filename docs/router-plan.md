@@ -6,7 +6,7 @@
 Route definitions with component, layout, and params.
 
 ### 2. `src/ui/route-shortcuts.ts` — All shortcuts grouped by route
-Replaces flat shortcut-registry.ts. Grouped by route path for easy scanning.
+All shortcuts grouped by route path for easy scanning.
 
 ### 3. `src/ui/tabs.ts` — Tab order and display
 Numbers auto-derived from position. Config always last.
