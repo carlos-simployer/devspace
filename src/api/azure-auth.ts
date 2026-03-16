@@ -1,8 +1,6 @@
 import { exec } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
 import { promisify } from "util";
+import { getToken } from "../utils/tokens.ts";
 
 const execAsync = promisify(exec);
 
@@ -28,20 +26,15 @@ export async function getAzureToken(): Promise<{
     return { token: cachedToken.token, authType: cachedToken.authType };
   }
 
-  // Check config file for PAT
-  try {
-    const configPath = join(homedir(), ".config", "devhub", "config.json");
-    const raw = JSON.parse(readFileSync(configPath, "utf-8"));
-    if (raw.azureToken) {
-      cachedToken = {
-        token: raw.azureToken,
-        authType: "basic",
-        expiresOn: Date.now() + 365 * 24 * 60 * 60_000, // PATs don't expire via this check
-      };
-      return { token: raw.azureToken, authType: "basic" };
-    }
-  } catch {
-    // no config or no token
+  // Check tokens file for PAT
+  const stored = getToken("azureToken");
+  if (stored) {
+    cachedToken = {
+      token: stored,
+      authType: "basic",
+      expiresOn: Date.now() + 365 * 24 * 60 * 60_000, // PATs don't expire via this check
+    };
+    return { token: stored, authType: "basic" };
   }
 
   // Try az CLI

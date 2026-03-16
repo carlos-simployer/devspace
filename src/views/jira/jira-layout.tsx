@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { JiraFilterMode } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
+import { getToken } from "../../utils/tokens.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
@@ -52,8 +53,8 @@ export function JiraLayout() {
     () => new Set(statusOrder),
   );
 
-  const isConfigured =
-    !!config.jiraSite && !!config.jiraEmail && !!config.jiraToken;
+  const jiraToken = getToken("jiraToken");
+  const isConfigured = !!config.jiraSite && !!config.jiraEmail && !!jiraToken;
 
   const { issues, loading, fetching, error, refetch } = useJiraIssues(
     config,

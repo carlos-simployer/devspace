@@ -22,7 +22,6 @@ export function migrateV1toV2(v1: ConfigV1): Config {
     persistCache: true,
     jiraSite: "",
     jiraEmail: "",
-    jiraToken: "",
     jiraProject: "",
     jiraStatusOrder: [
       "In Progress",
@@ -33,9 +32,6 @@ export function migrateV1toV2(v1: ConfigV1): Config {
       "Done",
     ],
     jiraAccountId: "",
-    githubToken: "",
-    azureToken: "",
-    slackToken: "",
     slackChannels: [],
   };
 }

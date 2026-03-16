@@ -1,15 +1,14 @@
 import React from "react";
 import { render } from "ink";
 import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createClient } from "./api/client.ts";
 import { App } from "./app.tsx";
 import { createPatchedStdout } from "./patched-stdout.ts";
 import { createFilePersister } from "./utils/query-persister.ts";
+import { getToken, migrateTokensFromConfig } from "./utils/tokens.ts";
+import { migrateCacheFiles } from "./utils/cache-migration.ts";
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -24,16 +23,15 @@ for (let i = 0; i < args.length; i++) {
 
 org = org || process.env.GITHUB_ORG;
 
+// Run migrations before anything reads config/tokens
+migrateTokensFromConfig();
+migrateCacheFiles();
+
 // Resolve auth token
-function getToken(): string {
-  // Check config file first
-  try {
-    const configPath = join(homedir(), ".config", "devhub", "config.json");
-    const raw = JSON.parse(readFileSync(configPath, "utf-8"));
-    if (raw.githubToken) return raw.githubToken;
-  } catch {
-    // no config or no token
-  }
+function resolveGithubToken(): string {
+  // Check tokens file first
+  const stored = getToken("githubToken");
+  if (stored) return stored;
 
   // Try gh CLI
   try {
@@ -55,7 +53,7 @@ function getToken(): string {
   return process.exit(1) as never;
 }
 
-const token = getToken();
+const token = resolveGithubToken();
 const client = createClient(token);
 
 // Enter alternate screen buffer + hide cursor

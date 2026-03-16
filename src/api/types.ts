@@ -115,13 +115,9 @@ export interface Config {
   persistCache: boolean; // persist React Query cache to disk
   jiraSite: string; // e.g. "simployer.atlassian.net"
   jiraEmail: string; // e.g. "user@company.com"
-  jiraToken: string; // Jira API token
   jiraProject: string; // e.g. "UUX"
   jiraStatusOrder: string[]; // e.g. ["In Progress", "In Review", "To Do", "Done"]
   jiraAccountId: string; // for "my issues" filter
-  githubToken: string; // GitHub PAT (fallback when gh CLI unavailable)
-  azureToken: string; // Azure DevOps PAT (fallback when az CLI unavailable)
-  slackToken: string; // Slack user token (xoxp-*) or bot token (xoxb-*)
   slackChannels: string[]; // subscribed Slack channel IDs
 }
 

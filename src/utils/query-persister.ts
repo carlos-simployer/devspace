@@ -1,22 +1,17 @@
 import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
 import type {
   PersistedClient,
   Persister,
 } from "@tanstack/react-query-persist-client";
+import { CACHE_DIR } from "../constants.ts";
+import { readConfigFile } from "./config-file.ts";
 
-const CONFIG_DIR = join(homedir(), ".config", "devhub");
-const CACHE_PATH = join(CONFIG_DIR, "query-cache.json");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+const CACHE_PATH = join(CACHE_DIR, "query-cache.json");
 
 function isCacheEnabled(): boolean {
-  try {
-    const raw = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
-    return raw.persistCache !== false;
-  } catch {
-    return true; // default enabled
-  }
+  const raw = readConfigFile();
+  return raw?.persistCache !== false;
 }
 
 /** Debounce writes to avoid thrashing disk on rapid updates */
@@ -30,7 +25,7 @@ export function createFilePersister(): Persister {
       if (writeTimer) clearTimeout(writeTimer);
       writeTimer = setTimeout(() => {
         try {
-          mkdirSync(CONFIG_DIR, { recursive: true });
+          mkdirSync(CACHE_DIR, { recursive: true });
           writeFileSync(CACHE_PATH, JSON.stringify(client));
         } catch {
           // ignore write errors

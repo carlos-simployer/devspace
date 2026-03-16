@@ -3,8 +3,8 @@ import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
 import { exec } from "child_process";
 import { join } from "path";
-import { homedir } from "os";
 import { REFRESH_PRESETS } from "../../api/types.ts";
+import { DEFAULT_CONFIG_DIR, CACHE_DIR } from "../../constants.ts";
 import {
   clearQueryCache,
   getQueryCacheSize,
@@ -17,6 +17,12 @@ import {
   THEMES,
   type ThemeName,
 } from "../../ui/theme.ts";
+import {
+  getToken,
+  setToken,
+  deleteToken,
+  type TokenKey,
+} from "../../utils/tokens.ts";
 
 function formatInterval(seconds: number): string {
   if (seconds >= 60) return `${seconds / 60}m`;
@@ -46,6 +52,20 @@ interface ConfigItem {
   color?: string;
 }
 
+// Maps editing field names to token keys
+const TOKEN_FIELDS: Record<string, TokenKey> = {
+  "github-token": "githubToken",
+  "azure-token": "azureToken",
+  "jira-token": "jiraToken",
+  "slack-token": "slackToken",
+};
+
+function tokenLabel(tokenKey: TokenKey, fallbackHint?: string): string {
+  const val = getToken(tokenKey);
+  if (val) return "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF";
+  return fallbackHint ? `[not set] (${fallbackHint})` : "[not set]";
+}
+
 export function ConfigMainView() {
   const {
     config,
@@ -57,11 +77,7 @@ export function ConfigMainView() {
     setAzureProject,
     setJiraSite,
     setJiraEmail,
-    setJiraToken,
     setJiraProject,
-    setGithubToken,
-    setAzureToken,
-    setSlackToken,
     setPersistCache,
     contentHeight: height,
     width,
@@ -75,15 +91,16 @@ export function ConfigMainView() {
   const azureProject = config.azureProject;
   const jiraSite = config.jiraSite;
   const jiraEmail = config.jiraEmail;
-  const jiraToken = config.jiraToken;
   const jiraProject = config.jiraProject;
-  const githubToken = config.githubToken;
-  const azureToken = config.azureToken;
-  const slackToken = config.slackToken;
   const persistCache = config.persistCache;
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
+  // Force re-render when tokens change (they live outside React state)
+  const [tokenVersion, setTokenVersion] = useState(0);
+  const bumpTokens = () => setTokenVersion((v) => v + 1);
+  // Suppress unused warning — tokenVersion is used implicitly via getToken calls during render
+  void tokenVersion;
 
   const startEditing = (field: string) => {
     setEditingField(field);
@@ -112,9 +129,19 @@ export function ConfigMainView() {
           },
           {
             key: "github-token",
-            label: `API Token: ${githubToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set] (using gh CLI)"}`,
+            label: `API Token: ${tokenLabel("githubToken", "using gh CLI")}`,
             type: "text" as const,
           },
+          ...(getToken("githubToken")
+            ? [
+                {
+                  key: "github-token-clear",
+                  label: "Clear token (use gh CLI)",
+                  type: "action" as const,
+                  color: theme.status.failure,
+                },
+              ]
+            : []),
         ];
       case "azure":
         return [
@@ -130,9 +157,19 @@ export function ConfigMainView() {
           },
           {
             key: "azure-token",
-            label: `PAT: ${azureToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set] (using az CLI)"}`,
+            label: `PAT: ${tokenLabel("azureToken", "using az CLI")}`,
             type: "text" as const,
           },
+          ...(getToken("azureToken")
+            ? [
+                {
+                  key: "azure-token-clear",
+                  label: "Clear PAT (use az CLI)",
+                  type: "action" as const,
+                  color: theme.status.failure,
+                },
+              ]
+            : []),
         ];
       case "jira":
         return [
@@ -148,9 +185,19 @@ export function ConfigMainView() {
           },
           {
             key: "jira-token",
-            label: `API Token: ${jiraToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set]"}`,
+            label: `API Token: ${tokenLabel("jiraToken")}`,
             type: "text" as const,
           },
+          ...(getToken("jiraToken")
+            ? [
+                {
+                  key: "jira-token-clear",
+                  label: "Clear token",
+                  type: "action" as const,
+                  color: theme.status.failure,
+                },
+              ]
+            : []),
           {
             key: "jira-project",
             label: `Project: ${jiraProject || "[not set]"}`,
@@ -161,9 +208,19 @@ export function ConfigMainView() {
         return [
           {
             key: "slack-token",
-            label: `Token: ${slackToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set]"}`,
+            label: `Token: ${tokenLabel("slackToken")}`,
             type: "text" as const,
           },
+          ...(getToken("slackToken")
+            ? [
+                {
+                  key: "slack-token-clear",
+                  label: "Clear token",
+                  type: "action" as const,
+                  color: theme.status.failure,
+                },
+              ]
+            : []),
         ];
       case "system": {
         const cacheSize = getQueryCacheSize();
@@ -214,6 +271,17 @@ export function ConfigMainView() {
             type: "action" as const,
             color: theme.status.failure,
           },
+          // Storage paths (read-only)
+          {
+            key: "config-dir",
+            label: `Config: ${DEFAULT_CONFIG_DIR}`,
+            type: "text" as const,
+          },
+          {
+            key: "cache-dir",
+            label: `Cache: ${CACHE_DIR}`,
+            type: "text" as const,
+          },
         ];
       }
     }
@@ -247,6 +315,17 @@ export function ConfigMainView() {
       const item = items[selectedIndex];
       if (!item) return;
 
+      // Token clear actions
+      if (item.key.endsWith("-token-clear")) {
+        const tokenField = item.key.replace("-clear", "");
+        const tokenKey = TOKEN_FIELDS[tokenField];
+        if (tokenKey) {
+          deleteToken(tokenKey);
+          bumpTokens();
+        }
+        return;
+      }
+
       if (section === "github") {
         if (item.key === "add-org") startEditing("add-org");
         if (item.key === "github-token") startEditing("github-token");
@@ -271,7 +350,7 @@ export function ConfigMainView() {
       }
     },
     editConfig: () => {
-      const configPath = join(homedir(), ".config", "devhub", "config.json");
+      const configPath = join(DEFAULT_CONFIG_DIR, "config.json");
       try {
         exec(`code "${configPath}"`);
       } catch {
@@ -335,7 +414,7 @@ export function ConfigMainView() {
           {section === "slack" &&
             "Slack API token for reading and writing messages."}
           {section === "system" &&
-            "App settings: refresh interval, theme, cache."}
+            "App settings: refresh interval, theme, cache, storage."}
         </Text>
         <Box height={1} />
 
@@ -356,6 +435,7 @@ export function ConfigMainView() {
             const showThemeHeader =
               isTheme && !prevItem?.key.startsWith("theme-");
             const showCacheHeader = item.key === "cache-toggle";
+            const showStorageHeader = item.key === "config-dir";
 
             return (
               <React.Fragment key={item.key}>
@@ -377,6 +457,14 @@ export function ConfigMainView() {
                     <Box height={1} />
                     <Text bold color={theme.ui.heading}>
                       Cache
+                    </Text>
+                  </>
+                )}
+                {showStorageHeader && (
+                  <>
+                    <Box height={1} />
+                    <Text bold color={theme.ui.heading}>
+                      Storage
                     </Text>
                   </>
                 )}
@@ -550,16 +638,24 @@ export function ConfigMainView() {
                 onSubmit={(val) => {
                   const v = val.trim();
                   if (v) {
-                    if (editingField === "add-org") addOrg(v);
-                    if (editingField === "github-token") setGithubToken(v);
-                    if (editingField === "azure-org") setAzureOrg(v);
-                    if (editingField === "azure-project") setAzureProject(v);
-                    if (editingField === "azure-token") setAzureToken(v);
-                    if (editingField === "jira-site") setJiraSite(v);
-                    if (editingField === "jira-email") setJiraEmail(v);
-                    if (editingField === "jira-token") setJiraToken(v);
-                    if (editingField === "jira-project") setJiraProject(v);
-                    if (editingField === "slack-token") setSlackToken(v);
+                    // Token fields go to tokens.json
+                    const tokenKey = TOKEN_FIELDS[editingField!];
+                    if (tokenKey) {
+                      setToken(tokenKey, v);
+                      bumpTokens();
+                    } else if (editingField === "add-org") {
+                      addOrg(v);
+                    } else if (editingField === "azure-org") {
+                      setAzureOrg(v);
+                    } else if (editingField === "azure-project") {
+                      setAzureProject(v);
+                    } else if (editingField === "jira-site") {
+                      setJiraSite(v);
+                    } else if (editingField === "jira-email") {
+                      setJiraEmail(v);
+                    } else if (editingField === "jira-project") {
+                      setJiraProject(v);
+                    }
                   }
                   stopEditing();
                 }}

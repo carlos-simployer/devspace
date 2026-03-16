@@ -8,6 +8,7 @@ import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useSlackContext } from "./slack-context.ts";
 import type { SlackChannel } from "../../api/types.ts";
+import { getToken } from "../../utils/tokens.ts";
 
 export function SlackChannelSearch() {
   const { height, width, config } = useAppContext();
@@ -21,13 +22,14 @@ export function SlackChannelSearch() {
   const [loading, setLoading] = useState(true);
 
   // Fetch all channels on mount
+  const slackToken = getToken("slackToken");
   useEffect(() => {
-    if (!config.slackToken) return;
+    if (!slackToken) return;
     let cancelled = false;
     (async () => {
       try {
         const resp = await listSlackConversations(
-          config.slackToken,
+          slackToken,
           "public_channel,private_channel",
         );
         if (!cancelled) {
@@ -41,7 +43,7 @@ export function SlackChannelSearch() {
     return () => {
       cancelled = true;
     };
-  }, [config.slackToken]);
+  }, [slackToken]);
 
   const subscribedIds = new Set(config.slackChannels);
 

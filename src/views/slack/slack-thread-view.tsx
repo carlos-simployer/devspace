@@ -14,9 +14,10 @@ import {
 } from "../../utils/slack-format.ts";
 import { getTheme } from "../../ui/theme.ts";
 import { useSlackContext } from "./slack-context.ts";
+import { getToken } from "../../utils/tokens.ts";
 
 export function SlackThreadView() {
-  const { onQuit, width, config } = useAppContext();
+  const { onQuit, width } = useAppContext();
   const { navigate } = useRouter();
   const ctx = useSlackContext();
   const {
@@ -33,7 +34,7 @@ export function SlackThreadView() {
 
   const threadTs = selectedMessage?.thread_ts ?? selectedMessage?.ts ?? null;
   const { replies, loading, fetching } = useSlackThread(
-    config.slackToken,
+    getToken("slackToken"),
     selectedChannel?.id ?? null,
     threadTs,
   );

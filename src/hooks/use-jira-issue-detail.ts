@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Config } from "../api/types.ts";
 import { getJiraIssue } from "../api/jira-client.ts";
+import { getToken } from "../utils/tokens.ts";
 
 export function useJiraIssueDetail(config: Config, issueKey: string | null) {
-  const { jiraSite, jiraEmail, jiraToken } = config;
+  const { jiraSite, jiraEmail } = config;
+  const jiraToken = getToken("jiraToken");
   const enabled = issueKey !== null && !!jiraSite && !!jiraEmail && !!jiraToken;
 
   const {

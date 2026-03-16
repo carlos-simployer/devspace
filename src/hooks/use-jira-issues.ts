@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Config, JiraFilterMode, JiraIssue } from "../api/types.ts";
 import { searchJiraIssues } from "../api/jira-client.ts";
+import { getToken } from "../utils/tokens.ts";
 
 function buildAssigneeClause(accountIds: Set<string>): string {
   if (accountIds.size === 1) {
@@ -56,7 +57,8 @@ export function useJiraIssues(
   filterMode: JiraFilterMode,
   filterAccountIds?: Set<string>,
 ) {
-  const { jiraSite, jiraEmail, jiraToken, jiraProject } = config;
+  const { jiraSite, jiraEmail, jiraProject } = config;
+  const jiraToken = getToken("jiraToken");
   const enabled = !!jiraSite && !!jiraEmail && !!jiraToken && !!jiraProject;
 
   // Stable key for the Set

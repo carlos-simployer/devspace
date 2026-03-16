@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { Overlay } from "../ui/overlay.tsx";
 import { getTheme } from "../ui/theme.ts";
+import { APP_NAME } from "../constants.ts";
 
 interface Props {
   hasRunningProcesses: boolean;
@@ -37,7 +38,11 @@ export function QuitConfirm({
   });
 
   return (
-    <Overlay title="Quit devhub?" titleColor={theme.input.warning} width={45}>
+    <Overlay
+      title={`Quit ${APP_NAME}?`}
+      titleColor={theme.input.warning}
+      width={45}
+    >
       {hasRunningProcesses && (
         <Text color={theme.input.warning}>
           Running processes in Projects will be terminated.

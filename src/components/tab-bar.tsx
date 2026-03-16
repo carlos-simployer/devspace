@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { getTabViews } from "../ui/tabs.ts";
 import { TabItem } from "../ui/tab-item.tsx";
+import { APP_NAME } from "../constants.ts";
 
 const TABS = getTabViews();
 
@@ -13,7 +14,7 @@ export function TabBar({ activeView }: Props) {
   return (
     <Box>
       <Text bold color="cyan">
-        devhub{" "}
+        {APP_NAME}{" "}
       </Text>
       {TABS.map((tab) => (
         <TabItem

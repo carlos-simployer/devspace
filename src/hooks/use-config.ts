@@ -15,12 +15,13 @@ import {
   pruneLastViewed,
 } from "../utils/config-migration.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
+import { DEFAULT_CONFIG_DIR } from "../constants.ts";
 
 const LEGACY_CONFIG_DIRS = [
   join(homedir(), ".config", "github-pr-dash"),
   join(homedir(), ".config", "devspace"),
 ];
-const CONFIG_DIR = join(homedir(), ".config", "devhub");
+const CONFIG_DIR = DEFAULT_CONFIG_DIR;
 
 // Auto-migrate from old config directories
 for (const oldDir of LEGACY_CONFIG_DIRS) {
@@ -80,7 +81,6 @@ export function useConfig(orgArg?: string) {
         persistCache: true,
         jiraSite: "",
         jiraEmail: "",
-        jiraToken: "",
         jiraProject: "",
         jiraStatusOrder: [
           "In Progress",
@@ -91,9 +91,6 @@ export function useConfig(orgArg?: string) {
           "Done",
         ],
         jiraAccountId: "",
-        githubToken: "",
-        azureToken: "",
-        slackToken: "",
         slackChannels: [],
       };
     }
@@ -134,7 +131,6 @@ export function useConfig(orgArg?: string) {
       persistCache: raw.persistCache !== false, // default true
       jiraSite: raw.jiraSite || "",
       jiraEmail: raw.jiraEmail || "",
-      jiraToken: raw.jiraToken || "",
       jiraProject: raw.jiraProject || "",
       jiraStatusOrder: raw.jiraStatusOrder || [
         "In Progress",
@@ -145,9 +141,6 @@ export function useConfig(orgArg?: string) {
         "Done",
       ],
       jiraAccountId: raw.jiraAccountId || "",
-      githubToken: raw.githubToken || "",
-      azureToken: raw.azureToken || "",
-      slackToken: raw.slackToken || "",
       slackChannels: raw.slackChannels || [],
     };
 
@@ -393,13 +386,6 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
-  const setJiraToken = useCallback(
-    (jiraToken: string) => {
-      setConfig((prev) => ({ ...prev, jiraToken }));
-    },
-    [setConfig],
-  );
-
   const setJiraProject = useCallback(
     (jiraProject: string) => {
       setConfig((prev) => ({ ...prev, jiraProject }));
@@ -410,27 +396,6 @@ export function useConfig(orgArg?: string) {
   const setJiraAccountId = useCallback(
     (jiraAccountId: string) => {
       setConfig((prev) => ({ ...prev, jiraAccountId }));
-    },
-    [setConfig],
-  );
-
-  const setGithubToken = useCallback(
-    (githubToken: string) => {
-      setConfig((prev) => ({ ...prev, githubToken }));
-    },
-    [setConfig],
-  );
-
-  const setAzureToken = useCallback(
-    (azureToken: string) => {
-      setConfig((prev) => ({ ...prev, azureToken }));
-    },
-    [setConfig],
-  );
-
-  const setSlackToken = useCallback(
-    (slackToken: string) => {
-      setConfig((prev) => ({ ...prev, slackToken }));
     },
     [setConfig],
   );
@@ -492,12 +457,8 @@ export function useConfig(orgArg?: string) {
     setPersistCache,
     setJiraSite,
     setJiraEmail,
-    setJiraToken,
     setJiraProject,
     setJiraAccountId,
-    setGithubToken,
-    setAzureToken,
-    setSlackToken,
     addSlackChannel,
     removeSlackChannel,
     isFirstLaunch,

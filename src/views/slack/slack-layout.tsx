@@ -21,6 +21,7 @@ import {
   type SlackContextValue,
   type SlackInputMode,
 } from "./slack-context.ts";
+import { getToken } from "../../utils/tokens.ts";
 
 export function SlackLayout() {
   const {
@@ -33,7 +34,7 @@ export function SlackLayout() {
   } = useAppContext();
   const { route } = useRouter();
   const outlet = useOutlet();
-  const token = config.slackToken;
+  const token = getToken("slackToken");
 
   // Must be called unconditionally (React rules of hooks) — enables
   // tab switching, number keys, quit, and help even on "not configured" screen.

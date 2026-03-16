@@ -1,14 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
-import { homedir } from "os";
 import type { TrackedPackage, DependencyResult } from "../api/types.ts";
 import { searchPackageUsage } from "../api/dependency-queries.ts";
+import { CACHE_DIR } from "../constants.ts";
 
 const CACHE_MAX_AGE = 60 * 60_000; // 1 hour — skip fetch if cached within this
 
-const CONFIG_DIR = join(homedir(), ".config", "devhub");
-const CACHE_PATH = join(CONFIG_DIR, "dep-cache.json");
+const CACHE_PATH = join(CACHE_DIR, "dep-cache.json");
 
 interface CacheEntry {
   results: DependencyResult[];
@@ -27,7 +26,7 @@ function readCache(): CacheData {
 
 function writeCache(data: CacheData) {
   try {
-    mkdirSync(CONFIG_DIR, { recursive: true });
+    mkdirSync(CACHE_DIR, { recursive: true });
     writeFileSync(CACHE_PATH, JSON.stringify(data));
   } catch {
     // Best-effort

@@ -38,11 +38,7 @@ export interface AppContextValue {
   setPersistCache: (enabled: boolean) => void;
   setJiraSite: (site: string) => void;
   setJiraEmail: (email: string) => void;
-  setJiraToken: (token: string) => void;
   setJiraProject: (project: string) => void;
-  setGithubToken: (token: string) => void;
-  setAzureToken: (token: string) => void;
-  setSlackToken: (token: string) => void;
   addSlackChannel: (channelId: string) => void;
   removeSlackChannel: (channelId: string) => void;
   isFirstLaunch: boolean;
