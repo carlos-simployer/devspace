@@ -35,6 +35,8 @@ export function migrateV1toV2(v1: ConfigV1): Config {
     jiraAccountId: "",
     githubToken: "",
     azureToken: "",
+    slackToken: "",
+    slackChannels: [],
   };
 }
 

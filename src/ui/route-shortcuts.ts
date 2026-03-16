@@ -141,6 +141,22 @@ const ROUTE_BAR: Record<string, string[]> = {
   "jira/sort": [],
   "jira/memberSelect": [],
 
+  slack: [
+    "compose",
+    "thread",
+    "react",
+    "open",
+    "add",
+    "status",
+    "refresh",
+    "help",
+  ],
+  "slack/thread": ["close", "reply", "react", "open"],
+  "slack/help": [],
+  "slack/search": [],
+  "slack/emoji": [],
+  "slack/status": [],
+
   config: ["add", "remove", "select", "editConfig", "help"],
 };
 
@@ -579,6 +595,109 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
     escape: { action: "close", key: "escape", help: "Cancel" },
     return: { action: "select", key: "return", help: "Apply" },
     " ": { action: "toggle", key: " ", help: "Toggle member" },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
+  },
+
+  // ── Slack ─────────────────────────────────────────────────────────────
+  slack: {
+    n: {
+      action: "compose",
+      key: "n",
+      label: "Compose",
+      help: "Compose new message",
+    },
+    r: {
+      action: "thread",
+      key: "r",
+      label: "Thread",
+      help: "Open thread / reply",
+    },
+    e: {
+      action: "react",
+      key: "e",
+      label: "React",
+      help: "Add emoji reaction",
+    },
+    d: { action: "delete", key: "d", help: "Delete own message" },
+    o: {
+      action: "open",
+      key: "o",
+      label: "Open",
+      help: "Open in Slack app",
+    },
+    "+": {
+      action: "add",
+      key: "+",
+      label: "Add",
+      help: "Add channel",
+    },
+    x: { action: "remove", key: "x", help: "Remove channel" },
+    s: {
+      action: "status",
+      key: "s",
+      label: "Status",
+      help: "Set status",
+    },
+    p: { action: "presence", key: "p", help: "Toggle presence" },
+    R: {
+      action: "refresh",
+      key: "R",
+      label: "Refresh",
+      help: "Force refresh",
+    },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
+    left: { action: "left", key: "left", help: "Focus sidebar" },
+    right: { action: "right", key: "right", help: "Focus list" },
+    return: { action: "select", key: "return", help: "Select / reply" },
+    escape: { action: "escape", key: "escape", help: "Cancel" },
+  },
+
+  // ── Slack Thread ────────────────────────────────────────────────────
+  "slack/thread": {
+    escape: {
+      action: "close",
+      key: "escape",
+      label: "Close",
+      help: "Back to channel",
+    },
+    n: {
+      action: "reply",
+      key: "n",
+      label: "Reply",
+      help: "Reply in thread",
+    },
+    e: {
+      action: "react",
+      key: "e",
+      label: "React",
+      help: "Add reaction",
+    },
+    o: {
+      action: "open",
+      key: "o",
+      label: "Open",
+      help: "Open in Slack app",
+    },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
+  },
+
+  // ── Slack Emoji Picker ──────────────────────────────────────────────
+  "slack/emoji": {
+    escape: { action: "close", key: "escape", help: "Cancel" },
+    return: { action: "select", key: "return", help: "Apply reaction" },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
+    left: { action: "left", key: "left", help: "Navigate left" },
+    right: { action: "right", key: "right", help: "Navigate right" },
+  },
+
+  // ── Slack Status ────────────────────────────────────────────────────
+  "slack/status": {
+    escape: { action: "close", key: "escape", help: "Cancel" },
+    return: { action: "select", key: "return", help: "Apply status" },
     up: { action: "up", key: "up", help: "Navigate up" },
     down: { action: "down", key: "down", help: "Navigate down" },
   },

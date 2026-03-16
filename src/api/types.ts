@@ -121,6 +121,8 @@ export interface Config {
   jiraAccountId: string; // for "my issues" filter
   githubToken: string; // GitHub PAT (fallback when gh CLI unavailable)
   azureToken: string; // Azure DevOps PAT (fallback when az CLI unavailable)
+  slackToken: string; // Slack user token (xoxp-*) or bot token (xoxb-*)
+  slackChannels: string[]; // subscribed Slack channel IDs
 }
 
 // --- Azure DevOps types ---
@@ -209,7 +211,8 @@ export type AppView =
   | "pipelines"
   | "releases"
   | "projects"
-  | "jira";
+  | "jira"
+  | "slack";
 
 export interface LocalProject {
   name: string;
@@ -288,6 +291,96 @@ export interface JiraIssue {
 }
 
 export type JiraFilterMode = "mine" | "team" | "person";
+
+// --- Slack types ---
+
+export interface SlackReaction {
+  name: string;
+  count: number;
+  users: string[];
+}
+
+export interface SlackMessage {
+  ts: string;
+  user: string;
+  text: string;
+  thread_ts?: string;
+  reply_count?: number;
+  reactions?: SlackReaction[];
+  edited?: { user: string; ts: string };
+  subtype?: string;
+}
+
+export interface SlackChannel {
+  id: string;
+  name: string;
+  is_im: boolean;
+  is_mpim: boolean;
+  is_private: boolean;
+  is_archived: boolean;
+  unread_count?: number;
+  last_read?: string;
+  latest?: SlackMessage;
+  user?: string; // for DMs — the other user's ID
+}
+
+export interface SlackUser {
+  id: string;
+  name: string;
+  real_name: string;
+  display_name: string;
+  profile: {
+    status_text: string;
+    status_emoji: string;
+    image_24?: string;
+    image_48?: string;
+  };
+  is_bot: boolean;
+  deleted: boolean;
+}
+
+export interface SlackPresence {
+  presence: "active" | "away";
+  online: boolean;
+}
+
+export interface SlackHistoryResponse {
+  ok: boolean;
+  messages: SlackMessage[];
+  has_more: boolean;
+  response_metadata?: { next_cursor: string };
+  error?: string;
+}
+
+export interface SlackRepliesResponse {
+  ok: boolean;
+  messages: SlackMessage[];
+  has_more: boolean;
+  error?: string;
+}
+
+export interface SlackConversationListResponse {
+  ok: boolean;
+  channels: SlackChannel[];
+  response_metadata?: { next_cursor: string };
+  error?: string;
+}
+
+export interface SlackPostMessageResponse {
+  ok: boolean;
+  ts: string;
+  channel: string;
+  error?: string;
+}
+
+export interface SlackAuthInfo {
+  ok: boolean;
+  user_id: string;
+  team_id: string;
+  team: string;
+  user: string;
+  error?: string;
+}
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
 

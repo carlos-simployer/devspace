@@ -10,6 +10,7 @@ export const TABS: TabDef[] = [
   { route: "pipelines", label: "Pipelines" },
   { route: "releases", label: "Releases" },
   { route: "dependencies", label: "Deps" },
+  { route: "slack", label: "Slack" },
   { route: "config", label: "Config" },
 ];
 

@@ -25,13 +25,14 @@ function formatInterval(seconds: number): string {
 
 // -- Section definitions --
 
-type Section = "github" | "azure" | "jira" | "system";
-const SECTIONS: Section[] = ["github", "azure", "jira", "system"];
+type Section = "github" | "azure" | "jira" | "slack" | "system";
+const SECTIONS: Section[] = ["github", "azure", "jira", "slack", "system"];
 
 const SECTION_LABELS: Record<Section, string> = {
   github: "GitHub",
   azure: "Azure DevOps",
   jira: "Jira",
+  slack: "Slack",
   system: "System",
 };
 
@@ -60,6 +61,7 @@ export function ConfigMainView() {
     setJiraProject,
     setGithubToken,
     setAzureToken,
+    setSlackToken,
     setPersistCache,
     contentHeight: height,
     width,
@@ -77,6 +79,7 @@ export function ConfigMainView() {
   const jiraProject = config.jiraProject;
   const githubToken = config.githubToken;
   const azureToken = config.azureToken;
+  const slackToken = config.slackToken;
   const persistCache = config.persistCache;
   const [section, setSection] = useState<Section>("github");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -151,6 +154,14 @@ export function ConfigMainView() {
           {
             key: "jira-project",
             label: `Project: ${jiraProject || "[not set]"}`,
+            type: "text" as const,
+          },
+        ];
+      case "slack":
+        return [
+          {
+            key: "slack-token",
+            label: `Token: ${slackToken ? "\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF\u25CF" : "[not set]"}`,
             type: "text" as const,
           },
         ];
@@ -243,6 +254,8 @@ export function ConfigMainView() {
         startEditing(item.key);
       } else if (section === "jira") {
         startEditing(item.key);
+      } else if (section === "slack") {
+        startEditing(item.key);
       } else if (section === "system") {
         if (item.key.startsWith("refresh-")) {
           const val = parseInt(item.key.split("-")[1]!, 10);
@@ -319,6 +332,8 @@ export function ConfigMainView() {
           {section === "azure" &&
             "Azure DevOps settings for Pipelines and Releases."}
           {section === "jira" && "Jira Cloud connection settings."}
+          {section === "slack" &&
+            "Slack API token for reading and writing messages."}
           {section === "system" &&
             "App settings: refresh interval, theme, cache."}
         </Text>
@@ -493,6 +508,7 @@ export function ConfigMainView() {
               {editingField === "jira-email" && "Jira Email"}
               {editingField === "jira-token" && "Jira API Token"}
               {editingField === "jira-project" && "Jira Project Key"}
+              {editingField === "slack-token" && "Slack Token"}
             </Text>
             <Box>
               <Text>
@@ -505,6 +521,7 @@ export function ConfigMainView() {
                 {editingField === "jira-email" && "Email: "}
                 {editingField === "jira-token" && "Token: "}
                 {editingField === "jira-project" && "Project: "}
+                {editingField === "slack-token" && "Token: "}
               </Text>
               <TextInput
                 placeholder={
@@ -526,7 +543,9 @@ export function ConfigMainView() {
                                   ? "paste API token..."
                                   : editingField === "jira-project"
                                     ? jiraProject || "e.g. UUX"
-                                    : ""
+                                    : editingField === "slack-token"
+                                      ? "paste xoxp-... or xoxb-... token"
+                                      : ""
                 }
                 onSubmit={(val) => {
                   const v = val.trim();
@@ -540,6 +559,7 @@ export function ConfigMainView() {
                     if (editingField === "jira-email") setJiraEmail(v);
                     if (editingField === "jira-token") setJiraToken(v);
                     if (editingField === "jira-project") setJiraProject(v);
+                    if (editingField === "slack-token") setSlackToken(v);
                   }
                   stopEditing();
                 }}

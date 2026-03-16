@@ -81,13 +81,14 @@ describe("getTabLabel", () => {
     expect(getTabLabel("pipelines")).toBe("4 Pipelines");
     expect(getTabLabel("releases")).toBe("5 Releases");
     expect(getTabLabel("dependencies")).toBe("6 Deps");
-    expect(getTabLabel("config")).toBe("7 Config");
+    expect(getTabLabel("slack")).toBe("7 Slack");
+    expect(getTabLabel("config")).toBe("8 Config");
   });
 
   it("should extract base route from nested paths and return label", () => {
     expect(getTabLabel("prs/detail")).toBe("1 PRs");
     expect(getTabLabel("jira/detail/UUX-1629")).toBe("2 Jira");
-    expect(getTabLabel("config/addOrg")).toBe("7 Config");
+    expect(getTabLabel("config/addOrg")).toBe("8 Config");
   });
 
   it("should return undefined for unknown routes", () => {
@@ -109,6 +110,7 @@ describe("getTabViews", () => {
     expect(routes).toContain("releases");
     expect(routes).toContain("projects");
     expect(routes).toContain("jira");
+    expect(routes).toContain("slack");
     expect(routes).toContain("config");
   });
 
@@ -126,8 +128,10 @@ describe("getTabViews", () => {
     expect(projectsTab?.label).toBe("3 Projects");
     const jiraTab = tabs.find((t) => t.route === "jira");
     expect(jiraTab?.label).toBe("2 Jira");
+    const slackTab = tabs.find((t) => t.route === "slack");
+    expect(slackTab?.label).toBe("7 Slack");
     const configTab = tabs.find((t) => t.route === "config");
-    expect(configTab?.label).toBe("7 Config");
+    expect(configTab?.label).toBe("8 Config");
   });
 
   it("should return objects with route and label properties", () => {
@@ -167,7 +171,8 @@ describe("getTabNumberKeys", () => {
     expect(map["4"]).toBe("pipelines");
     expect(map["5"]).toBe("releases");
     expect(map["6"]).toBe("dependencies");
-    expect(map["7"]).toBe("config");
+    expect(map["7"]).toBe("slack");
+    expect(map["8"]).toBe("config");
   });
 
   it("should have single-digit string keys", () => {

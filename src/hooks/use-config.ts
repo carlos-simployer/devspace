@@ -87,6 +87,8 @@ export function useConfig(orgArg?: string) {
         jiraAccountId: "",
         githubToken: "",
         azureToken: "",
+        slackToken: "",
+        slackChannels: [],
       };
     }
 
@@ -139,6 +141,8 @@ export function useConfig(orgArg?: string) {
       jiraAccountId: raw.jiraAccountId || "",
       githubToken: raw.githubToken || "",
       azureToken: raw.azureToken || "",
+      slackToken: raw.slackToken || "",
+      slackChannels: raw.slackChannels || [],
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -418,6 +422,36 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setSlackToken = useCallback(
+    (slackToken: string) => {
+      setConfig((prev) => ({ ...prev, slackToken }));
+    },
+    [setConfig],
+  );
+
+  const addSlackChannel = useCallback(
+    (channelId: string) => {
+      setConfig((prev) => {
+        if (prev.slackChannels.includes(channelId)) return prev;
+        return {
+          ...prev,
+          slackChannels: [...prev.slackChannels, channelId],
+        };
+      });
+    },
+    [setConfig],
+  );
+
+  const removeSlackChannel = useCallback(
+    (channelId: string) => {
+      setConfig((prev) => ({
+        ...prev,
+        slackChannels: prev.slackChannels.filter((c) => c !== channelId),
+      }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -457,6 +491,9 @@ export function useConfig(orgArg?: string) {
     setJiraAccountId,
     setGithubToken,
     setAzureToken,
+    setSlackToken,
+    addSlackChannel,
+    removeSlackChannel,
     isFirstLaunch,
   };
 }

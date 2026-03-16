@@ -42,6 +42,9 @@ export interface AppContextValue {
   setJiraProject: (project: string) => void;
   setGithubToken: (token: string) => void;
   setAzureToken: (token: string) => void;
+  setSlackToken: (token: string) => void;
+  addSlackChannel: (channelId: string) => void;
+  removeSlackChannel: (channelId: string) => void;
   isFirstLaunch: boolean;
 
   // GitHub data

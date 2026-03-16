@@ -31,6 +31,13 @@ import { SortOverlay } from "./views/jira/sort-overlay.tsx";
 import { StatusFilter } from "./views/jira/status-filter.tsx";
 import { MemberSelect } from "./views/jira/member-select.tsx";
 import { JiraHelpView } from "./views/jira/jira-help-view.tsx";
+import { SlackLayout } from "./views/slack/slack-layout.tsx";
+import { SlackListView } from "./views/slack/slack-list-view.tsx";
+import { SlackThreadView } from "./views/slack/slack-thread-view.tsx";
+import { SlackChannelSearch } from "./views/slack/slack-channel-search.tsx";
+import { SlackEmojiPicker } from "./views/slack/slack-emoji-picker.tsx";
+import { SlackStatusView } from "./views/slack/slack-status-view.tsx";
+import { SlackHelpView } from "./views/slack/slack-help-view.tsx";
 
 export const routes = defineRoutes({
   // PRs — nested routes via Outlet system
@@ -96,6 +103,19 @@ export const routes = defineRoutes({
       statusFilter: { component: StatusFilter, layout: "overlay" },
       memberSelect: { component: MemberSelect, layout: "overlay" },
       help: { component: JiraHelpView, layout: "overlay" },
+    },
+  },
+
+  // Slack — nested routes via Outlet system
+  slack: {
+    component: SlackLayout,
+    children: {
+      "": { component: SlackListView },
+      thread: { component: SlackThreadView },
+      search: { component: SlackChannelSearch, layout: "overlay" },
+      emoji: { component: SlackEmojiPicker, layout: "overlay" },
+      status: { component: SlackStatusView, layout: "overlay" },
+      help: { component: SlackHelpView, layout: "overlay" },
     },
   },
 
