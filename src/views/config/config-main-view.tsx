@@ -25,6 +25,22 @@ import {
 } from "../../utils/tokens.ts";
 import { getAllTabs, getTabs } from "../../ui/tabs.ts";
 import { openInBrowser } from "../../utils/browser.ts";
+import { readFileSync, unlinkSync } from "fs";
+
+function formatSize(bytes: number): string {
+  if (bytes > 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes > 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes > 0) return `${bytes} B`;
+  return "empty";
+}
+
+function getFileSize(path: string): number {
+  try {
+    return readFileSync(path).length;
+  } catch {
+    return 0;
+  }
+}
 
 function formatInterval(seconds: number): string {
   if (seconds >= 60) return `${seconds / 60}m`;
@@ -226,15 +242,10 @@ export function ConfigMainView() {
             : []),
         ];
       case "system": {
-        const cacheSize = getQueryCacheSize();
-        const cacheSizeStr =
-          cacheSize > 1024 * 1024
-            ? `${(cacheSize / 1024 / 1024).toFixed(1)} MB`
-            : cacheSize > 1024
-              ? `${(cacheSize / 1024).toFixed(0)} KB`
-              : cacheSize > 0
-                ? `${cacheSize} B`
-                : "empty";
+        const queryCacheStr = formatSize(getQueryCacheSize());
+        const depCacheStr = formatSize(
+          getFileSize(join(CACHE_DIR, "dep-cache.json")),
+        );
         return [
           // Refresh interval presets
           ...REFRESH_PRESETS.map((s) => ({
@@ -265,12 +276,18 @@ export function ConfigMainView() {
           // Cache
           {
             key: "cache-toggle",
-            label: `Cache: ${persistCache ? "Enabled" : "Disabled"}`,
+            label: `Persist cache: ${persistCache ? "Enabled" : "Disabled"}`,
             type: "action" as const,
           },
           {
             key: "cache-clear",
-            label: `Clear cache (${cacheSizeStr})`,
+            label: `Clear query cache (${queryCacheStr})`,
+            type: "action" as const,
+            color: theme.status.failure,
+          },
+          {
+            key: "dep-cache-clear",
+            label: `Clear dependency cache (${depCacheStr})`,
             type: "action" as const,
             color: theme.status.failure,
           },
@@ -290,16 +307,16 @@ export function ConfigMainView() {
             type: "action" as const,
             color: theme.status.pending,
           },
-          // Storage paths (read-only)
+          // Storage paths — press o to open in Finder
           {
             key: "config-dir",
             label: `Config: ${DEFAULT_CONFIG_DIR}`,
-            type: "text" as const,
+            type: "action" as const,
           },
           {
             key: "cache-dir",
             label: `Cache: ${CACHE_DIR}`,
-            type: "text" as const,
+            type: "action" as const,
           },
         ];
       }
@@ -365,6 +382,16 @@ export function ConfigMainView() {
           setPersistCache(!persistCache);
         } else if (item.key === "cache-clear") {
           clearQueryCache();
+        } else if (item.key === "dep-cache-clear") {
+          try {
+            unlinkSync(join(CACHE_DIR, "dep-cache.json"));
+          } catch {
+            // ignore
+          }
+        } else if (item.key === "config-dir") {
+          openInBrowser(DEFAULT_CONFIG_DIR);
+        } else if (item.key === "cache-dir") {
+          openInBrowser(CACHE_DIR);
         } else if (item.key.startsWith("view-")) {
           // Toggle view enabled/disabled
           const route = item.key.replace("view-", "");
@@ -515,9 +542,12 @@ export function ConfigMainView() {
                 {showStorageHeader && (
                   <>
                     <Box height={1} />
-                    <Text bold color={theme.ui.heading}>
-                      Storage
-                    </Text>
+                    <Box>
+                      <Text bold color={theme.ui.heading}>
+                        Storage
+                      </Text>
+                      <Text dimColor> (o: open in Finder)</Text>
+                    </Box>
                   </>
                 )}
                 <Box>
