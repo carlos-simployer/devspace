@@ -13,7 +13,7 @@ export function TabBar({ activeView }: Props) {
   return (
     <Box>
       <Text bold color="cyan">
-        devspace{" "}
+        devhub{" "}
       </Text>
       {TABS.map((tab) => (
         <TabItem

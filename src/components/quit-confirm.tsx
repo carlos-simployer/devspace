@@ -37,7 +37,7 @@ export function QuitConfirm({
   });
 
   return (
-    <Overlay title="Quit devspace?" titleColor={theme.input.warning} width={45}>
+    <Overlay title="Quit devhub?" titleColor={theme.input.warning} width={45}>
       {hasRunningProcesses && (
         <Text color={theme.input.warning}>
           Running processes in Projects will be terminated.

@@ -20,7 +20,7 @@ New Tab 8 showing system information useful for developers. Scrollable, read-onl
 - VPN status (detect `utun`/`tun`/`ppp`/`tap` interfaces with assigned IPs)
 
 ### Runtime
-- devspace version (from package.json)
+- devhub version (from package.json)
 - Node.js version (`process.version`)
 - npm version (`execSync("npm --version")`)
 - Terminal size + program + color support
@@ -67,7 +67,7 @@ New Tab 8 showing system information useful for developers. Scrollable, read-onl
 ## Mockup
 
 ```
-devspace  1 PRs  2 Deps  3 Pipelines  4 Releases  5 Projects  6 Jira  7 System  8 Config
+devhub  1 PRs  2 Deps  3 Pipelines  4 Releases  5 Projects  6 Jira  7 System  8 Config
 
   Machine
   OS:       macOS 15.2 (Darwin 24.6.0) arm64
@@ -82,7 +82,7 @@ devspace  1 PRs  2 Deps  3 Pipelines  4 Releases  5 Projects  6 Jira  7 System  
   VPN:      ✓ Connected (utun3 → 10.8.0.5)
 
   Runtime
-  devspace: 1.0.0 | Node: 20.20.0 | npm: 10.8.2
+  devhub: 1.0.0 | Node: 20.20.0 | npm: 10.8.2
   Terminal: 180 × 45 (iTerm2, truecolor)
   Uptime:   2h 15m | Memory: 52 MB
 

@@ -1,4 +1,4 @@
-# devspace
+# devhub
 
 A full-screen terminal dashboard for developer workflows — GitHub PRs, Jira issues, Azure DevOps pipelines, local projects, and more. Built with React and [Ink](https://github.com/vadimdemedes/ink).
 
@@ -98,7 +98,7 @@ On first launch, the app opens the config view to add your organization. After t
 
 ## Configuration
 
-Config is stored at `~/.config/devspace/config.json` (created automatically).
+Config is stored at `~/.config/devhub/config.json` (created automatically).
 
 ```json
 {

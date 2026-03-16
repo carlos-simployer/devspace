@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import type { FocusArea } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import {
   useReleaseDefinitions,
   useReleases,
@@ -14,8 +15,11 @@ import {
 } from "./releases-context.ts";
 
 export function ReleasesLayout() {
-  const { config, contentHeight: height, width } = useAppContext();
+  const { config, contentHeight: height, width, onQuit } = useAppContext();
   const outlet = useOutlet();
+
+  // Enables tab switching, number keys, quit even on "not configured" screen.
+  useRouteShortcuts({ quit: onQuit });
 
   const [focus, setFocus] = useState<FocusArea>("sidebar");
   const [sidebarIndex, setSidebarIndex] = useState(0);
@@ -54,7 +58,7 @@ export function ReleasesLayout() {
         justifyContent="center"
       >
         <Text dimColor>
-          Azure DevOps not configured. Press 7 to open Config.
+          Azure DevOps not configured. Press 8 to open Config.
         </Text>
       </Box>
     );

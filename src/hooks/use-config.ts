@@ -16,15 +16,21 @@ import {
 } from "../utils/config-migration.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
 
-const OLD_CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
-const CONFIG_DIR = join(homedir(), ".config", "devspace");
+const LEGACY_CONFIG_DIRS = [
+  join(homedir(), ".config", "github-pr-dash"),
+  join(homedir(), ".config", "devspace"),
+];
+const CONFIG_DIR = join(homedir(), ".config", "devhub");
 
-// Auto-migrate from old config directory
-if (existsSync(OLD_CONFIG_DIR) && !existsSync(CONFIG_DIR)) {
-  try {
-    renameSync(OLD_CONFIG_DIR, CONFIG_DIR);
-  } catch {
-    // fallback: just use new dir
+// Auto-migrate from old config directories
+for (const oldDir of LEGACY_CONFIG_DIRS) {
+  if (existsSync(oldDir) && !existsSync(CONFIG_DIR)) {
+    try {
+      renameSync(oldDir, CONFIG_DIR);
+      break;
+    } catch {
+      // fallback: just use new dir
+    }
   }
 }
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");

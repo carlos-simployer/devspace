@@ -1,11 +1,11 @@
 {
-  "name": "devspace",
+  "name": "devhub",
   "version": "1.0.0",
   "type": "module",
   "description": "Terminal dashboard for developer workflows",
   "main": "dist/index.js",
   "bin": {
-    "devspace": "dist/index.js"
+    "devhub": "dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.tsx",

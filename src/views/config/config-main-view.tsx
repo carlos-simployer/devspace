@@ -271,7 +271,7 @@ export function ConfigMainView() {
       }
     },
     editConfig: () => {
-      const configPath = join(homedir(), ".config", "devspace", "config.json");
+      const configPath = join(homedir(), ".config", "devhub", "config.json");
       try {
         exec(`code "${configPath}"`);
       } catch {

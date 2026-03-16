@@ -144,7 +144,7 @@ src/
 │   ├── tab-bar.tsx              # View switcher tab bar (reads from tabs.ts)
 │   └── shortcuts.tsx            # Bottom shortcut hint bar
 ├── hooks/                       # React hooks
-│   ├── use-config.ts            # Config read/write (~/.config/devspace/)
+│   ├── use-config.ts            # Config read/write (~/.config/devhub/)
 │   ├── use-pull-requests.ts     # PR search + pagination + polling
 │   ├── use-pr-detail.ts         # Single PR detail data
 │   ├── use-dependency-search.ts # Dependency search with disk cache
@@ -281,7 +281,7 @@ function PipelinesLayout() {
 
 No external state management library. Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`. Each view manages its own view-specific state via local React hooks.
 
-- **useConfig** — reads/writes `~/.config/devspace/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
+- **useConfig** — reads/writes `~/.config/devhub/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.
 - **usePRDetail** — fetches full PR data (body, files, checks) for the detail panel.
 - **useDependencySearch** — searches org repos for package usage with disk caching.
@@ -298,7 +298,7 @@ Jira JQL pattern: `project = KEY AND assignee = "accountId" AND statusCategory !
 
 ### Local Projects Config
 
-Projects are configured in `~/.config/devspace/config.json` under the `localProjects` array. Can be added via the TUI (+) or by editing the config file directly (press **e** in Config tab).
+Projects are configured in `~/.config/devhub/config.json` under the `localProjects` array. Can be added via the TUI (+) or by editing the config file directly (press **e** in Config tab).
 
 ```json
 {
@@ -330,7 +330,7 @@ Fields:
 
 ### Jira Config
 
-Jira settings are stored in `~/.config/devspace/config.json` and can be edited via the Config tab (press 7). Jira uses API token authentication (Basic auth), not OAuth.
+Jira settings are stored in `~/.config/devhub/config.json` and can be edited via the Config tab (press 7). Jira uses API token authentication (Basic auth), not OAuth.
 
 Config fields:
 - **jiraSite** — Jira Cloud site hostname (e.g. `your-org.atlassian.net`)

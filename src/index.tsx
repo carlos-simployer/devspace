@@ -28,7 +28,7 @@ org = org || process.env.GITHUB_ORG;
 function getToken(): string {
   // Check config file first
   try {
-    const configPath = join(homedir(), ".config", "devspace", "config.json");
+    const configPath = join(homedir(), ".config", "devhub", "config.json");
     const raw = JSON.parse(readFileSync(configPath, "utf-8"));
     if (raw.githubToken) return raw.githubToken;
   } catch {

@@ -9,6 +9,7 @@ import { Box, Text } from "ink";
 import type { FocusArea } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useSlackAuth } from "../../hooks/use-slack-auth.ts";
 import { useSlackUsers } from "../../hooks/use-slack-users.ts";
 import { useSlackChannels } from "../../hooks/use-slack-channels.ts";
@@ -22,11 +23,21 @@ import {
 } from "./slack-context.ts";
 
 export function SlackLayout() {
-  const { config, addSlackChannel, removeSlackChannel, width, contentHeight } =
-    useAppContext();
+  const {
+    config,
+    addSlackChannel,
+    removeSlackChannel,
+    width,
+    contentHeight,
+    onQuit,
+  } = useAppContext();
   const { route } = useRouter();
   const outlet = useOutlet();
   const token = config.slackToken;
+
+  // Must be called unconditionally (React rules of hooks) — enables
+  // tab switching, number keys, quit, and help even on "not configured" screen.
+  useRouteShortcuts({ quit: onQuit });
 
   // Auth
   const {

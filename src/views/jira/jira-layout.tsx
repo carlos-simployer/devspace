@@ -3,6 +3,7 @@ import { Box, Text } from "ink";
 import type { JiraFilterMode } from "../../api/types.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
@@ -27,9 +28,12 @@ const DEFAULT_STATUS_ORDER = [
 // persistence is needed, state can be lifted to AppContext or
 // stored in a ref-backed cache.
 export function JiraLayout() {
-  const { config, contentHeight: height, width } = useAppContext();
+  const { config, contentHeight: height, width, onQuit } = useAppContext();
   const { route } = useRouter();
   const outlet = useOutlet();
+
+  // Enables tab switching, number keys, quit even on "not configured" screen.
+  useRouteShortcuts({ quit: onQuit });
 
   const statusOrder =
     config.jiraStatusOrder?.length > 0
@@ -124,7 +128,7 @@ export function JiraLayout() {
           Jira not configured
         </Text>
         <Text dimColor>
-          Press 7 to open Config and set up Jira credentials.
+          Press 8 to open Config and set up Jira credentials.
         </Text>
       </Box>
     );
