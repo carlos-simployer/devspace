@@ -41,6 +41,7 @@ export interface AppContextValue {
   setJiraProject: (project: string) => void;
   addSlackChannel: (channelId: string) => void;
   removeSlackChannel: (channelId: string) => void;
+  setEnabledTabs: (tabs: string[]) => void;
   isFirstLaunch: boolean;
 
   // GitHub data

@@ -3,7 +3,8 @@ export interface TabDef {
   label: string; // display name
 }
 
-export const TABS: TabDef[] = [
+/** All available tabs in default order. Config is always last. */
+const ALL_TABS: TabDef[] = [
   { route: "prs", label: "PRs" },
   { route: "jira", label: "Jira" },
   { route: "projects", label: "Projects" },
@@ -11,20 +12,56 @@ export const TABS: TabDef[] = [
   { route: "releases", label: "Releases" },
   { route: "dependencies", label: "Deps" },
   { route: "slack", label: "Slack" },
-  { route: "config", label: "Config" },
 ];
+
+const CONFIG_TAB: TabDef = { route: "config", label: "Config" };
+
+/** Current active tabs (set at startup from config). */
+let activeTabs: TabDef[] = [...ALL_TABS, CONFIG_TAB];
+
+/**
+ * Set which tabs are enabled and in what order.
+ * Called from App on config load. Empty array = all tabs in default order.
+ * Config tab is always appended last.
+ */
+export function setActiveTabs(enabledRoutes: string[]): void {
+  if (!enabledRoutes || enabledRoutes.length === 0) {
+    activeTabs = [...ALL_TABS, CONFIG_TAB];
+    return;
+  }
+  const tabs: TabDef[] = [];
+  for (const route of enabledRoutes) {
+    if (route === "config") continue; // config is always appended
+    const def = ALL_TABS.find((t) => t.route === route);
+    if (def) tabs.push(def);
+  }
+  activeTabs = [...tabs, CONFIG_TAB];
+}
+
+/** Current active tab definitions (read-only). */
+export function getTabs(): TabDef[] {
+  return activeTabs;
+}
+
+/** All possible tabs (for the config UI). */
+export function getAllTabs(): TabDef[] {
+  return ALL_TABS;
+}
+
+// Legacy export for backward compat — points to active tabs
+export { activeTabs as TABS };
 
 /** Get tab label with number prefix, e.g. "6 Jira" */
 export function getTabLabel(route: string): string | undefined {
   const base = getBaseRoute(route);
-  const idx = TABS.findIndex((t) => t.route === base);
+  const idx = activeTabs.findIndex((t) => t.route === base);
   if (idx < 0) return undefined;
-  return `${idx + 1} ${TABS[idx]!.label}`;
+  return `${idx + 1} ${activeTabs[idx]!.label}`;
 }
 
 /** All tabs for the TabBar component. */
 export function getTabViews(): Array<{ route: string; label: string }> {
-  return TABS.map((t, i) => ({
+  return activeTabs.map((t, i) => ({
     route: t.route,
     label: `${i + 1} ${t.label}`,
   }));
@@ -33,7 +70,7 @@ export function getTabViews(): Array<{ route: string; label: string }> {
 /** Number keys for tab switching: "1" -> "prs", "2" -> "dependencies", etc. */
 export function getTabNumberKeys(): Record<string, string> {
   const map: Record<string, string> = {};
-  TABS.forEach((t, i) => {
+  activeTabs.forEach((t, i) => {
     map[String(i + 1)] = t.route;
   });
   return map;

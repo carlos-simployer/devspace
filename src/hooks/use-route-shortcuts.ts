@@ -5,7 +5,7 @@ import {
   ROUTE_SHORTCUTS,
   getShortcutRoute,
 } from "../ui/route-shortcuts.ts";
-import { getBaseRoute, getTabNumberKeys, TABS } from "../ui/tabs.ts";
+import { getBaseRoute, getTabNumberKeys, getTabs } from "../ui/tabs.ts";
 
 type ShortcutHandlers = Record<string, () => void>;
 
@@ -170,18 +170,17 @@ export function useRouteShortcuts(
 // Tab switching
 // ---------------------------------------------------------------------------
 
-const ROUTE_ORDER = TABS.map((t) => t.route);
-
 function handleViewSwitch(
   current: string,
   navigate: (path: string) => void,
   reverse: boolean,
 ) {
+  const routes = getTabs().map((t) => t.route);
   const base = getBaseRoute(current);
-  const idx = ROUTE_ORDER.indexOf(base);
+  const idx = routes.indexOf(base);
   if (idx < 0) return;
   const next = reverse
-    ? (idx - 1 + ROUTE_ORDER.length) % ROUTE_ORDER.length
-    : (idx + 1) % ROUTE_ORDER.length;
-  navigate(ROUTE_ORDER[next]!);
+    ? (idx - 1 + routes.length) % routes.length
+    : (idx + 1) % routes.length;
+  navigate(routes[next]!);
 }

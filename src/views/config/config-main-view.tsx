@@ -23,6 +23,7 @@ import {
   deleteToken,
   type TokenKey,
 } from "../../utils/tokens.ts";
+import { getAllTabs, getTabs } from "../../ui/tabs.ts";
 
 function formatInterval(seconds: number): string {
   if (seconds >= 60) return `${seconds / 60}m`;
@@ -79,6 +80,7 @@ export function ConfigMainView() {
     setJiraEmail,
     setJiraProject,
     setPersistCache,
+    setEnabledTabs,
     contentHeight: height,
     width,
     onQuit,
@@ -271,6 +273,22 @@ export function ConfigMainView() {
             type: "action" as const,
             color: theme.status.failure,
           },
+          // Views — toggle and reorder tabs
+          ...getAllTabs().map((tab) => {
+            const active = getTabs().some((t) => t.route === tab.route);
+            return {
+              key: `view-${tab.route}`,
+              label: `${tab.label}`,
+              type: "select" as const,
+              options: [{ label: tab.label, value: tab.route, active }],
+            };
+          }),
+          {
+            key: "views-reset",
+            label: "Reset to default order",
+            type: "action" as const,
+            color: theme.status.pending,
+          },
           // Storage paths (read-only)
           {
             key: "config-dir",
@@ -346,6 +364,21 @@ export function ConfigMainView() {
           setPersistCache(!persistCache);
         } else if (item.key === "cache-clear") {
           clearQueryCache();
+        } else if (item.key.startsWith("view-")) {
+          // Toggle view enabled/disabled
+          const route = item.key.replace("view-", "");
+          const current =
+            config.enabledTabs.length > 0
+              ? config.enabledTabs
+              : getAllTabs().map((t) => t.route);
+          const isEnabled = current.includes(route);
+          if (isEnabled && current.length > 1) {
+            setEnabledTabs(current.filter((r) => r !== route));
+          } else if (!isEnabled) {
+            setEnabledTabs([...current, route]);
+          }
+        } else if (item.key === "views-reset") {
+          setEnabledTabs([]);
         }
       }
     },
@@ -414,7 +447,7 @@ export function ConfigMainView() {
           {section === "slack" &&
             "Slack API token for reading and writing messages."}
           {section === "system" &&
-            "App settings: refresh interval, theme, cache, storage."}
+            "App settings: refresh interval, theme, cache, views, storage."}
         </Text>
         <Box height={1} />
 
@@ -425,7 +458,8 @@ export function ConfigMainView() {
           if (section === "system") {
             const isRefresh = item.key.startsWith("refresh-");
             const isTheme = item.key.startsWith("theme-");
-            const isOption = isRefresh || isTheme;
+            const isView = item.key.startsWith("view-");
+            const isOption = isRefresh || isTheme || isView;
             const isSelected = item.options?.[0]?.active ?? false;
 
             // Group headers
@@ -435,6 +469,8 @@ export function ConfigMainView() {
             const showThemeHeader =
               isTheme && !prevItem?.key.startsWith("theme-");
             const showCacheHeader = item.key === "cache-toggle";
+            const showViewsHeader =
+              isView && !prevItem?.key.startsWith("view-");
             const showStorageHeader = item.key === "config-dir";
 
             return (
@@ -457,6 +493,14 @@ export function ConfigMainView() {
                     <Box height={1} />
                     <Text bold color={theme.ui.heading}>
                       Cache
+                    </Text>
+                  </>
+                )}
+                {showViewsHeader && (
+                  <>
+                    <Box height={1} />
+                    <Text bold color={theme.ui.heading}>
+                      Views
                     </Text>
                   </>
                 )}

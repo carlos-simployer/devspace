@@ -4,26 +4,25 @@ import { getTabViews } from "../ui/tabs.ts";
 import { TabItem } from "../ui/tab-item.tsx";
 import { APP_NAME } from "../constants.ts";
 
-const TABS = getTabViews();
-
 interface Props {
   activeView: string;
 }
 
 export function TabBar({ activeView }: Props) {
+  const tabs = getTabViews();
   return (
     <Box>
       <Text bold color="cyan">
         {APP_NAME}{" "}
       </Text>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <TabItem
           key={tab.route}
           label={tab.label}
           isActive={tab.route === activeView}
         />
       ))}
-      <Text dimColor> Tab/1-{TABS.length}: switch</Text>
+      <Text dimColor> Tab/1-{tabs.length}: switch</Text>
     </Box>
   );
 }

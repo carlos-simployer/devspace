@@ -94,6 +94,7 @@ export function useConfig(orgArg?: string) {
         ],
         jiraAccountId: "",
         slackChannels: [],
+        enabledTabs: [],
       };
     }
 
@@ -144,6 +145,7 @@ export function useConfig(orgArg?: string) {
       ],
       jiraAccountId: raw.jiraAccountId || "",
       slackChannels: raw.slackChannels || [],
+      enabledTabs: raw.enabledTabs || [],
     };
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
@@ -425,6 +427,13 @@ export function useConfig(orgArg?: string) {
     [setConfig],
   );
 
+  const setEnabledTabs = useCallback(
+    (enabledTabs: string[]) => {
+      setConfig((prev) => ({ ...prev, enabledTabs }));
+    },
+    [setConfig],
+  );
+
   // Save initial config if org changed
   useEffect(() => {
     if (orgArg) {
@@ -463,6 +472,7 @@ export function useConfig(orgArg?: string) {
     setJiraAccountId,
     addSlackChannel,
     removeSlackChannel,
+    setEnabledTabs,
     isFirstLaunch,
   };
 }

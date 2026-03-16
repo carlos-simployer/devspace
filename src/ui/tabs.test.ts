@@ -1,11 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
-  TABS,
+  getTabs,
+  setActiveTabs,
   getTabLabel,
   getTabViews,
   getTabNumberKeys,
   getBaseRoute,
 } from "./tabs.ts";
+
+// Reset to default tab order before each test
+beforeEach(() => {
+  setActiveTabs([]);
+});
 
 // ===========================================================================
 // getBaseRoute
@@ -134,19 +140,9 @@ describe("getTabViews", () => {
     expect(configTab?.label).toBe("8 Config");
   });
 
-  it("should return objects with route and label properties", () => {
+  it("should have the same count as the active tabs", () => {
     const tabs = getTabViews();
-    for (const tab of tabs) {
-      expect(tab).toHaveProperty("route");
-      expect(tab).toHaveProperty("label");
-      expect(typeof tab.route).toBe("string");
-      expect(typeof tab.label).toBe("string");
-    }
-  });
-
-  it("should have the same count as the TABS array", () => {
-    const tabs = getTabViews();
-    expect(tabs).toHaveLength(TABS.length);
+    expect(tabs).toHaveLength(getTabs().length);
   });
 
   it("should not include sub-routes", () => {
@@ -191,6 +187,60 @@ describe("getTabNumberKeys", () => {
   it("should not include keys beyond the tab count", () => {
     const map = getTabNumberKeys();
     expect(map["0"]).toBeUndefined();
-    expect(map[String(TABS.length + 1)]).toBeUndefined();
+    expect(map[String(getTabs().length + 1)]).toBeUndefined();
+  });
+});
+
+// ===========================================================================
+// setActiveTabs
+// ===========================================================================
+describe("setActiveTabs", () => {
+  it("should filter and reorder tabs based on enabled routes", () => {
+    setActiveTabs(["jira", "prs"]);
+    const tabs = getTabs();
+    expect(tabs.map((t) => t.route)).toEqual(["jira", "prs", "config"]);
+  });
+
+  it("should always append config as the last tab", () => {
+    setActiveTabs(["prs"]);
+    const tabs = getTabs();
+    expect(tabs[tabs.length - 1]!.route).toBe("config");
+  });
+
+  it("should ignore config in the input array", () => {
+    setActiveTabs(["config", "prs"]);
+    const tabs = getTabs();
+    expect(tabs.map((t) => t.route)).toEqual(["prs", "config"]);
+  });
+
+  it("should ignore unknown routes", () => {
+    setActiveTabs(["prs", "unknown", "jira"]);
+    const tabs = getTabs();
+    expect(tabs.map((t) => t.route)).toEqual(["prs", "jira", "config"]);
+  });
+
+  it("should restore all tabs when given an empty array", () => {
+    setActiveTabs(["prs"]);
+    expect(getTabs()).toHaveLength(2); // prs + config
+    setActiveTabs([]);
+    expect(getTabs()).toHaveLength(8); // all 7 + config
+  });
+
+  it("should update getTabNumberKeys accordingly", () => {
+    setActiveTabs(["jira", "prs"]);
+    const map = getTabNumberKeys();
+    expect(map["1"]).toBe("jira");
+    expect(map["2"]).toBe("prs");
+    expect(map["3"]).toBe("config");
+    expect(map["4"]).toBeUndefined();
+  });
+
+  it("should update getTabLabel accordingly", () => {
+    setActiveTabs(["jira", "prs"]);
+    expect(getTabLabel("jira")).toBe("1 Jira");
+    expect(getTabLabel("prs")).toBe("2 PRs");
+    expect(getTabLabel("config")).toBe("3 Config");
+    // Disabled tabs return undefined
+    expect(getTabLabel("pipelines")).toBeUndefined();
   });
 });

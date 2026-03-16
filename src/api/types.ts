@@ -119,6 +119,7 @@ export interface Config {
   jiraStatusOrder: string[]; // e.g. ["In Progress", "In Review", "To Do", "Done"]
   jiraAccountId: string; // for "my issues" filter
   slackChannels: string[]; // subscribed Slack channel IDs
+  enabledTabs: string[]; // ordered list of enabled tab routes (empty = all, config always last)
 }
 
 // --- Azure DevOps types ---

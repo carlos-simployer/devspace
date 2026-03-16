@@ -18,6 +18,7 @@ import { QuitConfirm } from "./components/quit-confirm.tsx";
 import { RouterProvider, RouteRenderer, useRouter } from "./ui/router.ts";
 import { AppContext } from "./app-context.ts";
 import { routes } from "./routes.ts";
+import { setActiveTabs } from "./ui/tabs.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -58,8 +59,12 @@ function AppInner({ client, org, token }: Props) {
     setJiraProject,
     addSlackChannel,
     removeSlackChannel,
+    setEnabledTabs,
     isFirstLaunch,
   } = configHook;
+
+  // Sync tab visibility/order with config
+  setActiveTabs(config.enabledTabs);
 
   const { repos: orgRepos, loading: reposLoading } = useRepos(
     client,
@@ -126,6 +131,7 @@ function AppInner({ client, org, token }: Props) {
       setJiraProject,
       addSlackChannel,
       removeSlackChannel,
+      setEnabledTabs,
       isFirstLaunch,
       client,
       token,
@@ -166,6 +172,7 @@ function AppInner({ client, org, token }: Props) {
       setJiraProject,
       addSlackChannel,
       removeSlackChannel,
+      setEnabledTabs,
       isFirstLaunch,
       client,
       token,
