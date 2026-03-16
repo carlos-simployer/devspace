@@ -180,8 +180,11 @@ export function ProjectsListView() {
 
   // Layout: project list on top, logs below, status bar at bottom
   const statusBarHeight = 2;
-  const listHeight = Math.min(localProjects.length + 1, 8); // compact, max 8 rows
-  const logPanelHeight = height - listHeight - statusBarHeight;
+  const borderHeight = 1; // bottom border of project list box
+  const headerRow = 1; // column headers in project list
+  const maxProjectRows = Math.min(localProjects.length, 10);
+  const listHeight = maxProjectRows + headerRow + borderHeight;
+  const logPanelHeight = Math.max(3, height - listHeight - statusBarHeight);
 
   // Use uptimeTick to avoid lint warning (it triggers re-renders)
   void uptimeTick;
@@ -191,6 +194,7 @@ export function ProjectsListView() {
       {/* Project table (top) */}
       <Box
         flexDirection="column"
+        height={listHeight}
         borderStyle="single"
         borderTop={false}
         borderLeft={false}
@@ -203,6 +207,7 @@ export function ProjectsListView() {
           states={states}
           selectedIndex={selectedIndex}
           width={width}
+          maxRows={maxProjectRows}
         />
       </Box>
 

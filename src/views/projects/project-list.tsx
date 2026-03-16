@@ -9,6 +9,7 @@ interface Props {
   states: Record<string, ProcessState>;
   selectedIndex: number;
   width: number;
+  maxRows?: number;
 }
 
 function statusIcon(status: ProcessState["status"]): string {
@@ -60,7 +61,13 @@ function pad(str: string, w: number): string {
   return str.padEnd(w);
 }
 
-export function ProjectList({ projects, states, selectedIndex, width }: Props) {
+export function ProjectList({
+  projects,
+  states,
+  selectedIndex,
+  width,
+  maxRows,
+}: Props) {
   const theme = getTheme();
 
   if (projects.length === 0) {
@@ -99,68 +106,85 @@ export function ProjectList({ projects, states, selectedIndex, width }: Props) {
       <Box>
         <Text dimColor>{header}</Text>
       </Box>
-      {projects.map((project, i) => {
-        const isSelected = i === selectedIndex;
-        const state = states[project.name] ?? {
-          status: "stopped" as const,
-          logs: [],
-        };
-        const icon = statusIcon(state.status);
-        const color = statusColor(state.status);
-
-        const pidStr = state.pid
-          ? String(state.pid)
-          : state.exitCode !== undefined && state.exitCode !== null
-            ? `e:${state.exitCode}`
-            : "";
-        const upStr = state.startedAt
-          ? "\u2191" + formatUptime(state.startedAt)
-          : "";
-        const portStr = extractPort(project.url);
-        const depsStr =
-          project.dependencies.length > 0
-            ? `deps: ${project.dependencies.join(", ")}`
-            : "";
-
-        // Build each column with exact widths
-        const sel = (isSelected ? "> " : "  ") + icon + " ";
-        const name = pad(project.name, nameW);
-        const cmd = pad(project.command, cmdW);
-        const pid = pidStr.padEnd(pidW);
-        const up = upStr.padEnd(upW);
-        const port = portStr.padEnd(portW);
-
-        // Selected: single inverse string, full width
-        if (isSelected) {
-          const content = sel + name + cmd + pid + up + port + depsStr;
-          const line =
-            content.length < width
-              ? content + " ".repeat(width - content.length)
-              : content;
-          return (
-            <Box key={project.name}>
-              <Text inverse bold>
-                {line}
-              </Text>
-            </Box>
-          );
+      {(() => {
+        // Viewport scrolling when maxRows is set
+        const viewportSize = maxRows ?? projects.length;
+        let startIdx = 0;
+        if (projects.length > viewportSize) {
+          const halfView = Math.floor(viewportSize / 2);
+          if (selectedIndex > halfView) {
+            startIdx = Math.min(
+              selectedIndex - halfView,
+              projects.length - viewportSize,
+            );
+          }
         }
+        return projects
+          .slice(startIdx, startIdx + viewportSize)
+          .map((project, vi) => {
+            const i = startIdx + vi;
+            const isSelected = i === selectedIndex;
+            const state = states[project.name] ?? {
+              status: "stopped" as const,
+              logs: [],
+            };
+            const icon = statusIcon(state.status);
+            const color = statusColor(state.status);
 
-        // Not selected: colored segments, same widths
-        return (
-          <Box key={project.name}>
-            <Text>
-              {"  "}
-              <Text color={color}>{icon}</Text> {name}
-              <Text color={theme.ui.muted}>{cmd}</Text>
-              <Text color={theme.ui.muted}>{pid}</Text>
-              <Text color={theme.status.success}>{up}</Text>
-              <Text color={theme.status.info}>{port}</Text>
-              <Text color={theme.ui.muted}>{depsStr}</Text>
-            </Text>
-          </Box>
-        );
-      })}
+            const pidStr = state.pid
+              ? String(state.pid)
+              : state.exitCode !== undefined && state.exitCode !== null
+                ? `e:${state.exitCode}`
+                : "";
+            const upStr = state.startedAt
+              ? "\u2191" + formatUptime(state.startedAt)
+              : "";
+            const portStr = extractPort(project.url);
+            const depsStr =
+              project.dependencies.length > 0
+                ? `deps: ${project.dependencies.join(", ")}`
+                : "";
+
+            // Build each column with exact widths
+            const sel = (isSelected ? "> " : "  ") + icon + " ";
+            const name = pad(project.name, nameW);
+            const cmd = pad(project.command, cmdW);
+            const pid = pidStr.padEnd(pidW);
+            const up = upStr.padEnd(upW);
+            const port = portStr.padEnd(portW);
+
+            // Selected: single inverse string, full width
+            if (isSelected) {
+              const content = sel + name + cmd + pid + up + port + depsStr;
+              const line =
+                content.length < width
+                  ? content + " ".repeat(width - content.length)
+                  : content;
+              return (
+                <Box key={project.name}>
+                  <Text inverse bold>
+                    {line}
+                  </Text>
+                </Box>
+              );
+            }
+
+            // Not selected: colored segments, same widths
+            return (
+              <Box key={project.name}>
+                <Text>
+                  {"  "}
+                  <Text color={color}>{icon}</Text> {name}
+                  <Text color={theme.ui.muted}>{cmd}</Text>
+                  <Text color={theme.ui.muted}>{pid}</Text>
+                  <Text color={theme.status.success}>{up}</Text>
+                  <Text color={theme.status.info}>{port}</Text>
+                  <Text color={theme.ui.muted}>{depsStr}</Text>
+                </Text>
+              </Box>
+            );
+          });
+      })()}
     </Box>
   );
 }
