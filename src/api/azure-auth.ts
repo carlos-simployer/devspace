@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import { getToken } from "../utils/tokens.ts";
+import * as logger from "../utils/logger.ts";
 
 const execAsync = promisify(exec);
 
@@ -29,6 +30,7 @@ export async function getAzureToken(): Promise<{
   // Check tokens file for PAT
   const stored = getToken("azureToken");
   if (stored) {
+    logger.info("auth", "Azure token resolved via stored PAT");
     cachedToken = {
       token: stored,
       authType: "basic",
@@ -48,6 +50,7 @@ export async function getAzureToken(): Promise<{
       authType: "bearer",
       expiresOn: new Date(parsed.expiresOn).getTime(),
     };
+    logger.info("auth", "Azure token resolved via az CLI");
     return { token: cachedToken.token, authType: cachedToken.authType };
   } catch {
     // az CLI not available or not logged in
@@ -55,7 +58,11 @@ export async function getAzureToken(): Promise<{
 
   // Fallback to env var (PAT — no expiry tracking)
   const envToken = process.env.AZURE_DEVOPS_TOKEN;
-  if (envToken) return { token: envToken, authType: "basic" };
+  if (envToken) {
+    logger.info("auth", "Azure token resolved via AZURE_DEVOPS_TOKEN env");
+    return { token: envToken, authType: "basic" };
+  }
 
+  logger.warn("auth", "No Azure DevOps token available");
   return null;
 }

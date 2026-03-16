@@ -16,6 +16,7 @@ import {
 } from "../utils/config-migration.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
 import { DEFAULT_CONFIG_DIR } from "../constants.ts";
+import * as logger from "../utils/logger.ts";
 
 const LEGACY_CONFIG_DIRS = [
   join(homedir(), ".config", "github-pr-dash"),
@@ -28,6 +29,7 @@ for (const oldDir of LEGACY_CONFIG_DIRS) {
   if (existsSync(oldDir) && !existsSync(CONFIG_DIR)) {
     try {
       renameSync(oldDir, CONFIG_DIR);
+      logger.info("config", `Migrated config dir from ${oldDir}`);
       break;
     } catch {
       // fallback: just use new dir

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
 import { join } from "path";
 import { DEFAULT_CONFIG_DIR } from "../constants.ts";
+import * as logger from "./logger.ts";
 
 const TOKENS_PATH = join(DEFAULT_CONFIG_DIR, "tokens.json");
 
@@ -86,5 +87,6 @@ export function migrateTokensFromConfig(): void {
   if (migrated) {
     writeTokens(existing);
     writeFileSync(configPath, JSON.stringify(raw, null, 2));
+    logger.info("config", "Migrated tokens from config.json to tokens.json");
   }
 }

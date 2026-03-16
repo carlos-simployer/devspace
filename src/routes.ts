@@ -38,6 +38,7 @@ import { SlackChannelSearch } from "./views/slack/slack-channel-search.tsx";
 import { SlackEmojiPicker } from "./views/slack/slack-emoji-picker.tsx";
 import { SlackStatusView } from "./views/slack/slack-status-view.tsx";
 import { SlackHelpView } from "./views/slack/slack-help-view.tsx";
+import { LogOverlayView } from "./views/log/log-overlay.tsx";
 
 export const routes = defineRoutes({
   // PRs — nested routes via Outlet system
@@ -47,6 +48,7 @@ export const routes = defineRoutes({
       "": { component: PrListView },
       detail: { component: PRDetailPanel },
       help: { component: PrsHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
       notifications: { component: NotificationsView },
       search: { component: RepoSearch, layout: "overlay" },
     },
@@ -58,6 +60,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: DepsListView },
       help: { component: DepsHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
       search: { component: PackageSearch, layout: "overlay" },
     },
   },
@@ -68,6 +71,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: PipelinesListView },
       help: { component: PipelinesHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
       search: { component: PipelineSearch, layout: "overlay" },
       runs: { component: PipelineRuns },
     },
@@ -79,6 +83,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: ReleasesListView },
       help: { component: ReleasesHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
       search: { component: DefinitionSearch, layout: "overlay" },
     },
   },
@@ -89,6 +94,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: ProjectsListView },
       help: { component: ProjectsHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
       add: { component: ProjectsListView, layout: "overlay" },
     },
   },
@@ -103,6 +109,7 @@ export const routes = defineRoutes({
       statusFilter: { component: StatusFilter, layout: "overlay" },
       memberSelect: { component: MemberSelect, layout: "overlay" },
       help: { component: JiraHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
     },
   },
 
@@ -116,6 +123,7 @@ export const routes = defineRoutes({
       emoji: { component: SlackEmojiPicker, layout: "overlay" },
       status: { component: SlackStatusView, layout: "overlay" },
       help: { component: SlackHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
     },
   },
 
@@ -125,6 +133,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: ConfigMainView },
       help: { component: ConfigHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
     },
   },
 });

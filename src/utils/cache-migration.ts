@@ -1,6 +1,7 @@
 import { existsSync, renameSync, mkdirSync } from "fs";
 import { join } from "path";
 import { DEFAULT_CONFIG_DIR, CACHE_DIR } from "../constants.ts";
+import * as logger from "./logger.ts";
 
 const CACHE_FILES = ["query-cache.json", "dep-cache.json"];
 
@@ -16,6 +17,7 @@ export function migrateCacheFiles(): void {
       try {
         mkdirSync(CACHE_DIR, { recursive: true });
         renameSync(oldPath, newPath);
+        logger.info("cache", `Migrated cache file: ${file}`);
       } catch {
         // best-effort
       }

@@ -158,17 +158,35 @@ const ROUTE_BAR: Record<string, string[]> = {
   "slack/status": [],
 
   config: ["add", "remove", "select", "editConfig", "help"],
+
+  // Log overlays (all views)
+  "prs/logs": [],
+  "dependencies/logs": [],
+  "pipelines/logs": [],
+  "releases/logs": [],
+  "projects/logs": [],
+  "jira/logs": [],
+  "slack/logs": [],
+  "config/logs": [],
 };
 
 // ---------------------------------------------------------------------------
 // All shortcuts grouped by route path
 // ---------------------------------------------------------------------------
 
+const _logShortcuts: Record<string, ShortcutDef> = {
+  escape: { action: "close", key: "escape", help: "Close logs" },
+  c: { action: "clearLogs", key: "c", help: "Clear log entries" },
+  up: { action: "up", key: "up", help: "Scroll up" },
+  down: { action: "down", key: "down", help: "Scroll down" },
+};
+
 export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
   // ── Global ────────────────────────────────────────────────────────────
   _global: {
     q: { action: "quit", key: "q", help: "Quit" },
     "?": { action: "help", key: "?", help: "Toggle help" },
+    L: { action: "logs", key: "L", help: "Toggle logs" },
     tab: { action: "nextView", key: "tab", help: "Next view" },
     "shift+tab": {
       action: "prevView",
@@ -701,6 +719,16 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
     up: { action: "up", key: "up", help: "Navigate up" },
     down: { action: "down", key: "down", help: "Navigate down" },
   },
+
+  // ── Log Overlay (shared by all views) ─────────────────────────────────
+  "prs/logs": _logShortcuts,
+  "dependencies/logs": _logShortcuts,
+  "pipelines/logs": _logShortcuts,
+  "releases/logs": _logShortcuts,
+  "projects/logs": _logShortcuts,
+  "jira/logs": _logShortcuts,
+  "slack/logs": _logShortcuts,
+  "config/logs": _logShortcuts,
 
   // ── Config ────────────────────────────────────────────────────────────
   config: {

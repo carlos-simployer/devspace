@@ -64,6 +64,40 @@ export function useRouteShortcuts(
       return;
     }
 
+    // ── Log overlay handling ────────────────────────────────────────────
+    // When on a logs route (ends with /logs), L and Esc close it
+    if (route.endsWith("/logs")) {
+      if (input === "L" || key.escape) {
+        navigate(route.replace(/\/logs$/, ""));
+        return;
+      }
+      // Fire route-specific handlers (scroll, clear)
+      const action = matchShortcut(input, key, route, matchedPath);
+      if (action && handlers[action]) {
+        handlers[action]();
+        return;
+      }
+      // While on logs, still allow tab switching and quit
+      if (action === "nextView") {
+        handleViewSwitch(route, navigate, false);
+        return;
+      }
+      if (action === "prevView") {
+        handleViewSwitch(route, navigate, true);
+        return;
+      }
+      if (action === "quit" && handlers.quit) {
+        handlers.quit();
+        return;
+      }
+      const tabKeys = getTabNumberKeys();
+      if (tabKeys[input]) {
+        navigate(tabKeys[input]!);
+        return;
+      }
+      return;
+    }
+
     // ── Match shortcuts for the current route ──────────────────────────
     const action = matchShortcut(input, key, route, matchedPath);
 
@@ -100,6 +134,14 @@ export function useRouteShortcuts(
             navigate(route.replace(/\/help$/, ""));
           } else {
             navigate(`${getBaseRoute(route)}/help`);
+          }
+          return;
+        }
+        if (action === "logs") {
+          if (route.endsWith("/logs")) {
+            navigate(route.replace(/\/logs$/, ""));
+          } else {
+            navigate(`${getBaseRoute(route)}/logs`);
           }
           return;
         }

@@ -4,6 +4,7 @@ import { join } from "path";
 import type { TrackedPackage, DependencyResult } from "../api/types.ts";
 import { searchPackageUsage } from "../api/dependency-queries.ts";
 import { CACHE_DIR } from "../constants.ts";
+import * as logger from "../utils/logger.ts";
 
 const CACHE_MAX_AGE = 60 * 60_000; // 1 hour — skip fetch if cached within this
 
@@ -126,6 +127,10 @@ export function useDependencySearch(
           return next;
         });
       } catch (err: any) {
+        logger.error(
+          "api",
+          `Dependency search failed for ${packageName}: ${err.message}`,
+        );
         setPackages((prev) => {
           const next = new Map(prev);
           const existing = next.get(packageName);

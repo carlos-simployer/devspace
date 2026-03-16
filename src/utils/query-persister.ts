@@ -6,6 +6,7 @@ import type {
 } from "@tanstack/react-query-persist-client";
 import { CACHE_DIR } from "../constants.ts";
 import { readConfigFile } from "./config-file.ts";
+import * as logger from "./logger.ts";
 
 const CACHE_PATH = join(CACHE_DIR, "query-cache.json");
 
@@ -27,8 +28,8 @@ export function createFilePersister(): Persister {
         try {
           mkdirSync(CACHE_DIR, { recursive: true });
           writeFileSync(CACHE_PATH, JSON.stringify(client));
-        } catch {
-          // ignore write errors
+        } catch (err: any) {
+          logger.error("cache", `Failed to write query cache: ${err.message}`);
         }
       }, WRITE_DEBOUNCE_MS);
     },

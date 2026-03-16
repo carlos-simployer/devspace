@@ -9,6 +9,7 @@ import { createPatchedStdout } from "./patched-stdout.ts";
 import { createFilePersister } from "./utils/query-persister.ts";
 import { getToken, migrateTokensFromConfig } from "./utils/tokens.ts";
 import { migrateCacheFiles } from "./utils/cache-migration.ts";
+import * as logger from "./utils/logger.ts";
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -31,7 +32,10 @@ migrateCacheFiles();
 function resolveGithubToken(): string {
   // Check tokens file first
   const stored = getToken("githubToken");
-  if (stored) return stored;
+  if (stored) {
+    logger.info("auth", "GitHub token resolved via tokens file");
+    return stored;
+  }
 
   // Try gh CLI
   try {
@@ -39,14 +43,21 @@ function resolveGithubToken(): string {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     }).trim();
-    if (ghToken) return ghToken;
+    if (ghToken) {
+      logger.info("auth", "GitHub token resolved via gh CLI");
+      return ghToken;
+    }
   } catch {
     // gh CLI not available
   }
 
   const envToken = process.env.GITHUB_TOKEN;
-  if (envToken) return envToken;
+  if (envToken) {
+    logger.info("auth", "GitHub token resolved via GITHUB_TOKEN env");
+    return envToken;
+  }
 
+  logger.error("auth", "No GitHub token found");
   console.error(
     "No GitHub token found. Set token in Config tab, install gh CLI, or set GITHUB_TOKEN.",
   );

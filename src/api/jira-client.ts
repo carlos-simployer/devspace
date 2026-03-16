@@ -1,4 +1,5 @@
 import type { JiraIssue, JiraUser } from "./types.ts";
+import * as logger from "../utils/logger.ts";
 
 function authHeader(email: string, token: string): string {
   return `Basic ${Buffer.from(email + ":" + token).toString("base64")}`;
@@ -28,6 +29,10 @@ async function jiraFetch<T>(
   });
 
   if (!res.ok) {
+    logger.error(
+      "jira",
+      `API error: ${res.status} ${res.statusText} for ${path}`,
+    );
     throw new Error(`Jira API error: ${res.status} ${res.statusText}`);
   }
 
