@@ -157,7 +157,7 @@ const ROUTE_BAR: Record<string, string[]> = {
   "slack/emoji": [],
   "slack/status": [],
 
-  config: ["add", "remove", "select", "editConfig", "help"],
+  config: ["add", "remove", "select", "open", "editConfig", "help"],
 
   // Log overlays (all views)
   "prs/logs": [],
@@ -755,6 +755,12 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       key: "e",
       label: "Edit",
       help: "Open config in VS Code",
+    },
+    o: {
+      action: "open",
+      key: "o",
+      label: "Open",
+      help: "Open directory in Finder",
     },
     up: { action: "up", key: "up", help: "Navigate up" },
     down: { action: "down", key: "down", help: "Navigate down" },

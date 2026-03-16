@@ -24,6 +24,7 @@ import {
   type TokenKey,
 } from "../../utils/tokens.ts";
 import { getAllTabs, getTabs } from "../../ui/tabs.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 
 function formatInterval(seconds: number): string {
   if (seconds >= 60) return `${seconds / 60}m`;
@@ -381,6 +382,13 @@ export function ConfigMainView() {
           setEnabledTabs([]);
         }
       }
+    },
+    open: () => {
+      if (section !== "system") return;
+      const item = items[selectedIndex];
+      if (!item) return;
+      if (item.key === "config-dir") openInBrowser(DEFAULT_CONFIG_DIR);
+      if (item.key === "cache-dir") openInBrowser(CACHE_DIR);
     },
     editConfig: () => {
       const configPath = join(DEFAULT_CONFIG_DIR, "config.json");

@@ -377,7 +377,7 @@ describe("getBarShortcuts", () => {
   it("should return bar items for config route", () => {
     const bar = getBarShortcuts("config");
     const labels = bar.map((b) => b.label);
-    expect(labels).toEqual(["Add", "Remove", "Select", "Edit"]);
+    expect(labels).toEqual(["Add", "Remove", "Select", "Open", "Edit"]);
   });
 
   it("should return bar items for pipelines route", () => {
