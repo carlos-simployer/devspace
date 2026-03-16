@@ -123,6 +123,15 @@ export function ProjectsListView() {
           }
         }
       },
+      openInVscode: () => {
+        if (selected) {
+          try {
+            exec(`code "${selected.path}"`);
+          } catch {
+            // ignore
+          }
+        }
+      },
       add: () => navigate("projects/add"),
       remove: () => {
         if (selected) {

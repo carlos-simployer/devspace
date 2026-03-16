@@ -76,17 +76,17 @@ describe("getBaseRoute", () => {
 describe("getTabLabel", () => {
   it("should return numbered label for each tab route", () => {
     expect(getTabLabel("prs")).toBe("1 PRs");
-    expect(getTabLabel("dependencies")).toBe("2 Deps");
-    expect(getTabLabel("pipelines")).toBe("3 Pipelines");
-    expect(getTabLabel("releases")).toBe("4 Releases");
-    expect(getTabLabel("projects")).toBe("5 Projects");
-    expect(getTabLabel("jira")).toBe("6 Jira");
+    expect(getTabLabel("jira")).toBe("2 Jira");
+    expect(getTabLabel("projects")).toBe("3 Projects");
+    expect(getTabLabel("pipelines")).toBe("4 Pipelines");
+    expect(getTabLabel("releases")).toBe("5 Releases");
+    expect(getTabLabel("dependencies")).toBe("6 Deps");
     expect(getTabLabel("config")).toBe("7 Config");
   });
 
   it("should extract base route from nested paths and return label", () => {
     expect(getTabLabel("prs/detail")).toBe("1 PRs");
-    expect(getTabLabel("jira/detail/UUX-1629")).toBe("6 Jira");
+    expect(getTabLabel("jira/detail/UUX-1629")).toBe("2 Jira");
     expect(getTabLabel("config/addOrg")).toBe("7 Config");
   });
 
@@ -117,15 +117,15 @@ describe("getTabViews", () => {
     const prsTab = tabs.find((t) => t.route === "prs");
     expect(prsTab?.label).toBe("1 PRs");
     const depsTab = tabs.find((t) => t.route === "dependencies");
-    expect(depsTab?.label).toBe("2 Deps");
+    expect(depsTab?.label).toBe("6 Deps");
     const pipelinesTab = tabs.find((t) => t.route === "pipelines");
-    expect(pipelinesTab?.label).toBe("3 Pipelines");
+    expect(pipelinesTab?.label).toBe("4 Pipelines");
     const releasesTab = tabs.find((t) => t.route === "releases");
-    expect(releasesTab?.label).toBe("4 Releases");
+    expect(releasesTab?.label).toBe("5 Releases");
     const projectsTab = tabs.find((t) => t.route === "projects");
-    expect(projectsTab?.label).toBe("5 Projects");
+    expect(projectsTab?.label).toBe("3 Projects");
     const jiraTab = tabs.find((t) => t.route === "jira");
-    expect(jiraTab?.label).toBe("6 Jira");
+    expect(jiraTab?.label).toBe("2 Jira");
     const configTab = tabs.find((t) => t.route === "config");
     expect(configTab?.label).toBe("7 Config");
   });
@@ -162,11 +162,11 @@ describe("getTabNumberKeys", () => {
   it("should return a mapping from number strings to tab routes", () => {
     const map = getTabNumberKeys();
     expect(map["1"]).toBe("prs");
-    expect(map["2"]).toBe("dependencies");
-    expect(map["3"]).toBe("pipelines");
-    expect(map["4"]).toBe("releases");
-    expect(map["5"]).toBe("projects");
-    expect(map["6"]).toBe("jira");
+    expect(map["2"]).toBe("jira");
+    expect(map["3"]).toBe("projects");
+    expect(map["4"]).toBe("pipelines");
+    expect(map["5"]).toBe("releases");
+    expect(map["6"]).toBe("dependencies");
     expect(map["7"]).toBe("config");
   });
 
