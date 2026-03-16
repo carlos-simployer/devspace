@@ -1,23 +1,24 @@
 import React from "react";
 import { Box } from "ink";
 import type { DOMElement } from "ink";
-import type { ViewId } from "../ui/view-config.ts";
-import { getBaseView } from "../ui/view-config.ts";
-import { getBarShortcuts } from "../ui/shortcut-registry.ts";
+import { getBarShortcuts } from "../ui/route-shortcuts.ts";
+import { getBaseRoute } from "../ui/tabs.ts";
+import { useRouter } from "../ui/router.ts";
 import { TabBar } from "./tab-bar.tsx";
 import { Shortcuts } from "./shortcuts.tsx";
 
 interface Props {
-  view: ViewId;
+  route: string;
   headerRef?: React.Ref<DOMElement>;
 }
 
-export function ViewHeader({ view, headerRef }: Props) {
-  const baseView = getBaseView(view);
-  const barItems = getBarShortcuts(view);
+export function ViewHeader({ route, headerRef }: Props) {
+  const { matchedPath } = useRouter();
+  const barItems = getBarShortcuts(route, matchedPath);
+  const baseItems = getBarShortcuts(getBaseRoute(route), matchedPath);
+  const items = barItems.length > 0 ? barItems : baseItems;
 
-  // Fall back to base view bar if sub-view has no bar
-  const items = barItems.length > 0 ? barItems : getBarShortcuts(baseView);
+  const activeView = getBaseRoute(route);
 
   return (
     <Box
@@ -30,7 +31,7 @@ export function ViewHeader({ view, headerRef }: Props) {
       borderRight={false}
       borderBottom
     >
-      <TabBar activeView={baseView} />
+      <TabBar activeView={activeView} />
       {items.length > 0 && <Shortcuts items={items} />}
     </Box>
   );

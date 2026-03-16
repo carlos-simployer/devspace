@@ -1,27 +1,21 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useJiraContext } from "./jira-context.ts";
 import { getStatusColor } from "../../utils/jira-status.ts";
 
-interface Props {
-  statuses: string[];
-  enabledStatuses: Set<string>;
-  onApply: (enabled: Set<string>) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function StatusFilter() {
+  const { navigate } = useRouter();
+  const { contentHeight: height, width } = useAppContext();
+  const { enabledStatuses, setEnabledStatuses, statusOrder, setSelectedIndex } =
+    useJiraContext();
 
-export function StatusFilter({
-  statuses,
-  enabledStatuses,
-  onApply,
-  onClose,
-  height,
-  width,
-}: Props) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const statuses = statusOrder;
+
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const [enabled, setEnabled] = useState<Set<string>>(
     () => new Set(enabledStatuses),
   );
@@ -33,38 +27,37 @@ export function StatusFilter({
     ...statuses.map((s) => ({ label: s, isAll: false })),
   ];
 
-  useShortcuts(
-    {
-      close: onClose,
-      select: () => {
-        onApply(enabled);
-      },
-      toggle: () => {
-        const item = items[selectedIndex];
-        if (!item) return;
-        if (item.isAll) {
-          if (allEnabled) {
-            setEnabled(new Set());
-          } else {
-            setEnabled(new Set(statuses));
-          }
-        } else {
-          setEnabled((prev) => {
-            const next = new Set(prev);
-            if (next.has(item.label)) {
-              next.delete(item.label);
-            } else {
-              next.add(item.label);
-            }
-            return next;
-          });
-        }
-      },
-      up: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-      down: () => setSelectedIndex((i) => Math.min(items.length - 1, i + 1)),
+  useRouteShortcuts({
+    close: () => navigate("jira"),
+    select: () => {
+      setEnabledStatuses(enabled);
+      setSelectedIndex(0);
+      navigate("jira");
     },
-    { scope: "jira.statusFilter" },
-  );
+    toggle: () => {
+      const item = items[selectedIdx];
+      if (!item) return;
+      if (item.isAll) {
+        if (allEnabled) {
+          setEnabled(new Set());
+        } else {
+          setEnabled(new Set(statuses));
+        }
+      } else {
+        setEnabled((prev) => {
+          const next = new Set(prev);
+          if (next.has(item.label)) {
+            next.delete(item.label);
+          } else {
+            next.add(item.label);
+          }
+          return next;
+        });
+      }
+    },
+    up: () => setSelectedIdx((i) => Math.max(0, i - 1)),
+    down: () => setSelectedIdx((i) => Math.min(items.length - 1, i + 1)),
+  });
 
   const boxWidth = Math.min(40, width - 4);
   const boxHeight = Math.min(height - 4, items.length + 5);
@@ -78,7 +71,7 @@ export function StatusFilter({
       footer={<Text dimColor>Space: toggle | Enter: apply | Esc: cancel</Text>}
     >
       {items.map((item, i) => {
-        const isActive = i === selectedIndex;
+        const isActive = i === selectedIdx;
         const isEnabled = item.isAll ? allEnabled : enabled.has(item.label);
         const checkbox = isEnabled ? "[x]" : "[ ]";
         const statusColor = item.isAll

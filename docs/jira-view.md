@@ -1,5 +1,7 @@
 # Jira View — Implementation Plan
 
+> **Status: Implemented.** This document was the original plan. The implementation now uses the route-based system (`src/ui/route-shortcuts.ts`, `src/hooks/use-route-shortcuts.ts`) instead of the `view-config.ts` / `shortcut-registry.ts` files referenced below, which have been deleted.
+
 ## Overview
 
 Add a Jira issues view (Tab 6) that shows issues for a configured project, grouped by status like the PR view groups by time period. Supports filtering by assignee (my issues, team, selected people). Issue detail panel on Enter, open in browser on `o`.

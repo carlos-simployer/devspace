@@ -1,5 +1,7 @@
 # Calendar & Mail Views — Implementation Plan
 
+> **Status: Not yet implemented.** This plan references `use-global-keys.ts`, `tab-bar`, and `help-overlay` modification patterns from the old view-based system. The app now uses a router-based system (`src/ui/router.ts`, `src/ui/route-shortcuts.ts`, `src/ui/tabs.ts`). New views should add routes in `app.tsx`, shortcuts in `route-shortcuts.ts`, and a tab entry in `tabs.ts`.
+
 ## Overview
 
 Add two new views to the TUI dashboard:

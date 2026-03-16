@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import { Overlay } from "../../ui/overlay.tsx";
-import { useShortcuts } from "../../hooks/use-shortcuts.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useJiraContext } from "./jira-context.ts";
 
 interface TeamMember {
   name: string;
@@ -27,24 +30,19 @@ const TEAM_MEMBERS: TeamMember[] = [
   { name: "Ola Juliussen", accountId: "621cd9dc9c3cce006949ecce" },
 ];
 
-interface Props {
-  selectedIds: Set<string>;
-  onApply: (accountIds: Set<string>) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function MemberSelect() {
+  const { navigate } = useRouter();
+  const { contentHeight: height, width } = useAppContext();
+  const {
+    filterAccountIds,
+    setFilterAccountIds,
+    setFilterMode,
+    setSelectedIndex,
+  } = useJiraContext();
 
-export function MemberSelect({
-  selectedIds,
-  onApply,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [cursorIndex, setCursorIndex] = useState(0);
   const [enabled, setEnabled] = useState<Set<string>>(
-    () => new Set(selectedIds),
+    () => new Set(filterAccountIds),
   );
 
   const allEnabled = enabled.size === TEAM_MEMBERS.length;
@@ -65,38 +63,42 @@ export function MemberSelect({
   const boxHeight = Math.min(height - 4, items.length + 5);
   const innerWidth = boxWidth - 4;
 
-  useShortcuts(
-    {
-      close: onClose,
-      select: () => {
-        onApply(enabled);
-      },
-      toggle: () => {
-        const item = items[cursorIndex];
-        if (!item) return;
-        if (item.isAll) {
-          if (allEnabled) {
-            setEnabled(new Set());
-          } else {
-            setEnabled(new Set(TEAM_MEMBERS.map((m) => m.accountId)));
-          }
-        } else {
-          setEnabled((prev) => {
-            const next = new Set(prev);
-            if (next.has(item.accountId)) {
-              next.delete(item.accountId);
-            } else {
-              next.add(item.accountId);
-            }
-            return next;
-          });
-        }
-      },
-      up: () => setCursorIndex((i) => Math.max(0, i - 1)),
-      down: () => setCursorIndex((i) => Math.min(items.length - 1, i + 1)),
+  useRouteShortcuts({
+    close: () => navigate("jira"),
+    select: () => {
+      setFilterAccountIds(enabled);
+      if (enabled.size > 0) {
+        setFilterMode("person");
+      } else {
+        setFilterMode("team");
+      }
+      setSelectedIndex(0);
+      navigate("jira");
     },
-    { scope: "jira.memberSelect" },
-  );
+    toggle: () => {
+      const item = items[cursorIndex];
+      if (!item) return;
+      if (item.isAll) {
+        if (allEnabled) {
+          setEnabled(new Set());
+        } else {
+          setEnabled(new Set(TEAM_MEMBERS.map((m) => m.accountId)));
+        }
+      } else {
+        setEnabled((prev) => {
+          const next = new Set(prev);
+          if (next.has(item.accountId)) {
+            next.delete(item.accountId);
+          } else {
+            next.add(item.accountId);
+          }
+          return next;
+        });
+      }
+    },
+    up: () => setCursorIndex((i) => Math.max(0, i - 1)),
+    down: () => setCursorIndex((i) => Math.min(items.length - 1, i + 1)),
+  });
 
   return (
     <Overlay

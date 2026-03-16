@@ -1,18 +1,19 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { ViewId } from "../ui/view-config.ts";
-import { getHelpShortcuts } from "../ui/shortcut-registry.ts";
+import { getHelpShortcuts } from "../ui/route-shortcuts.ts";
 import { getTheme } from "../ui/theme.ts";
 import { Overlay } from "../ui/overlay.tsx";
+import { useRouter } from "../ui/router.ts";
 
 interface Props {
-  view: ViewId;
+  route: string;
   height: number;
   width: number;
 }
 
-export function HelpOverlay({ view, height, width }: Props) {
-  const shortcuts = getHelpShortcuts(view);
+export function HelpOverlay({ route, height, width }: Props) {
+  const { matchedPath } = useRouter();
+  const shortcuts = getHelpShortcuts(route, matchedPath);
   const theme = getTheme();
 
   // Group: view-specific first, then globals

@@ -1,31 +1,25 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type { AzureReleaseDefinition } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useRouter } from "../../ui/router.ts";
 import { fuzzyMatch, fuzzyScore } from "../../utils/fuzzy.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { useReleasesContext } from "./releases-context.ts";
 
-interface Props {
-  definitions: AzureReleaseDefinition[];
-  pinnedIds: number[];
-  loading: boolean;
-  onSelect: (id: number) => void;
-  onRemove: (id: number) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
+export function DefinitionSearch() {
+  const {
+    config,
+    addPinnedReleaseDefinition,
+    removePinnedReleaseDefinition,
+    contentHeight: height,
+    width,
+  } = useAppContext();
+  const { allDefinitions: definitions, allDefsLoading: loading } =
+    useReleasesContext();
+  const { navigate } = useRouter();
+  const pinnedIds = config.pinnedReleaseDefinitions;
 
-export function DefinitionSearch({
-  definitions,
-  pinnedIds,
-  loading,
-  onSelect,
-  onRemove,
-  onClose,
-  height,
-  width,
-}: Props) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -47,15 +41,15 @@ export function DefinitionSearch({
     const def = filtered[index];
     if (!def) return;
     if (pinnedIds.includes(def.id)) {
-      onRemove(def.id);
+      removePinnedReleaseDefinition(def.id);
     } else {
-      onSelect(def.id);
+      addPinnedReleaseDefinition(def.id);
     }
   };
 
   useInput((input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("releases");
       return;
     }
 
@@ -122,7 +116,7 @@ export function DefinitionSearch({
       <Box>
         <Text>Search: </Text>
         <Text>{query}</Text>
-        <Text dimColor>█</Text>
+        <Text dimColor>{"\u2588"}</Text>
       </Box>
       {loading ? (
         <Spinner label="Loading definitions..." />
@@ -150,7 +144,9 @@ export function DefinitionSearch({
         })
       )}
       <Box marginTop={0}>
-        <Text dimColor>Enter: {"add/remove"} | Esc: close | ↑↓: navigate</Text>
+        <Text dimColor>
+          Enter: {"add/remove"} | Esc: close | {"\u2191\u2193"}: navigate
+        </Text>
       </Box>
     </Box>
   );

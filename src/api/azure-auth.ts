@@ -30,12 +30,7 @@ export async function getAzureToken(): Promise<{
 
   // Check config file for PAT
   try {
-    const configPath = join(
-      homedir(),
-      ".config",
-      "github-pr-dash",
-      "config.json",
-    );
+    const configPath = join(homedir(), ".config", "devspace", "config.json");
     const raw = JSON.parse(readFileSync(configPath, "utf-8"));
     if (raw.azureToken) {
       cachedToken = {

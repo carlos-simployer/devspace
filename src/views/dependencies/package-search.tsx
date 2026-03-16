@@ -1,23 +1,15 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
+import { useAppContext } from "../../app-context.ts";
+import { useRouter } from "../../ui/router.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { useDepsContext } from "./deps-context.ts";
 
-interface Props {
-  trackedPackages: string[];
-  onSelect: (pkg: string) => void;
-  onClose: () => void;
-  height: number;
-  width: number;
-}
-
-export function PackageSearch({
-  trackedPackages,
-  onSelect,
-  onClose,
-  height,
-  width,
-}: Props) {
+export function PackageSearch() {
+  const { addPackage, width } = useAppContext();
+  const { trackedPackages } = useDepsContext();
+  const { navigate } = useRouter();
   const [query, setQuery] = useState("");
 
   const boxWidth = Math.min(50, width - 4);
@@ -25,14 +17,14 @@ export function PackageSearch({
 
   useInput((_input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("dependencies");
       return;
     }
     if (key.return && query.trim()) {
       if (!alreadyTracked) {
-        onSelect(query.trim());
+        addPackage(query.trim());
       }
-      onClose();
+      navigate("dependencies");
     }
   });
 

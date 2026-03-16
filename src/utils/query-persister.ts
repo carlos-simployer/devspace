@@ -6,7 +6,7 @@ import type {
   Persister,
 } from "@tanstack/react-query-persist-client";
 
-const CONFIG_DIR = join(homedir(), ".config", "github-pr-dash");
+const CONFIG_DIR = join(homedir(), ".config", "devspace");
 const CACHE_PATH = join(CONFIG_DIR, "query-cache.json");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 

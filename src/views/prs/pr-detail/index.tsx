@@ -4,42 +4,47 @@ import type { PullRequest } from "../../../api/types.ts";
 import type { PRDetail } from "../../../hooks/use-pr-detail.ts";
 import { getChangeTypeIcon } from "../../../utils/status.ts";
 import { TabItem } from "../../../ui/tab-item.tsx";
+import { useAppContext } from "../../../app-context.ts";
+import { useRouter } from "../../../ui/router.ts";
+import { useRouteShortcuts } from "../../../hooks/use-route-shortcuts.ts";
+import { openInBrowser } from "../../../utils/browser.ts";
+import { usePrsContext } from "../prs-context.ts";
 import { buildOverviewLines } from "./overview-tab.tsx";
 import { buildFilesLines, findFileRow } from "./files-tab.tsx";
 
 type DetailTab = "overview" | "files";
 
-interface Props {
-  pr: PullRequest;
-  detail: PRDetail | null;
-  loading: boolean;
-  error: string | null;
-  height: number;
-  width: number;
-  onClose: () => void;
-  onOpenInBrowser: (url: string) => void;
-}
+/**
+ * PRDetailPanel — renders the PR detail view.
+ * Reads PR data from PrsContext (no props needed when used as a route child).
+ */
+export function PRDetailPanel() {
+  const { height, width } = useAppContext();
+  const { navigate } = useRouter();
+  const {
+    selectedPR: pr,
+    prDetail: detail,
+    detailLoading: loading,
+    detailError: error,
+  } = usePrsContext();
 
-export function PRDetailPanel({
-  pr,
-  detail,
-  loading,
-  error,
-  height,
-  width,
-  onClose,
-  onOpenInBrowser,
-}: Props) {
   const [tab, setTab] = useState<DetailTab>("overview");
+
+  useRouteShortcuts({});
+
   const [scrollOffset, setScrollOffset] = useState(0);
   const [fileIndex, setFileIndex] = useState(0);
   const [expandedFile, setExpandedFile] = useState<number | null>(null);
+
+  // Header height (same as PrsLayout header: ~3 lines)
+  const sharedHeaderHeight = 3;
+  const panelHeight = height - sharedHeaderHeight;
 
   const contentWidth = Math.min(width - 4, 120);
   const files = detail?.files ?? [];
 
   const overviewLines = useMemo(
-    () => buildOverviewLines(pr, detail, loading, error),
+    () => (pr ? buildOverviewLines(pr, detail, loading, error) : []),
     [pr, detail, loading, error],
   );
 
@@ -52,10 +57,12 @@ export function PRDetailPanel({
 
   const tabBarLines = 2;
   const footerLines = 1;
-  const viewportHeight = height - 2 - tabBarLines - footerLines;
+  const viewportHeight = panelHeight - 2 - tabBarLines - footerLines;
   const maxScroll = Math.max(0, lines.length - viewportHeight);
 
   useInput((input, key) => {
+    if (!pr) return;
+
     // When diff is expanded, Escape collapses it instead of closing panel
     if (key.escape) {
       if (tab === "files" && expandedFile !== null) {
@@ -64,11 +71,11 @@ export function PRDetailPanel({
         if (row >= 0) setScrollOffset(Math.max(0, row - 2));
         return;
       }
-      onClose();
+      navigate("prs");
       return;
     }
     if (input === "o") {
-      onOpenInBrowser(pr.url);
+      openInBrowser(pr.url);
       return;
     }
 
@@ -90,7 +97,7 @@ export function PRDetailPanel({
     }
 
     if (tab === "files" && files.length > 0) {
-      // When a diff is expanded, ↑/↓ scrolls the content
+      // When a diff is expanded, up/down scrolls the content
       if (expandedFile !== null) {
         if (key.upArrow) {
           setScrollOffset((s) => Math.max(0, s - 1));
@@ -154,6 +161,8 @@ export function PRDetailPanel({
     }
   });
 
+  if (!pr) return null;
+
   const actualOffset = Math.min(scrollOffset, maxScroll);
   const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);
 
@@ -163,7 +172,7 @@ export function PRDetailPanel({
     <Box
       flexDirection="column"
       width={width}
-      height={height}
+      height={panelHeight}
       paddingX={2}
       paddingY={1}
     >
@@ -202,7 +211,7 @@ export function PRDetailPanel({
       ))}
 
       {/* Footer */}
-      <Box position="absolute" marginTop={height - 2} marginLeft={2}>
+      <Box position="absolute" marginTop={panelHeight - 2} marginLeft={2}>
         <Text dimColor>
           {tab === "files" && expandedFile !== null
             ? "↑↓: scroll diff │ Enter/Esc: collapse │ o: browser │ d/f: switch tab"

@@ -1,0 +1,113 @@
+import React, { useState } from "react";
+import { Box, Text } from "ink";
+import type { FocusArea } from "../../api/types.ts";
+import { useAppContext } from "../../app-context.ts";
+import { Outlet, useOutlet, useRouter } from "../../ui/router.ts";
+import { usePipelines } from "../../hooks/use-pipelines.ts";
+import { useAllPipelineDefinitions } from "../../hooks/use-pipelines.ts";
+import { usePipelineRuns } from "../../hooks/use-pipeline-runs.ts";
+import {
+  PipelinesContext,
+  type PipelinesContextValue,
+} from "./pipelines-context.ts";
+
+export function PipelinesLayout() {
+  const { config, contentHeight: height, width } = useAppContext();
+  const { route } = useRouter();
+  const outlet = useOutlet();
+
+  const [focus, setFocus] = useState<FocusArea>("sidebar");
+  const [sidebarIndex, setSidebarIndex] = useState(0);
+  const [listIndex, setListIndex] = useState(0);
+
+  const isConfigured = !!config.azureOrg && !!config.azureProject;
+
+  const { pipelines, loading, fetching, refetch } = usePipelines(
+    config.azureOrg,
+    config.azureProject,
+    config.pinnedPipelines,
+    config.refreshInterval,
+  );
+
+  const { definitions, loading: defsLoading } = useAllPipelineDefinitions(
+    config.azureOrg,
+    config.azureProject,
+  );
+
+  const selectedPipeline = pipelines[listIndex] ?? null;
+
+  const showRuns = route === "pipelines/runs";
+  const {
+    runs,
+    loading: runsLoading,
+    error: runsError,
+  } = usePipelineRuns(
+    config.azureOrg,
+    config.azureProject,
+    showRuns ? (selectedPipeline?.id ?? null) : null,
+  );
+
+  // Reset list index when pipelines change
+  React.useEffect(() => {
+    if (listIndex >= pipelines.length) {
+      setListIndex(Math.max(0, pipelines.length - 1));
+    }
+  }, [pipelines.length, listIndex]);
+
+  if (!isConfigured) {
+    return (
+      <Box
+        height={height}
+        width={width}
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text dimColor>
+          Azure DevOps not configured. Press 7 to open Config.
+        </Text>
+      </Box>
+    );
+  }
+
+  const ctx: PipelinesContextValue = {
+    focus,
+    setFocus,
+    sidebarIndex,
+    setSidebarIndex,
+    listIndex,
+    setListIndex,
+    pipelines,
+    selectedPipeline,
+    loading,
+    fetching,
+    refetch,
+    definitions,
+    defsLoading,
+    runs,
+    runsLoading,
+    runsError,
+  };
+
+  // For overlay children: center them
+  if (outlet?.isOverlay) {
+    return (
+      <PipelinesContext.Provider value={ctx}>
+        <Box
+          height={height}
+          width={width}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Outlet />
+        </Box>
+      </PipelinesContext.Provider>
+    );
+  }
+
+  // For full children (index, runs): render directly
+  return (
+    <PipelinesContext.Provider value={ctx}>
+      <Outlet />
+    </PipelinesContext.Provider>
+  );
+}

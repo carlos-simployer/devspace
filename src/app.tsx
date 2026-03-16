@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { Box, useApp, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
@@ -7,17 +13,11 @@ import { useConfig } from "./hooks/use-config.ts";
 import { useRepos } from "./hooks/use-repos.ts";
 import { useNotifications } from "./hooks/use-notifications.ts";
 import { useDependencySearch } from "./hooks/use-dependency-search.ts";
-import { PRView } from "./views/prs/index.tsx";
-import { DependencyTracker } from "./views/dependencies/index.tsx";
-import { ConfigView } from "./views/config/index.tsx";
-import { PipelinesView } from "./views/pipelines/index.tsx";
-import { ReleasesView } from "./views/releases/index.tsx";
-import { ProjectsView } from "./views/projects/index.tsx";
-import { JiraView } from "./views/jira/index.tsx";
 import { ViewHeader } from "./components/view-header.tsx";
-import type { ViewId, BaseView } from "./ui/view-config.ts";
-import { getBaseView } from "./ui/view-config.ts";
-import { ViewContext } from "./ui/view-context.ts";
+import { QuitConfirm } from "./components/quit-confirm.tsx";
+import { RouterProvider, RouteRenderer, useRouter } from "./ui/router.ts";
+import { AppContext } from "./app-context.ts";
+import { routes } from "./routes.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -25,9 +25,14 @@ interface Props {
   token: string;
 }
 
-export function App({ client, org, token }: Props) {
+/**
+ * Inner app — lives inside RouterProvider so it can use the router.
+ * Provides AppContext to all views.
+ */
+function AppInner({ client, org, token }: Props) {
   const { exit } = useApp();
   const { height, width } = useScreenSize();
+  const configHook = useConfig(org);
   const {
     config,
     addRepo,
@@ -52,11 +57,11 @@ export function App({ client, org, token }: Props) {
     setJiraEmail,
     setJiraToken,
     setJiraProject,
-    setJiraAccountId,
     setGithubToken,
     setAzureToken,
     isFirstLaunch,
-  } = useConfig(org);
+  } = configHook;
+
   const { repos: orgRepos, loading: reposLoading } = useRepos(
     client,
     config.orgs,
@@ -69,33 +74,14 @@ export function App({ client, org, token }: Props) {
     unreadCount,
   } = useNotifications(token);
 
-  const [view, setViewRaw] = useState<ViewId>("prs");
-  const baseView = getBaseView(view);
+  // Router — all views use router for sub-navigation
+  const { route, baseRoute } = useRouter();
 
-  // When switching base views, reset to the base
-  const setView = (v: ViewId) => setViewRaw(v);
-
-  // Legacy switchView for views not yet migrated
-  const switchView = (target?: string, reverse?: boolean) => {
-    if (target) {
-      setViewRaw(target as ViewId);
-    } else {
-      const VIEWS: BaseView[] = [
-        "prs",
-        "dependencies",
-        "pipelines",
-        "releases",
-        "projects",
-        "jira",
-        "config",
-      ];
-      const idx = VIEWS.indexOf(baseView);
-      const next = reverse
-        ? (idx - 1 + VIEWS.length) % VIEWS.length
-        : (idx + 1) % VIEWS.length;
-      setViewRaw(VIEWS[next]!);
-    }
-  };
+  // Quit confirmation
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+  const hasRunningProcesses = config.localProjects.length > 0;
+  const requestQuit = useCallback(() => setShowQuitConfirm(true), []);
+  const cancelQuit = useCallback(() => setShowQuitConfirm(false), []);
 
   // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
@@ -103,140 +89,145 @@ export function App({ client, org, token }: Props) {
 
   useEffect(() => {
     if (viewHeaderRef.current) {
-      setMeasuredViewHeader(measureElement(viewHeaderRef.current).height);
+      const h = measureElement(viewHeaderRef.current).height;
+      setMeasuredViewHeader((prev) => (prev === h ? prev : h));
     }
   });
 
-  const viewCtx = useMemo(
-    () => ({ view, setView, baseView }),
-    [view, baseView],
+  const contentHeight =
+    baseRoute === "prs" ? height : height - measuredViewHeader;
+
+  const appCtx = useMemo(
+    () => ({
+      height,
+      width,
+      contentHeight,
+      onQuit: requestQuit,
+      config,
+      addRepo,
+      removeRepo,
+      addPackage,
+      removePackage,
+      addOrg,
+      removeOrg,
+      setRefreshInterval,
+      markViewed,
+      setThemeName,
+      setAzureOrg,
+      setAzureProject,
+      addPinnedPipeline,
+      removePinnedPipeline,
+      addPinnedReleaseDefinition,
+      removePinnedReleaseDefinition,
+      addLocalProject,
+      removeLocalProject,
+      setPersistCache,
+      setJiraSite,
+      setJiraEmail,
+      setJiraToken,
+      setJiraProject,
+      setGithubToken,
+      setAzureToken,
+      isFirstLaunch,
+      client,
+      token,
+      orgRepos,
+      reposLoading,
+      depPackages,
+      depFetchPackage,
+      notifications,
+      notifLoading,
+      unreadCount,
+    }),
+    [
+      height,
+      width,
+      contentHeight,
+      requestQuit,
+      config,
+      addRepo,
+      removeRepo,
+      addPackage,
+      removePackage,
+      addOrg,
+      removeOrg,
+      setRefreshInterval,
+      markViewed,
+      setThemeName,
+      setAzureOrg,
+      setAzureProject,
+      addPinnedPipeline,
+      removePinnedPipeline,
+      addPinnedReleaseDefinition,
+      removePinnedReleaseDefinition,
+      addLocalProject,
+      removeLocalProject,
+      setPersistCache,
+      setJiraSite,
+      setJiraEmail,
+      setJiraToken,
+      setJiraProject,
+      setGithubToken,
+      setAzureToken,
+      isFirstLaunch,
+      client,
+      token,
+      orgRepos,
+      reposLoading,
+      depPackages,
+      depFetchPackage,
+      notifications,
+      notifLoading,
+      unreadCount,
+    ],
   );
 
-  const contentHeight = height - measuredViewHeader;
-
-  // PRView still manages its own header (will be migrated later)
-  if (baseView === "prs") {
+  // Quit confirmation overlay
+  if (showQuitConfirm) {
     return (
-      <ViewContext.Provider value={viewCtx}>
-        <PRView
-          client={client}
-          token={token}
-          config={config}
-          addRepo={addRepo}
-          removeRepo={removeRepo}
-          markViewed={markViewed}
-          isFirstLaunch={isFirstLaunch}
-          orgRepos={orgRepos}
-          reposLoading={reposLoading}
-          notifications={notifications}
-          notifLoading={notifLoading}
-          unreadCount={unreadCount}
-          onQuit={exit}
+      <AppContext.Provider value={appCtx}>
+        <Box
           height={height}
           width={width}
-        />
-      </ViewContext.Provider>
+          alignItems="center"
+          justifyContent="center"
+        >
+          <QuitConfirm
+            hasRunningProcesses={hasRunningProcesses}
+            onConfirm={exit}
+            onCancel={cancelQuit}
+          />
+        </Box>
+      </AppContext.Provider>
+    );
+  }
+
+  // PRView manages its own header — render it without ViewHeader wrapper
+  if (baseRoute === "prs") {
+    return (
+      <AppContext.Provider value={appCtx}>
+        <RouteRenderer routes={routes} />
+      </AppContext.Provider>
     );
   }
 
   return (
-    <ViewContext.Provider value={viewCtx}>
+    <AppContext.Provider value={appCtx}>
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader view={view} headerRef={viewHeaderRef} />
-
-        {baseView === "dependencies" && (
-          <DependencyTracker
-            packages={depPackages}
-            fetchPackage={depFetchPackage}
-            trackedPackages={config.trackedPackages}
-            addPackage={addPackage}
-            removePackage={removePackage}
-            onSwitchView={switchView}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-
-        {baseView === "pipelines" && (
-          <PipelinesView
-            config={config}
-            addPinnedPipeline={addPinnedPipeline}
-            removePinnedPipeline={removePinnedPipeline}
-            onSwitchView={switchView}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-
-        {baseView === "releases" && (
-          <ReleasesView
-            config={config}
-            addPinnedReleaseDefinition={addPinnedReleaseDefinition}
-            removePinnedReleaseDefinition={removePinnedReleaseDefinition}
-            onSwitchView={switchView}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-
-        {baseView === "projects" && (
-          <ProjectsView
-            localProjects={config.localProjects}
-            addLocalProject={addLocalProject}
-            removeLocalProject={removeLocalProject}
-            onSwitchView={switchView}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-
-        {baseView === "jira" && (
-          <JiraView
-            config={config}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
-
-        {baseView === "config" && (
-          <ConfigView
-            orgs={config.orgs}
-            addOrg={addOrg}
-            removeOrg={removeOrg}
-            refreshInterval={config.refreshInterval}
-            setRefreshInterval={setRefreshInterval}
-            themeName={config.theme}
-            setThemeName={setThemeName}
-            azureOrg={config.azureOrg}
-            azureProject={config.azureProject}
-            setAzureOrg={setAzureOrg}
-            setAzureProject={setAzureProject}
-            jiraSite={config.jiraSite}
-            jiraEmail={config.jiraEmail}
-            jiraToken={config.jiraToken}
-            jiraProject={config.jiraProject}
-            setJiraSite={setJiraSite}
-            setJiraEmail={setJiraEmail}
-            setJiraToken={setJiraToken}
-            setJiraProject={setJiraProject}
-            githubToken={config.githubToken}
-            setGithubToken={setGithubToken}
-            azureToken={config.azureToken}
-            setAzureToken={setAzureToken}
-            persistCache={config.persistCache}
-            setPersistCache={setPersistCache}
-            onSwitchView={switchView}
-            height={contentHeight}
-            width={width}
-            onQuit={exit}
-          />
-        )}
+        <ViewHeader route={route} headerRef={viewHeaderRef} />
+        <RouteRenderer routes={routes} />
       </Box>
-    </ViewContext.Provider>
+    </AppContext.Provider>
+  );
+}
+
+/**
+ * Top-level App component — wraps everything in RouterProvider.
+ */
+export function App({ client, org, token }: Props) {
+  return (
+    <RouterProvider routes={routes} initialRoute="prs">
+      <AppInner client={client} org={org} token={token} />
+    </RouterProvider>
   );
 }

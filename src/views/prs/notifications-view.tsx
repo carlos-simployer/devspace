@@ -1,32 +1,34 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
-import type { GitHubNotification } from "../../hooks/use-notifications.ts";
+import { useAppContext } from "../../app-context.ts";
+import { useRouter } from "../../ui/router.ts";
+import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { openInBrowser } from "../../utils/browser.ts";
 import { relativeTime } from "../../utils/time.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { usePrsContext } from "./prs-context.ts";
 
-interface Props {
-  notifications: GitHubNotification[];
-  loading: boolean;
-  height: number;
-  width: number;
-  onClose: () => void;
-  onOpenInBrowser: (url: string) => void;
-}
+/**
+ * NotificationsView — reads data from PrsContext.
+ * Rendered as a nested route child of PrsLayout.
+ */
+export function NotificationsView() {
+  const { height, width } = useAppContext();
+  const { navigate } = useRouter();
+  const { notifications, notifLoading: loading } = usePrsContext();
 
-export function NotificationsView({
-  notifications,
-  loading,
-  height,
-  width,
-  onClose,
-  onOpenInBrowser,
-}: Props) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useRouteShortcuts({});
+
+  // Header height (same as PrsLayout header: ~3 lines)
+  const sharedHeaderHeight = 3;
+  const panelHeight = height - sharedHeaderHeight;
 
   useInput((input, key) => {
     if (key.escape) {
-      onClose();
+      navigate("prs");
       return;
     }
     if (key.upArrow) {
@@ -42,12 +44,12 @@ export function NotificationsView({
         const webUrl = n.subject.url
           .replace("api.github.com/repos", "github.com")
           .replace("/pulls/", "/pull/");
-        onOpenInBrowser(webUrl);
+        openInBrowser(webUrl);
       }
     }
   });
 
-  const listHeight = height - 5;
+  const listHeight = panelHeight - 5;
   let startIndex = 0;
   if (notifications.length > listHeight) {
     const halfView = Math.floor(listHeight / 2);
@@ -64,7 +66,7 @@ export function NotificationsView({
     <Box
       flexDirection="column"
       width={width}
-      height={height}
+      height={panelHeight}
       paddingX={2}
       paddingY={1}
     >
@@ -115,7 +117,7 @@ export function NotificationsView({
           );
         })
       )}
-      <Box position="absolute" marginTop={height - 2} marginLeft={2}>
+      <Box position="absolute" marginTop={panelHeight - 2} marginLeft={2}>
         <Text dimColor>
           Esc: close │ Enter/o: open in browser │ ↑↓: navigate
         </Text>

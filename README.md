@@ -1,6 +1,6 @@
-# github-pr-dash
+# devspace
 
-A full-screen terminal dashboard for monitoring GitHub pull requests across multiple organizations. Built with React and [Ink](https://github.com/vadimdemedes/ink).
+A full-screen terminal dashboard for developer workflows — GitHub PRs, Jira issues, Azure DevOps pipelines, local projects, and more. Built with React and [Ink](https://github.com/vadimdemedes/ink).
 
 ## Features
 
@@ -98,7 +98,7 @@ On first launch, the app opens the config view to add your organization. After t
 
 ## Configuration
 
-Config is stored at `~/.config/github-pr-dash/config.json` (created automatically).
+Config is stored at `~/.config/devspace/config.json` (created automatically).
 
 ```json
 {

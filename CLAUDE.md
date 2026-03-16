@@ -33,81 +33,118 @@ src/
 │   ├── queries.ts               # PR search + detail queries
 │   ├── dependency-queries.ts    # Dependency search queries
 │   ├── mutations.ts             # PR review/comment mutations
+│   ├── azure-auth.ts            # Azure DevOps PAT auth helper
+│   ├── azure-client.ts          # Azure DevOps REST API client
 │   ├── jira-client.ts           # Jira Cloud REST API client (Basic auth, search, issue detail, myself)
 │   └── types.ts                 # All shared TypeScript interfaces
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
 │   ├── theme.ts                 # Centralized color + icon constants
-│   ├── shortcut-registry.ts     # Single source of truth for all keyboard shortcuts
-│   ├── shortcut-registry.test.ts # Tests for shortcut registry
-│   ├── view-config.ts           # ViewId type system, view definitions, tab/bar config
-│   ├── view-context.ts          # React context for current view + setView navigation
+│   ├── router.ts                # RouterProvider, useRouter, defineRoutes, RouteRenderer, Outlet, useOutlet
+│   ├── router.test.tsx          # Router tests (param extraction, navigation, goBack, nested routes)
+│   ├── route-shortcuts.ts       # All keyboard shortcuts grouped by route path
+│   ├── route-shortcuts.test.ts  # Tests for route-based shortcut system
+│   ├── tabs.ts                  # TABS array, getTabViews, getTabNumberKeys, getBaseRoute
+│   ├── tabs.test.ts             # Tests for tab system
 │   ├── selectable-list-item.tsx # Blue-bg selected row component
+│   ├── selectable-list-item.test.tsx # Tests for selectable list item
 │   ├── tab-item.tsx             # Single tab label component
 │   ├── use-list-viewport.ts     # Viewport windowing hook for scrollable lists
 │   ├── overlay.tsx              # Overlay wrapper component
+│   ├── overlay.test.tsx         # Tests for overlay component
 │   ├── status-bar-layout.tsx    # Status bar wrapper
 │   └── keyboard-hint.tsx        # Dim hint text component
-├── views/                       # View modules (each owns its state + shortcuts)
+├── views/                       # View modules (all use nested routes via Outlet)
 │   ├── prs/                     # PR dashboard view
-│   │   ├── index.tsx            # PRView — owns all PR state and useShortcuts
+│   │   ├── index.tsx            # Re-exports PrsLayout
+│   │   ├── prs-context.ts       # PrsContext — shared state for all PR child routes
+│   │   ├── prs-layout.tsx       # PrsLayout — parent layout, owns state + own header
+│   │   ├── pr-list-view.tsx     # PrListView — index route (list + sidebar + shortcuts)
+│   │   ├── prs-help-view.tsx    # PrsHelpView — help overlay route
 │   │   ├── sidebar.tsx          # Pinned repos sidebar
+│   │   ├── sidebar.test.tsx     # Tests for sidebar
 │   │   ├── pr-list.tsx          # Scrollable PR list
 │   │   ├── pr-row.tsx           # Single PR row
+│   │   ├── pr-row.test.tsx      # Tests for PR row
 │   │   ├── status-bar.tsx       # Filter, count, refresh timer
-│   │   ├── repo-search.tsx      # Repo search overlay
-│   │   ├── notifications-view.tsx # GitHub notifications panel
-│   │   └── pr-detail/           # PR detail panel (sub-view)
+│   │   ├── repo-search.tsx      # Repo search overlay (child route)
+│   │   ├── notifications-view.tsx # GitHub notifications panel (child route)
+│   │   └── pr-detail/           # PR detail panel (child route)
 │   │       ├── index.tsx        # Tab switching + scroll
 │   │       ├── overview-tab.tsx # PR metadata, description, checks
 │   │       ├── files-tab.tsx    # Changed file list + expansion
 │   │       └── diff-view.tsx    # Patch line rendering
 │   ├── dependencies/            # Dependency tracker view
-│   │   ├── index.tsx            # DependencyTracker component
+│   │   ├── index.tsx            # Re-exports DepsLayout
+│   │   ├── deps-context.ts     # DepsContext — shared state for all dep child routes
+│   │   ├── deps-layout.tsx     # DepsLayout — parent layout, owns state
+│   │   ├── deps-list-view.tsx  # DepsListView — index route (list + sidebar + shortcuts)
+│   │   ├── deps-help-view.tsx  # DepsHelpView — help overlay route
 │   │   ├── package-list.tsx     # Tracked packages sidebar
-│   │   ├── package-search.tsx   # Package name search overlay
+│   │   ├── package-search.tsx   # Package name search overlay (child route)
 │   │   ├── dep-results.tsx      # Repos using a tracked package
 │   │   └── dep-status-bar.tsx   # Dep view status bar
 │   ├── pipelines/               # Azure DevOps pipelines view
-│   │   ├── index.tsx            # PipelinesView — pipeline monitoring
+│   │   ├── index.tsx            # Re-exports PipelinesLayout
+│   │   ├── pipelines-context.ts # PipelinesContext — shared state
+│   │   ├── pipelines-layout.tsx # PipelinesLayout — parent layout, owns state
+│   │   ├── pipelines-list-view.tsx # PipelinesListView — index route
+│   │   ├── pipelines-help-view.tsx # PipelinesHelpView — help overlay route
 │   │   ├── pipeline-sidebar.tsx # Pinned pipelines sidebar
 │   │   ├── pipeline-list.tsx    # Pipeline build list
 │   │   ├── pipeline-row.tsx     # Single pipeline row
-│   │   ├── pipeline-runs.tsx    # Pipeline runs detail panel
-│   │   ├── pipeline-search.tsx  # Pipeline search overlay
+│   │   ├── pipeline-runs.tsx    # Pipeline runs detail panel (child route)
+│   │   ├── pipeline-search.tsx  # Pipeline search overlay (child route)
 │   │   └── status-bar.tsx       # Pipeline status bar
 │   ├── releases/                # Azure DevOps releases view
-│   │   ├── index.tsx            # ReleasesView — release tracking
+│   │   ├── index.tsx            # Re-exports ReleasesLayout
+│   │   ├── releases-context.ts  # ReleasesContext — shared state
+│   │   ├── releases-layout.tsx  # ReleasesLayout — parent layout, owns state
+│   │   ├── releases-list-view.tsx # ReleasesListView — index route
+│   │   ├── releases-help-view.tsx # ReleasesHelpView — help overlay route
 │   │   ├── definition-sidebar.tsx # Release definitions sidebar
-│   │   ├── definition-search.tsx  # Definition search overlay
+│   │   ├── definition-search.tsx  # Definition search overlay (child route)
 │   │   ├── release-list.tsx     # Release list
 │   │   ├── release-row.tsx      # Single release row
 │   │   └── status-bar.tsx       # Release status bar
 │   ├── projects/                # Local projects runner view
-│   │   ├── index.tsx            # ProjectsView — process start/stop, log panel
+│   │   ├── index.tsx            # Re-exports ProjectsLayout
+│   │   ├── projects-context.ts  # ProjectsContext — shared state
+│   │   ├── projects-layout.tsx  # ProjectsLayout — parent layout, owns state
+│   │   ├── projects-list-view.tsx # ProjectsListView — index route
+│   │   ├── projects-help-view.tsx # ProjectsHelpView — help overlay route
 │   │   ├── project-list.tsx     # Project list with status indicators
 │   │   ├── log-panel.tsx        # Live log detail panel (right side)
 │   │   └── add-project.tsx      # Multi-step add project wizard
 │   ├── jira/                    # Jira issue tracker view
-│   │   ├── index.tsx            # JiraView — issue list, filter, search, member select
+│   │   ├── index.tsx            # Re-exports JiraLayout
+│   │   ├── jira-context.ts      # JiraContext — shared state for all Jira child routes
+│   │   ├── jira-layout.tsx      # JiraLayout — parent layout, owns state
+│   │   ├── issue-list-view.tsx  # JiraIssueListView — index route (list + shortcuts)
+│   │   ├── jira-help-view.tsx   # JiraHelpView — help overlay route
 │   │   ├── issue-list.tsx       # Issue list grouped by status
 │   │   ├── issue-row.tsx        # Single issue row
 │   │   ├── status-bar.tsx       # Jira status bar (filter mode, project, counts)
-│   │   ├── member-select.tsx    # Team member select overlay
-│   │   └── issue-detail/        # Issue detail panel (sub-view)
+│   │   ├── status-filter.tsx    # Status filter overlay (child route)
+│   │   ├── sort-overlay.tsx     # Sort overlay (child route)
+│   │   ├── member-select.tsx    # Team member select overlay (child route)
+│   │   └── issue-detail/        # Issue detail panel (child route)
 │   │       ├── index.tsx        # Tab switching (overview/comments/subtasks) + scroll
 │   │       ├── overview-tab.tsx # Issue metadata, description, status
 │   │       ├── comments-tab.tsx # Issue comments
 │   │       └── subtasks-tab.tsx # Subtask list
 │   └── config/                  # Configuration view
-│       └── index.tsx            # Org management, refresh interval, Jira settings, edit config
+│       ├── index.tsx            # Re-exports ConfigLayout
+│       ├── config-layout.tsx    # ConfigLayout — parent layout (overlay routing only)
+│       ├── config-main-view.tsx # ConfigMainView — index route (tool sections)
+│       └── config-help-view.tsx # ConfigHelpView — help overlay route
 ├── components/                  # Shared cross-view components
-│   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar)
-│   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from registry)
-│   ├── tab-bar.tsx              # View switcher tab bar (reads from view-config)
+│   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar, reads from route-shortcuts)
+│   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from route-shortcuts)
+│   ├── tab-bar.tsx              # View switcher tab bar (reads from tabs.ts)
 │   └── shortcuts.tsx            # Bottom shortcut hint bar
 ├── hooks/                       # React hooks
-│   ├── use-config.ts            # Config read/write (~/.config/github-pr-dash/)
+│   ├── use-config.ts            # Config read/write (~/.config/devspace/)
 │   ├── use-pull-requests.ts     # PR search + pagination + polling
 │   ├── use-pr-detail.ts         # Single PR detail data
 │   ├── use-dependency-search.ts # Dependency search with disk cache
@@ -115,8 +152,7 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   ├── use-shortcuts.ts         # Shortcut hook (replaces useInput in views)
-│   ├── use-global-keys.ts       # handleGlobalKeys() (legacy, being replaced by useShortcuts)
+│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (auto-scopes from current route)
 │   ├── use-local-processes.ts   # Child process management for local projects
 │   ├── use-pipelines.ts         # Azure DevOps pipeline data
 │   ├── use-pipeline-runs.ts     # Pipeline run history
@@ -135,80 +171,117 @@ src/
 │   ├── config-migration.ts      # Config v1 → v2 migration
 │   ├── reviewers.ts             # Reviewer info + hex color conversion
 │   ├── fuzzy.ts                 # Fuzzy match/score for search
-│   └── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
-├── app.tsx                      # ViewContext.Provider + ViewHeader, view switching
+│   ├── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
+│   ├── azure-status.ts          # Azure pipeline/release status → icon/color mapping
+│   ├── query-persister.ts       # React Query file-based cache persistence
+│   └── browser.ts               # Shared openInBrowser utility (uses 'open' package)
+├── app.tsx                      # AppContext.Provider + RouterProvider + ViewHeader shell
+├── app-context.ts               # AppContext (React context providing shared data to all views)
+├── routes.ts                    # Route definitions mapping paths to view components
 ├── index.tsx                    # Entry point: auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
 
 ### Entry & Auth Flow
 
-`src/index.tsx` resolves auth (`gh auth token` → `GITHUB_TOKEN` env → exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`.
+`src/index.tsx` resolves auth (`gh auth token` -> `GITHUB_TOKEN` env -> exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">`, then `AppInner` provides `<AppContext.Provider>` with all shared state before rendering `<RouteRenderer>`.
 
-### View Architecture
+### View Architecture (Router + Nested Routes)
 
-`src/app.tsx` wraps views in a `ViewContext.Provider` and renders a shared `ViewHeader` component (TabBar + Shortcuts bar). View switching and sub-view navigation use the `ViewId` type from `src/ui/view-config.ts`.
+All 7 views use the same nested route pattern. `src/app.tsx` wraps the app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer`, which matches the current route to a component defined in `src/routes.ts`. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"config"`).
 
-Each view in `src/views/` is self-contained:
-- **PRView** (`views/prs/index.tsx`) — owns all PR-specific state, input handling, and sub-components (sidebar, list, detail panel, overlays)
-- **DependencyTracker** (`views/dependencies/index.tsx`) — owns dependency search state and layout
-- **PipelinesView** (`views/pipelines/index.tsx`) — Azure DevOps pipeline monitoring
-- **ReleasesView** (`views/releases/index.tsx`) — Azure DevOps release tracking
-- **ProjectsView** (`views/projects/index.tsx`) — local dev project runner with process management, log panel, dependency-aware start/stop
-- **JiraView** (`views/jira/index.tsx`) — Jira Cloud issue tracker with filter modes (mine/team/person), status-grouped issue list, issue detail panel (overview/comments/subtasks tabs), team member select overlay
-- **ConfigView** (`views/config/index.tsx`) — org management, refresh interval, theme, Azure DevOps settings, Jira settings, open config in VS Code (e)
+The architecture consists of 5 key files:
+- **`src/app-context.ts`** — `AppContext` (React context) and `useAppContext()` hook. Provides all shared data to views: config + all config mutators, GraphQL client, token, org repos, dependency data, notifications, layout dimensions, and `onQuit`. Views call `useAppContext()` to access everything they need — no props are passed from `app.tsx` to views.
+- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. All 7 views are `NestedRouteDef` entries with a `component` (parent layout) and `children` (child routes). The parent layout renders `<Outlet />` and child routes are mapped to separate components. Config sub-routes are local state only (edit dialogs use `position="absolute"` overlays within the main view).
+- **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`, `Outlet`, `useOutlet()`. Routes support `:param` placeholders and optional `layout: "overlay"` flag. `defineRoutes()` flattens nested route definitions internally. `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }` — `matchedPath` is the pattern (e.g. `"jira/detail/:key"`) used for shortcut lookup via `getShortcutRoute()`. `RouteRenderer` wraps the child in `OutletContext` and renders the parent; the parent calls `<Outlet />` to render the child.
+- **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup (e.g. `"jira/detail/:key"` -> `"jira/detail"`). Query helpers: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
+- **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 
-Views use `useShortcuts` from `src/hooks/use-shortcuts.ts` instead of raw `useInput`. This hook reads the current `ViewId` from `ViewContext`, matches keyboard input against the shortcut registry, and dispatches to action handlers. Global shortcuts (quit, help toggle, tab switching via Tab/Shift+Tab/1-7) are handled automatically.
+#### Consistent View Decomposition Pattern
 
-#### View Sub-state Pattern
+Every view follows the same 4-file pattern:
 
-Sub-view navigation uses `setView` from the context (e.g., `setView("prs.detail")`, `setView("jira.detail")`, `setView("jira.memberSelect")`). Views derive boolean state from the current ViewId:
+| File | Role |
+|------|------|
+| `*-context.ts` | React context + hook (e.g. `PrsContext`, `usePrsContext()`) for view-specific shared state |
+| `*-layout.tsx` | Parent layout component: owns state, provides Context, renders `<Outlet />`. Handles overlay vs full-child rendering. |
+| `*-list-view.tsx` (or `*-main-view.tsx`) | Index route: main UI with `useRouteShortcuts` for view-specific key bindings |
+| `*-help-view.tsx` | Help overlay: thin wrapper calling `useRouteShortcuts({})` to activate global help-close behavior |
+
+Each view's `index.tsx` re-exports the layout component (e.g. `export { PrsLayout } from "./prs-layout.tsx"`).
+
+**All views take zero props.** Layout components call `useAppContext()` for shared data, own view-specific state, and provide it via their context. Child route components access view state via the context hook (e.g. `usePrsContext()`, `useDepsContext()`).
+
+The 7 views and their layouts:
+- **PrsLayout** (`views/prs/prs-layout.tsx`) — manages its own header/TabBar instead of using the shared `ViewHeader`. Children: `PrListView`, `PrsHelpView`, `PRDetailPanel`, `NotificationsView`, `RepoSearch`.
+- **DepsLayout** (`views/dependencies/deps-layout.tsx`) — Children: `DepsListView`, `DepsHelpView`, `PackageSearch`.
+- **PipelinesLayout** (`views/pipelines/pipelines-layout.tsx`) — Children: `PipelinesListView`, `PipelinesHelpView`, `PipelineSearch`, `PipelineRuns`.
+- **ReleasesLayout** (`views/releases/releases-layout.tsx`) — Children: `ReleasesListView`, `ReleasesHelpView`, `DefinitionSearch`.
+- **ProjectsLayout** (`views/projects/projects-layout.tsx`) — Children: `ProjectsListView`, `ProjectsHelpView`.
+- **JiraLayout** (`views/jira/jira-layout.tsx`) — Children: `JiraIssueListView`, `JiraHelpView`, `IssueDetail`, `SortOverlay`, `StatusFilter`, `MemberSelect`.
+- **ConfigLayout** (`views/config/config-layout.tsx`) — Minimal layout (overlay routing only, no context). Children: `ConfigMainView`, `ConfigHelpView`. Config edit dialogs use local state with `position="absolute"` overlays inside `ConfigMainView`.
+
+#### useRouteShortcuts Behavior
+
+- **Auto-scope:** The hook automatically scopes to the current route from `RouterContext` -- no manual `scope` parameter needed.
+- **`active` flag:** Set to `false` to disable during text input modes (search typing, etc.).
+- **`onUnhandled`:** Fallback for keys not matching any shortcut.
+- **Help overlay:** When on a `/help` route, `?` and `Esc` automatically close it (navigate back). Tab switching and quit still work from help overlays.
+- **Global shortcuts** (quit, help, tab switch) are always active within any route.
+- **Sub-views with raw `useInput`:** Components like `PRDetailPanel`, `NotificationsView`, and `PipelineRuns` that use raw `useInput` for scrolling also call `useRouteShortcuts({})` to get global shortcuts (quit, help, tab switch).
+
+#### goBack() Navigation
+
+The router maintains a history stack. `goBack()` pops the previous route from the stack, enabling natural back-navigation from detail views and overlays. This is useful for parameterized routes where the caller route is not statically known.
+
+#### Nested Routes + Outlet Pattern
+
+In `routes.ts`, every view is defined as a `NestedRouteDef` with a `component` (parent layout) and `children` (child routes):
 
 ```tsx
-const showHelp = view === "jira.help";
-const showDetail = view === "jira.detail";
-const showMemberSelect = view === "jira.memberSelect";
+pipelines: {
+  component: PipelinesLayout,
+  children: {
+    "": { component: PipelinesListView },             // index route
+    help: { component: PipelinesHelpView, layout: "overlay" },
+    search: { component: PipelineSearch, layout: "overlay" },
+    runs: { component: PipelineRuns },                 // full-screen child
+  },
+}
 ```
 
-Early returns render sub-views in priority order: not-configured, then full-screen overlays (member-select, help, detail, search), then the main view. The `ViewHeader` in `app.tsx` auto-updates bar items based on the current `ViewId`.
+`defineRoutes()` flattens this into routes like `"pipelines"`, `"pipelines/help"`, `"pipelines/search"`, `"pipelines/runs"`. Each flattened entry stores both `parentComponent` and `childComponent`.
 
-#### Overlay Pattern
-
-There are two types of overlays:
-
-**Full-screen overlays** (search, member select, help, detail panels) use the early-return pattern — the overlay replaces the view content entirely while the shared `ViewHeader` from `app.tsx` stays visible above:
+Layout components use `useOutlet()` to conditionally render overlays centered vs full children directly:
 
 ```tsx
-if (showSearch) {
+function PipelinesLayout() {
+  const outlet = useOutlet(); // { layout, isOverlay } or null
   return (
-    <Box height={height} width={width} alignItems="center" justifyContent="center">
-      <PipelineSearch ... />
-    </Box>
+    <PipelinesContext.Provider value={ctx}>
+      {outlet?.isOverlay ? (
+        <Box alignItems="center" justifyContent="center"><Outlet /></Box>
+      ) : (
+        <Outlet />
+      )}
+    </PipelinesContext.Provider>
   );
 }
 ```
 
-These set the view via context (`setView("pipelines.search")`). The main view's `useShortcuts` won't fire because scope awareness prevents it.
+**State flow:** `AppContext` (global) -> Layout (owns view state) -> ViewContext.Provider -> child components via `useViewContext()`.
 
-**Small input overlays** (config edit dialogs, confirm dialogs) use `position="absolute"` centered on screen, rendered within the main view's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Overlay state must be synced to `ViewContext` so main shortcuts don't interfere:
+#### Overlay Types
 
-```tsx
-// In config view: sync local overlay state → ViewContext
-useEffect(() => {
-  if (showAddOrg) setView("config.addOrg");
-  else if (showEditAzureOrg) setView("config.editAzureOrg");
-  // ...
-  else if (view.startsWith("config.")) setView("config");
-}, [showAddOrg, showEditAzureOrg, ...]);
-```
+**Route-based overlays** (search, help, member select, sort) are child routes with `layout: "overlay"` in `routes.ts`. The parent layout detects `outlet?.isOverlay` and centers the child. These are separate components that navigate via `navigate("view/search")`.
 
-A minimal `useInput` handles only Escape to close the overlay (since `TextInput` captures all other keys).
+**Local state overlays** (config edit dialogs, confirm kill dialogs in projects) use `position="absolute"` centered on screen, rendered within the index route's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Config sub-routes (e.g. `config/addOrg`) are tracked in the router for shortcut scoping but rendered by local state within `ConfigMainView`.
 
 ### State & Data
 
-No external state management. Each view manages its own state via React hooks.
+No external state management library. Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`. Each view manages its own view-specific state via local React hooks.
 
-- **useConfig** — reads/writes `~/.config/github-pr-dash/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
+- **useConfig** — reads/writes `~/.config/devspace/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.
 - **usePRDetail** — fetches full PR data (body, files, checks) for the detail panel.
 - **useDependencySearch** — searches org repos for package usage with disk caching.
@@ -225,7 +298,7 @@ Jira JQL pattern: `project = KEY AND assignee = "accountId" AND statusCategory !
 
 ### Local Projects Config
 
-Projects are configured in `~/.config/github-pr-dash/config.json` under the `localProjects` array. Can be added via the TUI (+) or by editing the config file directly (press **e** in Config tab).
+Projects are configured in `~/.config/devspace/config.json` under the `localProjects` array. Can be added via the TUI (+) or by editing the config file directly (press **e** in Config tab).
 
 ```json
 {
@@ -257,7 +330,7 @@ Fields:
 
 ### Jira Config
 
-Jira settings are stored in `~/.config/github-pr-dash/config.json` and can be edited via the Config tab (press 7). Jira uses API token authentication (Basic auth), not OAuth.
+Jira settings are stored in `~/.config/devspace/config.json` and can be edited via the Config tab (press 7). Jira uses API token authentication (Basic auth), not OAuth.
 
 Config fields:
 - **jiraSite** — Jira Cloud site hostname (e.g. `your-org.atlassian.net`)
@@ -271,9 +344,9 @@ Config fields:
 
 Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **theme.ts** — `colors` and `icons` constants used throughout the app
-- **shortcut-registry.ts** — single source of truth for all keyboard shortcuts (see Shortcut System below)
-- **view-config.ts** — `ViewId` type (includes sub-views like `"prs.detail"`, `"jira.detail"`, `"jira.memberSelect"`), `BaseView` type, `VIEW_CONFIG` with tab labels and bar action lists, plus helpers: `getBaseView()`, `getTabViews()`, `getTabNumberKeys()`. Tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last)
-- **view-context.ts** — React context providing `{ view, setView, baseView }` to the component tree; consumed via `useView()` hook
+- **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }`. `defineRoutes()` creates the route map from nested path definitions. `RouteRenderer` matches the current route and renders the component. `Outlet` renders the child route in nested layouts; `useOutlet()` returns `{ layout, isOverlay }` for conditional rendering.
+- **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup. Query helpers accept optional `matchedPath`: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
+- **tabs.ts** — `TABS` array defining tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 - **SelectableListItem** — row with blue background when selected
 - **TabItem** — single tab label component
 - **useListViewport** — handles viewport windowing for scrollable lists
@@ -281,35 +354,44 @@ Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **StatusBarLayout** — consistent status bar wrapper
 - **KeyboardHint** — dim hint text for keyboard shortcuts
 
-Import these via `from "../ui/index.ts"` or `from "../ui/theme.ts"`.
+Import these via `from "../ui/index.ts"` or directly (e.g. `from "../ui/router.ts"`, `from "../ui/route-shortcuts.ts"`).
 
-### Shortcut System
+### Shortcut System (Route-based)
 
-All keyboard shortcuts are defined once in `src/ui/shortcut-registry.ts` as a flat `SHORTCUTS` array. Each entry has:
-- `action` — action name (e.g. `"open"`, `"filterMine"`)
-- `key` — trigger key (character or special: `"tab"`, `"return"`, `"escape"`, `"up"`, `"down"`, etc.)
-- `view` — `ViewId` this shortcut is active in; `undefined` = global (always active)
-- `label` — short label for the bottom bar (optional; only entries with a label appear in the bar)
-- `help` — description for the help overlay
+All keyboard shortcuts are defined in `src/ui/route-shortcuts.ts` as `ROUTE_SHORTCUTS` -- an object keyed by route path. Each route maps key strings to `ShortcutDef` objects:
+- `action` -- action name (e.g. `"open"`, `"filterMine"`)
+- `key` -- trigger key (character or special: `"tab"`, `"return"`, `"escape"`, `"up"`, `"down"`, etc.)
+- `label` -- short label for the bottom bar (optional; only entries with a label appear in the bar)
+- `help` -- description for the help overlay
 
-Query helpers derive UI from the registry:
-- `getBarShortcuts(viewId)` — returns `[{key, label}]` for the bottom bar, filtered by `VIEW_CONFIG[viewId].bar` action names
-- `getHelpShortcuts(viewId)` — returns `[key, help]` pairs for the help overlay (view-specific + globals)
-- `matchShortcut(input, key, viewId)` — matches Ink's `useInput` args against the registry; view-specific shortcuts take precedence over globals
+The special `_global` key defines shortcuts active on all routes (quit, help, tab switching).
 
-**Adding a new shortcut:** Add one entry to the `SHORTCUTS` array in `shortcut-registry.ts`, then add a handler for that action name in the view's `useShortcuts` call. If it should appear in the bottom bar, also add its action name to `VIEW_CONFIG[viewId].bar` in `view-config.ts`.
+Bottom bar configuration is in `ROUTE_BAR` -- a separate object mapping route paths to arrays of action names that should appear in the bar.
 
-**Scope awareness:** `useShortcuts(handlers, { scope: "jira.detail" })` only fires when `view === scope` (exact match). When `scope` is omitted, it defaults to `baseView` (e.g. `"jira"`), which means handlers fire only on the exact base view — not on sub-views like `"jira.detail"` or `"jira.memberSelect"`. Sub-view components MUST specify their scope explicitly. Global shortcuts (quit, tab switching) still work from any sub-view within the same base view.
+Query helpers (all accept optional `matchedPath` to handle parameterized routes via `getShortcutRoute()`):
+- `getBarShortcuts(route, matchedPath?)` -- returns `[{key, label}]` for the bottom bar, using `ROUTE_BAR[route]` to select which actions to show
+- `getHelpShortcuts(route, matchedPath?)` -- returns `[key, help]` pairs for the help overlay (route-specific + base route + globals)
+- `matchShortcut(input, key, route, matchedPath?)` -- matches Ink's `useInput` args against the route's shortcuts; route-specific take precedence over globals
+- `getShortcutRoute(matchedPath)` -- strips `:param` segments from a matched pattern (e.g. `"jira/detail/:key"` -> `"jira/detail"`) so shortcuts are looked up by the static prefix
 
-**When to use `useShortcuts` vs `useInput`:**
-- `useShortcuts` — for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
-- `useInput` — only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`) should use `useShortcuts` with scope, not `useInput`.
+**Adding a new shortcut:**
+1. Add the `ShortcutDef` entry to `ROUTE_SHORTCUTS[route]` in `route-shortcuts.ts`
+2. Add a handler for that action name in the view's `useRouteShortcuts` call
+3. If it should appear in the bottom bar, add its action name to `ROUTE_BAR[route]`
+
+**`useRouteShortcuts` behavior:** Auto-scopes from the current route via `RouterContext`. No manual scope needed -- the hook only fires handlers for shortcuts defined on the current route. Global shortcuts (quit, help, tab switching) are handled automatically. The `active` flag can disable shortcuts during text input modes.
+
+**When to use `useRouteShortcuts` vs `useInput`:**
+- `useRouteShortcuts` -- for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
+- `useInput` -- only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`, `SortOverlay`) should use `useRouteShortcuts`, not `useInput`.
 
 ### Status Mapping
 
 `src/utils/status.ts` maps `reviewDecision` and `statusCheckRollup.state` from the GraphQL response to icons and colors defined in `src/ui/theme.ts`.
 
 `src/utils/jira-status.ts` groups Jira issues by status name, maps status categories (`new`/`indeterminate`/`done`) to theme colors, and provides icons for issue types (bug, story, epic, task, sub-task) and priority levels.
+
+`src/utils/azure-status.ts` maps Azure DevOps pipeline build results and release environment statuses to icons and theme colors.
 
 ## Code Conventions
 

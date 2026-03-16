@@ -83,11 +83,12 @@ export function PRList({
       let candidate = Math.min(selectedRowIdx - halfView, flatRows.length - 1);
       while (
         candidate > 0 &&
+        candidate < flatRows.length &&
         visualHeight(flatRows.slice(candidate)) > listHeight
       ) {
         candidate++;
       }
-      startRow = candidate;
+      startRow = Math.min(candidate, flatRows.length - 1);
     }
   }
 
@@ -97,7 +98,8 @@ export function PRList({
     let lines = 0;
     let seenHeader = false;
     for (let i = startRow; i < flatRows.length; i++) {
-      const row = flatRows[i]!;
+      const row = flatRows[i];
+      if (!row) break;
       let needed = 1;
       if (row.type === "header" && seenHeader) needed = 2; // margin + row
       if (row.type === "header") seenHeader = true;

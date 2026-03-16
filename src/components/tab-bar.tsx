@@ -1,28 +1,28 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { BaseView } from "../ui/view-config.ts";
-import { getTabViews } from "../ui/view-config.ts";
+import { getTabViews } from "../ui/tabs.ts";
 import { TabItem } from "../ui/tab-item.tsx";
 
 const TABS = getTabViews();
 
 interface Props {
-  activeView: BaseView | string;
+  activeView: string;
 }
 
 export function TabBar({ activeView }: Props) {
   return (
     <Box>
+      <Text bold color="cyan">
+        devspace{" "}
+      </Text>
       {TABS.map((tab) => (
         <TabItem
-          key={tab.key}
+          key={tab.route}
           label={tab.label}
-          isActive={tab.key === activeView}
+          isActive={tab.route === activeView}
         />
       ))}
       <Text dimColor> Tab/1-{TABS.length}: switch</Text>
     </Box>
   );
 }
-
-export { TABS };
