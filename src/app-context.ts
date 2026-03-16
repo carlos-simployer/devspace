@@ -8,6 +8,7 @@ import type {
   LocalProject,
 } from "./api/types.ts";
 import type { GitHubNotification } from "./hooks/use-notifications.ts";
+import type { ConfigError } from "./hooks/use-config.ts";
 
 export interface AppContextValue {
   // Layout
@@ -18,6 +19,7 @@ export interface AppContextValue {
 
   // Config (full object + all mutators)
   config: Config;
+  configErrors: ConfigError[];
   addRepo: (repo: string) => void;
   removeRepo: (repo: string) => void;
   addPackage: (pkg: string) => void;

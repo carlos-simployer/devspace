@@ -62,7 +62,14 @@ function writeConfig(config: Config) {
   writeFileSync(CONFIG_PATH, JSON.stringify(toWrite, null, 2));
 }
 
+export interface ConfigError {
+  path: string;
+  message: string;
+}
+
 export function useConfig(orgArg?: string) {
+  const [configErrors, setConfigErrors] = useState<ConfigError[]>([]);
+
   const [config, setConfigState] = useState<Config>(() => {
     const raw = readRawConfig();
 
@@ -142,16 +149,22 @@ export function useConfig(orgArg?: string) {
     // Validate and apply defaults via zod
     const parsed = configSchema.safeParse(raw);
     if (!parsed.success) {
-      logger.error(
-        "config",
-        `Config validation failed: ${parsed.error.message}`,
-      );
-      // Fall back to defaults with whatever we can salvage
+      const errors = parsed.error.issues.map((issue) => ({
+        path: issue.path.join(".") || "(root)",
+        message: issue.message,
+      }));
+      for (const err of errors) {
+        logger.error("config", `Config error at ${err.path}: ${err.message}`);
+      }
+      // Store errors so the UI can display them (set in useEffect below)
+      // Fall back to defaults so the app can still render
       const fallback = configSchema.parse({});
       if (orgArg) {
         fallback.activeOrg = orgArg;
         fallback.orgs = [orgArg];
       }
+      // Stash errors to set after mount
+      (fallback as any).__configErrors = errors;
       return fallback as Config;
     }
 
@@ -164,6 +177,15 @@ export function useConfig(orgArg?: string) {
 
     return cfg;
   });
+
+  // Pick up validation errors stashed during init
+  useEffect(() => {
+    const errors = (config as any).__configErrors;
+    if (errors) {
+      setConfigErrors(errors);
+      delete (config as any).__configErrors;
+    }
+  }, []);
 
   // Sync theme module state on init
   setTheme((config.theme || "default") as ThemeName);
@@ -487,5 +509,6 @@ export function useConfig(orgArg?: string) {
     removeSlackChannel,
     setEnabledTabs,
     isFirstLaunch,
+    configErrors,
   };
 }

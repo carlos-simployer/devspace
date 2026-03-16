@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import { Box, useApp, measureElement } from "ink";
+import { Box, Text, useApp, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useScreenSize } from "./hooks/use-screen-size.ts";
 import type { GraphQLClient } from "./api/client.ts";
@@ -20,6 +20,9 @@ import { AppContext } from "./app-context.ts";
 import { useTerminalTitle } from "./hooks/use-terminal-title.ts";
 import { routes } from "./routes.ts";
 import { setActiveTabs } from "./ui/tabs.ts";
+import { exec as execCmd } from "child_process";
+import { getTheme } from "./ui/theme.ts";
+import { DEFAULT_CONFIG_DIR } from "./constants.ts";
 
 interface Props {
   client: GraphQLClient;
@@ -62,6 +65,7 @@ function AppInner({ client, org, token }: Props) {
     removeSlackChannel,
     setEnabledTabs,
     isFirstLaunch,
+    configErrors,
   } = configHook;
 
   // Sync tab visibility/order with config
@@ -112,6 +116,7 @@ function AppInner({ client, org, token }: Props) {
       contentHeight,
       onQuit: requestQuit,
       config,
+      configErrors,
       addRepo,
       removeRepo,
       addPackage,
@@ -153,6 +158,7 @@ function AppInner({ client, org, token }: Props) {
       contentHeight,
       requestQuit,
       config,
+      configErrors,
       addRepo,
       removeRepo,
       addPackage,
@@ -189,6 +195,51 @@ function AppInner({ client, org, token }: Props) {
       unreadCount,
     ],
   );
+
+  // Config error screen — show before anything else
+  useInput(
+    (input) => {
+      if (configErrors.length === 0) return;
+      if (input === "e") {
+        execCmd(`code "${DEFAULT_CONFIG_DIR}/config.json"`);
+      }
+      if (input === "q") exit();
+    },
+    { isActive: configErrors.length > 0 },
+  );
+
+  if (configErrors.length > 0) {
+    const theme = getTheme();
+    return (
+      <Box
+        height={height}
+        width={width}
+        flexDirection="column"
+        paddingX={2}
+        paddingY={1}
+      >
+        <Text bold color={theme.status.failure}>
+          Configuration Error
+        </Text>
+        <Text dimColor>
+          {DEFAULT_CONFIG_DIR}/config.json has invalid values:
+        </Text>
+        <Box flexDirection="column" marginTop={1} marginBottom={1}>
+          {configErrors.map((err, i) => (
+            <Box key={i}>
+              <Text color={theme.status.failure}>{"\u2022"} </Text>
+              <Text bold>{err.path}</Text>
+              <Text dimColor> — {err.message}</Text>
+            </Box>
+          ))}
+        </Box>
+        <Text dimColor>
+          Press <Text bold>e</Text> to open config in VS Code |{" "}
+          <Text bold>q</Text> to quit
+        </Text>
+      </Box>
+    );
+  }
 
   // Quit confirmation overlay
   if (showQuitConfirm) {
