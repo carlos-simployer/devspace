@@ -22,12 +22,13 @@ Pre-commit hook (husky + lint-staged) runs `prettier --write` and `eslint --fix`
 
 ## Architecture
 
-Full-screen terminal app using **React 18 + Ink 5** (React renderer for CLIs). Data comes from **GitHub GraphQL API** via `@octokit/graphql` and **Jira Cloud REST API** via Basic auth. Tests use **vitest**.
+Full-screen terminal app using **React 18 + Ink 5** (React renderer for CLIs). Data comes from **GitHub GraphQL API** via `@octokit/graphql`, **Jira Cloud REST API** via Basic auth, **Azure DevOps REST API**, and **Slack Web API**. Tests use **vitest**.
 
 ### Directory Structure
 
 ```
 src/
+├── constants.ts                 # APP_NAME, DEFAULT_CONFIG_DIR, CACHE_DIR
 ├── api/                         # GraphQL client, queries, mutations, types
 │   ├── client.ts                # Creates authenticated GraphQL client
 │   ├── queries.ts               # PR search + detail queries
@@ -36,6 +37,7 @@ src/
 │   ├── azure-auth.ts            # Azure DevOps PAT auth helper
 │   ├── azure-client.ts          # Azure DevOps REST API client
 │   ├── jira-client.ts           # Jira Cloud REST API client (Basic auth, search, issue detail, myself)
+│   ├── slack-client.ts          # Slack Web API client (conversations, messages, reactions, presence)
 │   └── types.ts                 # All shared TypeScript interfaces
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
@@ -133,10 +135,25 @@ src/
 │   │       ├── overview-tab.tsx # Issue metadata, description, status
 │   │       ├── comments-tab.tsx # Issue comments
 │   │       └── subtasks-tab.tsx # Subtask list
+│   ├── slack/                   # Slack messaging view
+│   │   ├── slack-context.ts     # SlackContext — shared state for all Slack child routes
+│   │   ├── slack-layout.tsx     # SlackLayout — parent layout, owns state
+│   │   ├── slack-list-view.tsx  # SlackListView — index route (channel sidebar + messages)
+│   │   ├── slack-help-view.tsx  # SlackHelpView — help overlay route
+│   │   ├── channel-sidebar.tsx  # Pinned channels sidebar
+│   │   ├── message-list.tsx     # Message list for selected channel
+│   │   ├── message-row.tsx      # Single message row
+│   │   ├── slack-status-bar.tsx # Slack status bar
+│   │   ├── slack-channel-search.tsx # Channel search overlay (child route)
+│   │   ├── slack-emoji-picker.tsx   # Emoji reaction picker overlay (child route)
+│   │   ├── slack-status-view.tsx    # Status set overlay (child route)
+│   │   └── slack-thread-view.tsx    # Thread detail view (child route)
+│   ├── log/                     # Log overlay (shared across all views)
+│   │   └── log-overlay.tsx      # LogOverlayView — ring buffer display, accessible via L key
 │   └── config/                  # Configuration view
 │       ├── index.tsx            # Re-exports ConfigLayout
 │       ├── config-layout.tsx    # ConfigLayout — parent layout (overlay routing only)
-│       ├── config-main-view.tsx # ConfigMainView — index route (tool sections)
+│       ├── config-main-view.tsx # ConfigMainView — index route (tool sections: GitHub/Azure/Jira/Slack/System)
 │       └── config-help-view.tsx # ConfigHelpView — help overlay route
 ├── components/                  # Shared cross-view components
 │   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar, reads from route-shortcuts)
@@ -159,6 +176,13 @@ src/
 │   ├── use-releases.ts          # Azure DevOps release data
 │   ├── use-jira-issues.ts       # Jira issue search (React Query, JQL, filter modes)
 │   ├── use-jira-issue-detail.ts # Single Jira issue detail (React Query)
+│   ├── use-slack-auth.ts        # Slack auth + identity resolution via tokens.ts
+│   ├── use-slack-channels.ts    # Slack channel list fetch
+│   ├── use-slack-messages.ts    # Slack message history for selected channel
+│   ├── use-slack-mutations.ts   # Slack write operations (post, react, delete, set status)
+│   ├── use-slack-presence.ts    # Slack user presence tracking
+│   ├── use-slack-thread.ts      # Slack thread replies fetch
+│   ├── use-slack-users.ts       # Slack user cache + lookup
 │   └── use-theme.ts             # Theme state management
 ├── utils/                       # Pure utility functions (each has *.test.ts)
 │   ├── time.ts                  # Relative time formatting
@@ -169,33 +193,48 @@ src/
 │   ├── markdown.ts              # Markdown-to-terminal rendering
 │   ├── pr-sort.ts               # PR list comparison + sorting
 │   ├── config-migration.ts      # Config v1 → v2 migration
+│   ├── config-file.ts           # Centralized config.json read + path helper
+│   ├── tokens.ts                # Secure token store (tokens.json, 0600 perms)
+│   ├── cache-migration.ts       # Migrate cache files from ~/.config/ to ~/.cache/
+│   ├── logger.ts                # Ring-buffer logger with file output + React subscription
 │   ├── reviewers.ts             # Reviewer info + hex color conversion
 │   ├── fuzzy.ts                 # Fuzzy match/score for search
 │   ├── jira-status.ts           # Jira status grouping, icons, colors (type/priority)
 │   ├── azure-status.ts          # Azure pipeline/release status → icon/color mapping
 │   ├── query-persister.ts       # React Query file-based cache persistence
-│   └── browser.ts               # Shared openInBrowser utility (uses 'open' package)
+│   ├── browser.ts               # Shared openInBrowser utility (uses 'open' package)
+│   ├── slack-format.ts          # Slack mrkdwn → terminal rendering
+│   └── slack-links.ts           # Slack deep link URL builders
 ├── app.tsx                      # AppContext.Provider + RouterProvider + ViewHeader shell
 ├── app-context.ts               # AppContext (React context providing shared data to all views)
 ├── routes.ts                    # Route definitions mapping paths to view components
-├── index.tsx                    # Entry point: auth, client, alt-screen, render
+├── index.tsx                    # Entry point: migrations, auth, client, alt-screen, render
 └── patched-stdout.ts            # Buffered stdout to avoid fullscreen flicker
 ```
 
+### App Constants (`src/constants.ts`)
+
+Centralizes directory paths and the app name:
+- **`APP_NAME`** — `"devhub"` (display name, used in logs)
+- **`DEFAULT_CONFIG_DIR`** — `~/.config/devhub/` (config + tokens)
+- **`CACHE_DIR`** — `~/.cache/devhub/` (query cache, dep cache, log file)
+
+`DIR_NAME` is private and decoupled from `APP_NAME`, so renaming the display name does not move config/cache directories. All modules import paths from `constants.ts` instead of hardcoding `"devhub"`.
+
 ### Entry & Auth Flow
 
-`src/index.tsx` resolves auth (`gh auth token` -> `GITHUB_TOKEN` env -> exit), creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">`, then `AppInner` provides `<AppContext.Provider>` with all shared state before rendering `<RouteRenderer>`.
+`src/index.tsx` runs startup migrations (`migrateTokensFromConfig()`, `migrateCacheFiles()`), then resolves the GitHub token via `resolveGithubToken()` (tokens.json -> `gh auth token` CLI -> `GITHUB_TOKEN` env -> exit). It creates a single GraphQL client, parses `--org` arg (or `GITHUB_ORG` env), enters alternate screen buffer, then renders `<App>`. The `App` component wraps everything in `<RouterProvider routes={routes} initialRoute="prs">`, then `AppInner` provides `<AppContext.Provider>` with all shared state before rendering `<RouteRenderer>`.
 
 ### View Architecture (Router + Nested Routes)
 
-All 7 views use the same nested route pattern. `src/app.tsx` wraps the app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer`, which matches the current route to a component defined in `src/routes.ts`. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"config"`).
+All 8 views use the same nested route pattern. `src/app.tsx` wraps the app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer`, which matches the current route to a component defined in `src/routes.ts`. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"slack"`, `"config"`).
 
 The architecture consists of 5 key files:
 - **`src/app-context.ts`** — `AppContext` (React context) and `useAppContext()` hook. Provides all shared data to views: config + all config mutators, GraphQL client, token, org repos, dependency data, notifications, layout dimensions, and `onQuit`. Views call `useAppContext()` to access everything they need — no props are passed from `app.tsx` to views.
-- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. All 7 views are `NestedRouteDef` entries with a `component` (parent layout) and `children` (child routes). The parent layout renders `<Outlet />` and child routes are mapped to separate components. Config sub-routes are local state only (edit dialogs use `position="absolute"` overlays within the main view).
+- **`src/routes.ts`** — Route definitions created via `defineRoutes()`. All 8 views are `NestedRouteDef` entries with a `component` (parent layout) and `children` (child routes). The parent layout renders `<Outlet />` and child routes are mapped to separate components. Every view includes a `logs` child route (overlay) pointing to the shared `LogOverlayView`. Config sub-routes are local state only (edit dialogs use `position="absolute"` overlays within the main view).
 - **`src/ui/router.ts`** — `RouterProvider`, `useRouter()`, `defineRoutes()`, `RouteRenderer`, `Outlet`, `useOutlet()`. Routes support `:param` placeholders and optional `layout: "overlay"` flag. `defineRoutes()` flattens nested route definitions internally. `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }` — `matchedPath` is the pattern (e.g. `"jira/detail/:key"`) used for shortcut lookup via `getShortcutRoute()`. `RouteRenderer` wraps the child in `OutletContext` and renders the parent; the parent calls `<Outlet />` to render the child.
 - **`src/ui/route-shortcuts.ts`** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, plus `ROUTE_BAR` for bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup (e.g. `"jira/detail/:key"` -> `"jira/detail"`). Query helpers: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
-- **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Deps/Pipelines/Releases/Projects/Jira/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
+- **`src/ui/tabs.ts`** — `TABS` array defining tab order (PRs/Jira/Projects/Pipelines/Releases/Deps/Slack/Config), `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 
 #### Consistent View Decomposition Pattern
 
@@ -212,14 +251,15 @@ Each view's `index.tsx` re-exports the layout component (e.g. `export { PrsLayou
 
 **All views take zero props.** Layout components call `useAppContext()` for shared data, own view-specific state, and provide it via their context. Child route components access view state via the context hook (e.g. `usePrsContext()`, `useDepsContext()`).
 
-The 7 views and their layouts:
+The 8 views and their layouts (every view also has a `logs` child route for the shared `LogOverlayView`):
 - **PrsLayout** (`views/prs/prs-layout.tsx`) — manages its own header/TabBar instead of using the shared `ViewHeader`. Children: `PrListView`, `PrsHelpView`, `PRDetailPanel`, `NotificationsView`, `RepoSearch`.
 - **DepsLayout** (`views/dependencies/deps-layout.tsx`) — Children: `DepsListView`, `DepsHelpView`, `PackageSearch`.
 - **PipelinesLayout** (`views/pipelines/pipelines-layout.tsx`) — Children: `PipelinesListView`, `PipelinesHelpView`, `PipelineSearch`, `PipelineRuns`.
 - **ReleasesLayout** (`views/releases/releases-layout.tsx`) — Children: `ReleasesListView`, `ReleasesHelpView`, `DefinitionSearch`.
 - **ProjectsLayout** (`views/projects/projects-layout.tsx`) — Children: `ProjectsListView`, `ProjectsHelpView`.
 - **JiraLayout** (`views/jira/jira-layout.tsx`) — Children: `JiraIssueListView`, `JiraHelpView`, `IssueDetail`, `SortOverlay`, `StatusFilter`, `MemberSelect`.
-- **ConfigLayout** (`views/config/config-layout.tsx`) — Minimal layout (overlay routing only, no context). Children: `ConfigMainView`, `ConfigHelpView`. Config edit dialogs use local state with `position="absolute"` overlays inside `ConfigMainView`.
+- **SlackLayout** (`views/slack/slack-layout.tsx`) — Children: `SlackListView`, `SlackHelpView`, `SlackThreadView`, `SlackChannelSearch`, `SlackEmojiPicker`, `SlackStatusView`.
+- **ConfigLayout** (`views/config/config-layout.tsx`) — Minimal layout (overlay routing only, no context). Children: `ConfigMainView`, `ConfigHelpView`. Config edit dialogs use local state with `position="absolute"` overlays inside `ConfigMainView`. Config sections: GitHub, Azure, Jira, Slack, System.
 
 #### useRouteShortcuts Behavior
 
@@ -227,8 +267,8 @@ The 7 views and their layouts:
 - **`active` flag:** Set to `false` to disable during text input modes (search typing, etc.).
 - **`onUnhandled`:** Fallback for keys not matching any shortcut.
 - **Help overlay:** When on a `/help` route, `?` and `Esc` automatically close it (navigate back). Tab switching and quit still work from help overlays.
-- **Global shortcuts** (quit, help, tab switch) are always active within any route.
-- **Sub-views with raw `useInput`:** Components like `PRDetailPanel`, `NotificationsView`, and `PipelineRuns` that use raw `useInput` for scrolling also call `useRouteShortcuts({})` to get global shortcuts (quit, help, tab switch).
+- **Global shortcuts** (quit, help, logs, tab switch) are always active within any route.
+- **Sub-views with raw `useInput`:** Components like `PRDetailPanel`, `NotificationsView`, and `PipelineRuns` that use raw `useInput` for scrolling also call `useRouteShortcuts({})` to get global shortcuts (quit, help, logs, tab switch).
 
 #### goBack() Navigation
 
@@ -244,13 +284,14 @@ pipelines: {
   children: {
     "": { component: PipelinesListView },             // index route
     help: { component: PipelinesHelpView, layout: "overlay" },
+    logs: { component: LogOverlayView, layout: "overlay" }, // shared log overlay
     search: { component: PipelineSearch, layout: "overlay" },
     runs: { component: PipelineRuns },                 // full-screen child
   },
 }
 ```
 
-`defineRoutes()` flattens this into routes like `"pipelines"`, `"pipelines/help"`, `"pipelines/search"`, `"pipelines/runs"`. Each flattened entry stores both `parentComponent` and `childComponent`.
+`defineRoutes()` flattens this into routes like `"pipelines"`, `"pipelines/help"`, `"pipelines/logs"`, `"pipelines/search"`, `"pipelines/runs"`. Each flattened entry stores both `parentComponent` and `childComponent`.
 
 Layout components use `useOutlet()` to conditionally render overlays centered vs full children directly:
 
@@ -281,7 +322,7 @@ function PipelinesLayout() {
 
 No external state management library. Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`. Each view manages its own view-specific state via local React hooks.
 
-- **useConfig** — reads/writes `~/.config/devhub/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings). Auto-saves on mutation. Handles v1 → v2 migration.
+- **useConfig** — reads/writes `~/.config/devhub/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings, Slack channels). Auto-saves on mutation. Handles v1 → v2 migration. Tokens are **not** stored in config -- see Token Storage below.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.
 - **usePRDetail** — fetches full PR data (body, files, checks) for the detail panel.
 - **useDependencySearch** — searches org repos for package usage with disk caching.
@@ -289,12 +330,63 @@ No external state management library. Shared app-level state (config, client, re
 - **useRepos** — fetches all org repos (for the repo search overlay only).
 - **useJiraIssues** — builds JQL from project + filter mode (mine/team/person), fetches open + done issues via Jira REST API, React Query with configurable polling interval.
 - **useJiraIssueDetail** — fetches full issue data (description, comments, subtasks) for the detail panel via React Query.
+- **useSlackAuth** — resolves Slack token via `getToken("slackToken")`, fetches identity via `auth.test`.
+- **useSlackChannels** — fetches Slack channel list for the sidebar.
+- **useSlackMessages** — fetches message history for selected channel with polling.
+- **useSlackMutations** — write operations: post message, add/remove reaction, delete message, set status/presence.
+- **useSlackThread** — fetches thread replies for a selected message.
+- **useSlackUsers** — user cache with on-demand lookup for display names and avatars.
+- **useSlackPresence** — tracks active/away presence for sidebar users.
 
 PR search query pattern: `is:pr is:open repo:org/repo1 repo:org/repo2 ...` with optional `author:` or `review-requested:` modifiers based on filter mode.
 
 Jira JQL pattern: `project = KEY AND assignee = "accountId" AND statusCategory != Done ORDER BY status ASC, updated DESC` with filter mode variants (mine = current user, team = all, person = selected member).
 
 - **useLocalProcesses** — manages child processes for local projects. Event-driven status tracking (spawn/close/error events), log capture (last 500 lines per process), dependency-aware start (auto-starts deps), cleanup on unmount.
+
+### Token Storage (`src/utils/tokens.ts`)
+
+All authentication tokens are stored in a dedicated `~/.config/devhub/tokens.json` file with `0600` permissions (owner read/write only), **not** in `config.json`. This keeps secrets separate from non-sensitive configuration.
+
+Token keys: `githubToken`, `azureToken`, `jiraToken`, `slackToken`.
+
+API:
+- `getToken(key: TokenKey): string` — read a token (returns `""` if not set)
+- `setToken(key: TokenKey, value: string): void` — write a token
+- `deleteToken(key: TokenKey): void` — remove a token
+
+Token resolution order (GitHub example in `src/index.tsx`):
+1. `tokens.json` via `getToken("githubToken")`
+2. CLI tool (`gh auth token` / `az account get-access-token`)
+3. Environment variable (`GITHUB_TOKEN`)
+
+At startup, `migrateTokensFromConfig()` moves any token fields found in `config.json` to `tokens.json` and strips them from config. The `Config` type no longer contains `githubToken`, `azureToken`, `jiraToken`, or `slackToken`.
+
+### Centralized Config File Access (`src/utils/config-file.ts`)
+
+All modules that need to read `config.json` directly (outside of the React `useConfig` hook) use:
+- `readConfigFile(): any` — parse and return `config.json` contents (or `null`)
+- `getConfigPath(): string` — returns the full path to `config.json`
+
+This avoids scattered path construction and uses `DEFAULT_CONFIG_DIR` from `constants.ts`.
+
+### Cache Separation
+
+Cache files (`query-cache.json`, `dep-cache.json`, `devhub.log`) are stored in `~/.cache/devhub/` (XDG convention), separate from config in `~/.config/devhub/`. The `CACHE_DIR` constant from `src/constants.ts` provides this path. At startup, `migrateCacheFiles()` (from `src/utils/cache-migration.ts`) moves any cache files found in the old `~/.config/devhub/` location to `~/.cache/devhub/`.
+
+### Logging System (`src/utils/logger.ts`)
+
+In-memory ring buffer (500 entries) with file output to `~/.cache/devhub/devhub.log`.
+
+Levels: `info`, `warn`, `error`. Categories: `auth`, `config`, `cache`, `api`, `jira`, `azure`.
+
+API:
+- `logger.info(category, message)`, `logger.warn(...)`, `logger.error(...)`
+- `getLogEntries(): LogEntry[]` — read the ring buffer
+- `clearLog(): void` — clear the ring buffer
+- `subscribe(listener): unsubscribe` / `getSnapshot(): number` — React subscription via `useSyncExternalStore`
+
+The **log overlay** (`src/views/log/log-overlay.tsx`) is registered as a `logs` child route (with `layout: "overlay"`) on all 8 views in `routes.ts`. Global shortcut **L** toggles it from any view. Overlay shortcuts: up/down to scroll, **c** to clear, **L** or **Esc** to close.
 
 ### Local Projects Config
 
@@ -330,15 +422,17 @@ Fields:
 
 ### Jira Config
 
-Jira settings are stored in `~/.config/devhub/config.json` and can be edited via the Config tab (press 7). Jira uses API token authentication (Basic auth), not OAuth.
+Jira settings are stored in `~/.config/devhub/config.json` and can be edited via the Config tab (press 8). Jira uses API token authentication (Basic auth), not OAuth. The Jira API token itself is stored in `tokens.json` (not `config.json`) -- see Token Storage above.
 
-Config fields:
+Config fields (in `config.json`):
 - **jiraSite** — Jira Cloud site hostname (e.g. `your-org.atlassian.net`)
 - **jiraEmail** — email associated with the Jira account
-- **jiraToken** — Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens)
 - **jiraProject** — Jira project key (e.g. `PROJ`)
 - **jiraAccountId** — current user's Jira account ID (auto-resolved via `/myself` endpoint)
 - **jiraStatusOrder** — (optional) array of status names to control display order; defaults to `["In Progress", "Blocked", "In Review", "Ready for Test", "To Do", "Done"]`
+
+Token (in `tokens.json`):
+- **jiraToken** — Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens), managed via `getToken("jiraToken")` / `setToken("jiraToken", ...)`
 
 ### UI Primitives (`src/ui/`)
 
@@ -346,7 +440,7 @@ Reusable building blocks barrel-exported from `src/ui/index.ts`:
 - **theme.ts** — `colors` and `icons` constants used throughout the app
 - **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }`. `defineRoutes()` creates the route map from nested path definitions. `RouteRenderer` matches the current route and renders the component. `Outlet` renders the child route in nested layouts; `useOutlet()` returns `{ layout, isOverlay }` for conditional rendering.
 - **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup. Query helpers accept optional `matchedPath`: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
-- **tabs.ts** — `TABS` array defining tab order: PRs (1) / Deps (2) / Pipelines (3) / Releases (4) / Projects (5) / Jira (6) / Config (7, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
+- **tabs.ts** — `TABS` array defining tab order: PRs (1) / Jira (2) / Projects (3) / Pipelines (4) / Releases (5) / Deps (6) / Slack (7) / Config (8, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
 - **SelectableListItem** — row with blue background when selected
 - **TabItem** — single tab label component
 - **useListViewport** — handles viewport windowing for scrollable lists
@@ -364,7 +458,7 @@ All keyboard shortcuts are defined in `src/ui/route-shortcuts.ts` as `ROUTE_SHOR
 - `label` -- short label for the bottom bar (optional; only entries with a label appear in the bar)
 - `help` -- description for the help overlay
 
-The special `_global` key defines shortcuts active on all routes (quit, help, tab switching).
+The special `_global` key defines shortcuts active on all routes (quit, help, logs, tab switching).
 
 Bottom bar configuration is in `ROUTE_BAR` -- a separate object mapping route paths to arrays of action names that should appear in the bar.
 
