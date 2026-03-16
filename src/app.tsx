@@ -17,6 +17,7 @@ import { ViewHeader } from "./components/view-header.tsx";
 import { QuitConfirm } from "./components/quit-confirm.tsx";
 import { RouterProvider, RouteRenderer, useRouter } from "./ui/router.ts";
 import { AppContext } from "./app-context.ts";
+import { useTerminalTitle } from "./hooks/use-terminal-title.ts";
 import { routes } from "./routes.ts";
 import { setActiveTabs } from "./ui/tabs.ts";
 
@@ -80,6 +81,9 @@ function AppInner({ client, org, token }: Props) {
 
   // Router — all views use router for sub-navigation
   const { route, baseRoute } = useRouter();
+
+  // Update terminal tab title to reflect current view
+  useTerminalTitle(route);
 
   // Quit confirmation
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);

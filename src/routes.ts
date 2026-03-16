@@ -25,6 +25,9 @@ import { ProjectsHelpView } from "./views/projects/projects-help-view.tsx";
 import { ConfigLayout } from "./views/config/config-layout.tsx";
 import { ConfigMainView } from "./views/config/config-main-view.tsx";
 import { ConfigHelpView } from "./views/config/config-help-view.tsx";
+import { AboutLayout } from "./views/about/about-layout.tsx";
+import { AboutMainView } from "./views/about/about-main-view.tsx";
+import { AboutHelpView } from "./views/about/about-help-view.tsx";
 import { JiraLayout } from "./views/jira/jira-layout.tsx";
 import { JiraIssueListView } from "./views/jira/issue-list-view.tsx";
 import { IssueDetail } from "./views/jira/issue-detail/index.tsx";
@@ -127,6 +130,16 @@ export const routes = defineRoutes({
       emoji: { component: SlackEmojiPicker, layout: "overlay" },
       status: { component: SlackStatusView, layout: "overlay" },
       help: { component: SlackHelpView, layout: "overlay" },
+      logs: { component: LogOverlayView, layout: "overlay" },
+    },
+  },
+
+  // About — nested routes via Outlet system
+  about: {
+    component: AboutLayout,
+    children: {
+      "": { component: AboutMainView },
+      help: { component: AboutHelpView, layout: "overlay" },
       logs: { component: LogOverlayView, layout: "overlay" },
     },
   },

@@ -90,7 +90,9 @@ export function CommandPanel({
           25,
         )
       : 0;
-  const fixedCols = selW + nameW + cmdW + pidW + upW + urlW;
+  const memW = 7;
+  const cpuW = 6;
+  const fixedCols = selW + nameW + cmdW + pidW + upW + memW + cpuW + urlW;
   const pathW = Math.max(10, width - fixedCols - 2);
 
   const header =
@@ -100,6 +102,8 @@ export function CommandPanel({
     (urlW > 0 ? "URL".padEnd(urlW) : "") +
     "Path".padEnd(pathW) +
     "PID".padEnd(pidW) +
+    "CPU".padEnd(cpuW) +
+    "Mem".padEnd(memW) +
     "Uptime".padEnd(upW);
 
   // Selected command for logs
@@ -148,15 +152,21 @@ export function CommandPanel({
 
           const urlStr = urlW > 0 ? (cmd.url ?? "").padEnd(urlW) : "";
 
+          const memStr = state.memoryMB ? `${state.memoryMB}M` : "";
+          const cpuStr = state.cpuPercent ? `${state.cpuPercent}%` : "";
+
           const sel = (isSelected ? "> " : "  ") + icon + " ";
           const name = pad(cmd.name, nameW);
           const cmdStr = pad(cmd.command, cmdW);
           const pathStr = pad(cwdPath, pathW);
           const pid = pidStr.padEnd(pidW);
+          const cpu = cpuStr.padEnd(cpuW);
+          const mem = memStr.padEnd(memW);
           const up = upStr.padEnd(upW);
 
           if (isSelected) {
-            const content = sel + name + cmdStr + urlStr + pathStr + pid + up;
+            const content =
+              sel + name + cmdStr + urlStr + pathStr + pid + cpu + mem + up;
             const line =
               content.length < width
                 ? content + " ".repeat(width - content.length)
@@ -179,6 +189,8 @@ export function CommandPanel({
                 {urlStr && <Text color={theme.status.info}>{urlStr}</Text>}
                 <Text dimColor>{pathStr}</Text>
                 <Text color={theme.ui.muted}>{pid}</Text>
+                <Text color={theme.status.failure}>{cpu}</Text>
+                <Text color={theme.status.pending}>{mem}</Text>
                 <Text color={theme.status.success}>{up}</Text>
               </Text>
             </Box>

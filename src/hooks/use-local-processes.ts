@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { spawn, type ChildProcess } from "child_process";
+import pidusage from "pidusage";
+import pidtree from "pidtree";
 import type { LocalProject } from "../api/types.ts";
 
 // Module-level registry so processes can be killed on exit
@@ -33,7 +35,82 @@ export interface ProcessState {
   pid?: number;
   exitCode?: number | null;
   startedAt?: number;
+  memoryMB?: number;
+  cpuPercent?: number;
   logs: string[];
+}
+
+interface ProcessStats {
+  memoryMB?: number;
+  cpuPercent?: number;
+}
+
+/**
+ * Fetch CPU (%) and memory (MB) for process trees rooted at the given pids.
+ * Uses pidtree to discover all children, then pidusage for stats.
+ * Returns aggregated stats per leader pid (sum of entire tree).
+ * Cross-platform: works on macOS, Linux, and Windows.
+ */
+async function getAllProcessStats(
+  leaderPids: number[],
+): Promise<Map<number, ProcessStats>> {
+  const result = new Map<number, ProcessStats>();
+  if (leaderPids.length === 0) return result;
+
+  try {
+    // Collect all pids in each tree, mapped back to their leader
+    const allPids: number[] = [];
+    const pidToLeader = new Map<number, number>();
+
+    for (const leader of leaderPids) {
+      try {
+        const tree = await pidtree(leader, { root: true });
+        for (const pid of tree) {
+          allPids.push(pid);
+          pidToLeader.set(pid, leader);
+        }
+      } catch {
+        // Process may have exited — include leader only as fallback
+        allPids.push(leader);
+        pidToLeader.set(leader, leader);
+      }
+    }
+
+    if (allPids.length === 0) return result;
+
+    // Single pidusage call for all pids across all trees
+    const stats = await pidusage(allPids);
+
+    // Aggregate by leader
+    for (const [pidStr, info] of Object.entries(stats)) {
+      const pid = parseInt(pidStr, 10);
+      if (!info || !pid) continue;
+      const leader = pidToLeader.get(pid);
+      if (leader === undefined) continue;
+
+      const existing = result.get(leader) ?? {
+        memoryMB: 0,
+        cpuPercent: 0,
+      };
+      existing.memoryMB =
+        Math.round(
+          ((existing.memoryMB ?? 0) + info.memory / (1024 * 1024)) * 10,
+        ) / 10;
+      existing.cpuPercent =
+        Math.round(((existing.cpuPercent ?? 0) + info.cpu) * 10) / 10;
+      result.set(leader, existing);
+    }
+
+    // Clean up zero values
+    for (const [pid, stats] of result) {
+      if (!stats.memoryMB) stats.memoryMB = undefined;
+      if (!stats.cpuPercent) stats.cpuPercent = undefined;
+    }
+  } catch {
+    // Process may have exited between check and query
+  }
+
+  return result;
 }
 
 /** Composite key for a project command: "projectName:commandName" */
@@ -178,7 +255,7 @@ export function useLocalProcesses(projects: LocalProject[]) {
       if (!cmd) return;
 
       // Start dependencies first (use procsRef to check if already running)
-      for (const dep of cmd.dependencies) {
+      for (const dep of cmd.dependencies ?? []) {
         if (dep.includes(":")) {
           const [depProj, depCmd] = dep.split(":");
           const depKey = processKey(depProj!, depCmd!);
@@ -306,9 +383,10 @@ export function useLocalProcesses(projects: LocalProject[]) {
       const dependents = new Set<string>();
       for (const p of projects) {
         for (const cmd of p.commands) {
+          const deps = cmd.dependencies ?? [];
           if (
-            cmd.dependencies.includes(projectName) ||
-            cmd.dependencies.some((d) => d.startsWith(`${projectName}:`))
+            deps.includes(projectName) ||
+            deps.some((d) => d.startsWith(`${projectName}:`))
           ) {
             dependents.add(p.name);
           }
@@ -318,6 +396,52 @@ export function useLocalProcesses(projects: LocalProject[]) {
     },
     [projects],
   );
+
+  // Poll memory + CPU usage for running processes every 5s (single async ps call)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const procs = procsRef.current;
+      const entries = Object.entries(procs);
+      if (entries.length === 0) return;
+
+      // Collect all pids for a single ps call
+      const keyByPid = new Map<number, string>();
+      const pids: number[] = [];
+      for (const [key, child] of entries) {
+        if (child?.pid) {
+          keyByPid.set(child.pid, key);
+          pids.push(child.pid);
+        }
+      }
+
+      if (pids.length === 0) return;
+
+      getAllProcessStats(pids).then((statsMap) => {
+        setStates((prev) => {
+          let changed = false;
+          const next = { ...prev };
+          for (const [pid, stats] of statsMap) {
+            const key = keyByPid.get(pid);
+            if (
+              key &&
+              next[key] &&
+              (next[key].memoryMB !== stats.memoryMB ||
+                next[key].cpuPercent !== stats.cpuPercent)
+            ) {
+              next[key] = {
+                ...next[key],
+                memoryMB: stats.memoryMB,
+                cpuPercent: stats.cpuPercent,
+              };
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      });
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Cleanup all processes on unmount
   useEffect(() => {

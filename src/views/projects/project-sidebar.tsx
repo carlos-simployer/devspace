@@ -37,36 +37,15 @@ export function ProjectSidebar({
 }: Props) {
   const theme = getTheme();
 
-  // Sort: active projects (running/starting) first, then by original order
-  const sortedProjects = [...projects].sort((a, b) => {
-    const aActive =
-      getProjectStatus(a.name) === "running" ||
-      getProjectStatus(a.name) === "starting";
-    const bActive =
-      getProjectStatus(b.name) === "running" ||
-      getProjectStatus(b.name) === "starting";
-    if (aActive && !bActive) return -1;
-    if (!aActive && bActive) return 1;
-    return 0;
-  });
-
-  // Map sorted index back to original index for selection
-  const sortedToOriginal = sortedProjects.map((sp) => projects.indexOf(sp));
-  const originalToSorted = new Map<number, number>();
-  sortedToOriginal.forEach((orig, sorted) =>
-    originalToSorted.set(orig, sorted),
-  );
-  const sortedSelectedIndex = originalToSorted.get(selectedIndex) ?? 0;
-
   // Total items: projects + [+] Add
-  const totalItems = sortedProjects.length + 1;
+  const totalItems = projects.length + 1;
 
   // Viewport windowing
   let startIdx = 0;
   if (totalItems > height) {
     const halfView = Math.floor(height / 2);
-    if (sortedSelectedIndex > halfView) {
-      startIdx = Math.min(sortedSelectedIndex - halfView, totalItems - height);
+    if (selectedIndex > halfView) {
+      startIdx = Math.min(selectedIndex - halfView, totalItems - height);
     }
   }
 
@@ -88,7 +67,7 @@ export function ProjectSidebar({
         const itemIdx = startIdx + vi;
 
         // [+] Add project at the end
-        if (itemIdx === sortedProjects.length) {
+        if (itemIdx === projects.length) {
           const isSelected = isFocused && selectedIndex === projects.length;
           const label = "[+] Add project".padEnd(innerWidth);
           return (
@@ -105,9 +84,8 @@ export function ProjectSidebar({
           );
         }
 
-        const project = sortedProjects[itemIdx]!;
-        const origIdx = sortedToOriginal[itemIdx]!;
-        const isSelected = isFocused && origIdx === selectedIndex;
+        const project = projects[itemIdx]!;
+        const isSelected = isFocused && itemIdx === selectedIndex;
         const status = getProjectStatus(project.name);
         const { icon, color } = statusCircle(status);
 

@@ -16,6 +16,7 @@ import {
   isLocalProjectV1,
   migrateLocalProjectV1,
 } from "../utils/config-migration.ts";
+import { configSchema } from "../utils/config-schema.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
 import { DEFAULT_CONFIG_DIR } from "../constants.ts";
 import * as logger from "../utils/logger.ts";
@@ -116,23 +117,9 @@ export function useConfig(orgArg?: string) {
       return v2;
     }
 
-    // V2 config
-    const cfg: Config = {
-      version: 2,
-      orgs: raw.orgs || [],
-      activeOrg: orgArg || raw.activeOrg || "",
-      repos: (raw.repos || []).sort((a: string, b: string) =>
-        a.localeCompare(b),
-      ),
-      lastViewed: raw.lastViewed || {},
-      trackedPackages: raw.trackedPackages || [],
-      refreshInterval: raw.refreshInterval || DEFAULT_REFRESH_INTERVAL,
-      theme: raw.theme || "default",
-      azureOrg: raw.azureOrg || "",
-      azureProject: raw.azureProject || "",
-      pinnedPipelines: raw.pinnedPipelines || [],
-      pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
-      localProjects: (raw.localProjects || []).map((p: any) => {
+    // Pre-process: migrate local projects before schema validation
+    if (Array.isArray(raw.localProjects)) {
+      raw.localProjects = raw.localProjects.map((p: any) => {
         if (isLocalProjectV1(p)) return migrateLocalProjectV1(p);
         // Migrate url from project level to first command if needed
         if (p.url && Array.isArray(p.commands) && p.commands.length > 0) {
@@ -146,23 +133,30 @@ export function useConfig(orgArg?: string) {
           return rest;
         }
         return p;
-      }),
-      persistCache: raw.persistCache !== false, // default true
-      jiraSite: raw.jiraSite || "",
-      jiraEmail: raw.jiraEmail || "",
-      jiraProject: raw.jiraProject || "",
-      jiraStatusOrder: raw.jiraStatusOrder || [
-        "In Progress",
-        "Blocked",
-        "In Review",
-        "Ready for Test",
-        "To Do",
-        "Done",
-      ],
-      jiraAccountId: raw.jiraAccountId || "",
-      slackChannels: raw.slackChannels || [],
-      enabledTabs: raw.enabledTabs || [],
-    };
+      });
+    }
+
+    // Apply org arg override before parsing
+    if (orgArg) raw.activeOrg = orgArg;
+
+    // Validate and apply defaults via zod
+    const parsed = configSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error(
+        "config",
+        `Config validation failed: ${parsed.error.message}`,
+      );
+      // Fall back to defaults with whatever we can salvage
+      const fallback = configSchema.parse({});
+      if (orgArg) {
+        fallback.activeOrg = orgArg;
+        fallback.orgs = [orgArg];
+      }
+      return fallback as Config;
+    }
+
+    const cfg = parsed.data as Config;
+    cfg.repos = [...cfg.repos].sort((a, b) => a.localeCompare(b));
 
     if (orgArg && !cfg.orgs.includes(orgArg)) {
       cfg.orgs.push(orgArg);
@@ -368,7 +362,7 @@ export function useConfig(orgArg?: string) {
             ...p,
             commands: p.commands.map((cmd) => ({
               ...cmd,
-              dependencies: cmd.dependencies.filter((d) => d !== name),
+              dependencies: (cmd.dependencies ?? []).filter((d) => d !== name),
             })),
           })),
       }));

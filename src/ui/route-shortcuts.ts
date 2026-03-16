@@ -161,6 +161,9 @@ const ROUTE_BAR: Record<string, string[]> = {
   "slack/emoji": [],
   "slack/status": [],
 
+  about: ["help"],
+  "about/help": [],
+
   config: ["add", "remove", "select", "open", "editConfig", "help"],
 
   // Log overlays (all views)
@@ -171,6 +174,7 @@ const ROUTE_BAR: Record<string, string[]> = {
   "projects/logs": [],
   "jira/logs": [],
   "slack/logs": [],
+  "about/logs": [],
   "config/logs": [],
 };
 
@@ -763,7 +767,14 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
   "projects/logs": _logShortcuts,
   "jira/logs": _logShortcuts,
   "slack/logs": _logShortcuts,
+  "about/logs": _logShortcuts,
   "config/logs": _logShortcuts,
+
+  // ── About ─────────────────────────────────────────────────────────────
+  about: {
+    up: { action: "up", key: "up", help: "Scroll up" },
+    down: { action: "down", key: "down", help: "Scroll down" },
+  },
 
   // ── Config ────────────────────────────────────────────────────────────
   config: {

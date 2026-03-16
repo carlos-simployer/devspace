@@ -89,6 +89,7 @@ describe("getTabLabel", () => {
     expect(getTabLabel("dependencies")).toBe("6 Deps");
     expect(getTabLabel("slack")).toBe("7 Slack");
     expect(getTabLabel("config")).toBe("8 Config");
+    expect(getTabLabel("about")).toBe("9 About");
   });
 
   it("should extract base route from nested paths and return label", () => {
@@ -138,6 +139,8 @@ describe("getTabViews", () => {
     expect(slackTab?.label).toBe("7 Slack");
     const configTab = tabs.find((t) => t.route === "config");
     expect(configTab?.label).toBe("8 Config");
+    const aboutTab = tabs.find((t) => t.route === "about");
+    expect(aboutTab?.label).toBe("9 About");
   });
 
   it("should have the same count as the active tabs", () => {
@@ -169,6 +172,7 @@ describe("getTabNumberKeys", () => {
     expect(map["6"]).toBe("dependencies");
     expect(map["7"]).toBe("slack");
     expect(map["8"]).toBe("config");
+    expect(map["9"]).toBe("about");
   });
 
   it("should have single-digit string keys", () => {
@@ -198,32 +202,42 @@ describe("setActiveTabs", () => {
   it("should filter and reorder tabs based on enabled routes", () => {
     setActiveTabs(["jira", "prs"]);
     const tabs = getTabs();
-    expect(tabs.map((t) => t.route)).toEqual(["jira", "prs", "config"]);
+    expect(tabs.map((t) => t.route)).toEqual([
+      "jira",
+      "prs",
+      "config",
+      "about",
+    ]);
   });
 
-  it("should always append config as the last tab", () => {
+  it("should always append about as the last tab", () => {
     setActiveTabs(["prs"]);
     const tabs = getTabs();
-    expect(tabs[tabs.length - 1]!.route).toBe("config");
+    expect(tabs[tabs.length - 1]!.route).toBe("about");
   });
 
-  it("should ignore config in the input array", () => {
-    setActiveTabs(["config", "prs"]);
+  it("should ignore config and about in the input array", () => {
+    setActiveTabs(["config", "about", "prs"]);
     const tabs = getTabs();
-    expect(tabs.map((t) => t.route)).toEqual(["prs", "config"]);
+    expect(tabs.map((t) => t.route)).toEqual(["prs", "config", "about"]);
   });
 
   it("should ignore unknown routes", () => {
     setActiveTabs(["prs", "unknown", "jira"]);
     const tabs = getTabs();
-    expect(tabs.map((t) => t.route)).toEqual(["prs", "jira", "config"]);
+    expect(tabs.map((t) => t.route)).toEqual([
+      "prs",
+      "jira",
+      "config",
+      "about",
+    ]);
   });
 
   it("should restore all tabs when given an empty array", () => {
     setActiveTabs(["prs"]);
-    expect(getTabs()).toHaveLength(2); // prs + config
+    expect(getTabs()).toHaveLength(3); // prs + config + about
     setActiveTabs([]);
-    expect(getTabs()).toHaveLength(8); // all 7 + config
+    expect(getTabs()).toHaveLength(9); // all 7 + config + about
   });
 
   it("should update getTabNumberKeys accordingly", () => {
@@ -232,7 +246,8 @@ describe("setActiveTabs", () => {
     expect(map["1"]).toBe("jira");
     expect(map["2"]).toBe("prs");
     expect(map["3"]).toBe("config");
-    expect(map["4"]).toBeUndefined();
+    expect(map["4"]).toBe("about");
+    expect(map["5"]).toBeUndefined();
   });
 
   it("should update getTabLabel accordingly", () => {
@@ -240,6 +255,7 @@ describe("setActiveTabs", () => {
     expect(getTabLabel("jira")).toBe("1 Jira");
     expect(getTabLabel("prs")).toBe("2 PRs");
     expect(getTabLabel("config")).toBe("3 Config");
+    expect(getTabLabel("about")).toBe("4 About");
     // Disabled tabs return undefined
     expect(getTabLabel("pipelines")).toBeUndefined();
   });

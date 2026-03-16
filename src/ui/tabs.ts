@@ -15,9 +15,10 @@ const ALL_TABS: TabDef[] = [
 ];
 
 const CONFIG_TAB: TabDef = { route: "config", label: "Config" };
+const ABOUT_TAB: TabDef = { route: "about", label: "About" };
 
 /** Current active tabs (set at startup from config). */
-let activeTabs: TabDef[] = [...ALL_TABS, CONFIG_TAB];
+let activeTabs: TabDef[] = [...ALL_TABS, CONFIG_TAB, ABOUT_TAB];
 
 /**
  * Set which tabs are enabled and in what order.
@@ -26,16 +27,16 @@ let activeTabs: TabDef[] = [...ALL_TABS, CONFIG_TAB];
  */
 export function setActiveTabs(enabledRoutes: string[]): void {
   if (!enabledRoutes || enabledRoutes.length === 0) {
-    activeTabs = [...ALL_TABS, CONFIG_TAB];
+    activeTabs = [...ALL_TABS, CONFIG_TAB, ABOUT_TAB];
     return;
   }
   const tabs: TabDef[] = [];
   for (const route of enabledRoutes) {
-    if (route === "config") continue; // config is always appended
+    if (route === "config" || route === "about") continue; // always appended
     const def = ALL_TABS.find((t) => t.route === route);
     if (def) tabs.push(def);
   }
-  activeTabs = [...tabs, CONFIG_TAB];
+  activeTabs = [...tabs, CONFIG_TAB, ABOUT_TAB];
 }
 
 /** Current active tab definitions (read-only). */

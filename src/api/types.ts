@@ -209,14 +209,15 @@ export type AppView =
   | "releases"
   | "projects"
   | "jira"
-  | "slack";
+  | "slack"
+  | "about";
 
 export interface ProjectCommand {
   name: string;
   command: string;
   cwd?: string;
   url?: string;
-  dependencies: string[];
+  dependencies?: string[];
 }
 
 export interface LocalProject {
