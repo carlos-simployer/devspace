@@ -23,7 +23,7 @@ export function HelpOverlay({ route, height, width }: Props) {
   );
 
   const totalLines = viewShortcuts.length + globalShortcuts.length + 5; // title + header + footer + margins
-  const boxWidth = Math.min(50, width - 4);
+  const boxWidth = Math.min(60, width - 4);
   const boxHeight = Math.min(height - 2, totalLines);
 
   return (

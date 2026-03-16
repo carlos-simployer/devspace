@@ -132,6 +132,17 @@ export function ProjectsListView() {
           }
         }
       },
+      openClaude: () => {
+        if (selected) {
+          try {
+            exec(
+              `osascript -e 'tell application "iTerm2"' -e 'tell current window' -e 'create tab with default profile' -e 'tell current session' -e 'write text "cd ${selected.path.replace(/"/g, '\\"')} && claude"' -e 'end tell' -e 'end tell' -e 'end tell'`,
+            );
+          } catch {
+            // ignore
+          }
+        }
+      },
       add: () => navigate("projects/add"),
       remove: () => {
         if (selected) {
