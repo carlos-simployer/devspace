@@ -211,7 +211,22 @@ export type AppView =
   | "jira"
   | "slack";
 
+export interface ProjectCommand {
+  name: string;
+  command: string;
+  cwd?: string;
+  url?: string;
+  dependencies: string[];
+}
+
 export interface LocalProject {
+  name: string;
+  path: string;
+  commands: ProjectCommand[];
+}
+
+/** Legacy shape (v1 — single command per project). */
+export interface LocalProjectV1 {
   name: string;
   path: string;
   command: string;
@@ -284,6 +299,20 @@ export interface JiraIssue {
     }>;
     parent?: { key: string; fields: { summary: string } };
     fixVersions?: Array<{ name: string }>;
+  };
+}
+
+export interface JiraTransition {
+  id: string;
+  name: string;
+  to: {
+    id: string;
+    name: string;
+    statusCategory: {
+      id: number;
+      key: string;
+      name: string;
+    };
   };
 }
 
@@ -380,10 +409,3 @@ export interface SlackAuthInfo {
 }
 
 export type SortMode = "repo-updated" | "updated" | "oldest";
-
-export interface PendingAction {
-  type: "approve" | "comment" | "request-changes";
-  prId: string;
-  prNumber: number;
-  confirmed: boolean;
-}

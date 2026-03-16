@@ -45,10 +45,6 @@ export interface PrsContextValue {
   commentType: "comment" | "request-changes";
   setCommentType: (v: "comment" | "request-changes") => void;
 
-  // Approve
-  pendingApprove: { prId: string; prNumber: number } | null;
-  setPendingApprove: (v: { prId: string; prNumber: number } | null) => void;
-
   // Status messages
   statusMessage: string;
   showStatus: (msg: string) => void;

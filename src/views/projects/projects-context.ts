@@ -1,14 +1,26 @@
 import { createContext, useContext } from "react";
-import type { ProcessState } from "../../hooks/use-local-processes.ts";
+import type {
+  ProcessState,
+  ProcessStatus,
+} from "../../hooks/use-local-processes.ts";
+
+export type ProjectFocus = "sidebar" | "commands";
 
 export interface ProjectsContextValue {
   selectedIndex: number;
   setSelectedIndex: (v: number | ((prev: number) => number)) => void;
+  selectedCommandIndex: number;
+  setSelectedCommandIndex: (v: number | ((prev: number) => number)) => void;
+  focus: ProjectFocus;
+  setFocus: (v: ProjectFocus) => void;
   states: Record<string, ProcessState>;
-  start: (name: string) => void;
-  stop: (name: string) => void;
-  restart: (name: string) => void;
-  clearLogs: (name: string) => void;
+  startCommand: (projectName: string, commandName: string) => void;
+  startAll: (projectName: string) => void;
+  stopOne: (projectName: string, commandName: string) => void;
+  stopAll: (projectName: string) => void;
+  restartCommand: (projectName: string, commandName: string) => void;
+  clearLogs: (projectName: string, commandName: string) => void;
+  getProjectStatus: (projectName: string) => ProcessStatus;
   getDependents: (name: string) => string[];
 }
 

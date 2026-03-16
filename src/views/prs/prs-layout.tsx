@@ -57,10 +57,6 @@ export function PrsLayout() {
   const [searchMode, setSearchMode] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("repo-updated");
-  const [pendingApprove, setPendingApprove] = useState<{
-    prId: string;
-    prNumber: number;
-  } | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [commentMode, setCommentMode] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -193,8 +189,6 @@ export function PrsLayout() {
       setCommentText,
       commentType,
       setCommentType,
-      pendingApprove,
-      setPendingApprove,
       statusMessage,
       showStatus,
       allPRs,
@@ -236,7 +230,6 @@ export function PrsLayout() {
       commentMode,
       commentText,
       commentType,
-      pendingApprove,
       statusMessage,
       showStatus,
       allPRs,

@@ -7,7 +7,6 @@ import { useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { openInBrowser } from "../../utils/browser.ts";
 import { copyToClipboard } from "../../utils/clipboard.ts";
-import { ADD_PR_REVIEW } from "../../api/mutations.ts";
 import { usePrsContext } from "./prs-context.ts";
 import { Sidebar } from "./sidebar.tsx";
 import { PRList } from "./pr-list.tsx";
@@ -42,8 +41,6 @@ export function PrListView() {
     setCommentText,
     commentType,
     setCommentType,
-    pendingApprove,
-    setPendingApprove,
     statusMessage,
     showStatus,
     allPRs,
@@ -62,7 +59,6 @@ export function PrListView() {
     removeRepo,
     markViewed,
     submitComment,
-    client,
   } = ctx;
 
   // Layout measurement
@@ -140,36 +136,6 @@ export function PrListView() {
       }
     },
     { isActive: searchMode && route === "prs" },
-  );
-
-  // ── Pending approve confirmation ──────────────────────────────────────
-  useInput(
-    (input, key) => {
-      if (input === "A" && pendingApprove) {
-        const { prId, prNumber } = pendingApprove;
-        setPendingApprove(null);
-        (async () => {
-          try {
-            await client(ADD_PR_REVIEW, {
-              pullRequestId: prId,
-              event: "APPROVE",
-            });
-            showStatus(`Approved PR #${prNumber}`);
-            refetch();
-          } catch (err: any) {
-            showStatus(`Error: ${err.message}`);
-          }
-        })();
-        return;
-      }
-      // Any other key cancels
-      setPendingApprove(null);
-      showStatus("Cancelled");
-    },
-    {
-      isActive:
-        !!pendingApprove && !commentMode && !searchMode && route === "prs",
-    },
   );
 
   // ── Route shortcuts ───────────────────────────────────────────────────
@@ -282,8 +248,7 @@ export function PrListView() {
         if (focus === "list") {
           const pr = prs[listIndex];
           if (pr) {
-            setPendingApprove({ prId: pr.id, prNumber: pr.number });
-            showStatus(`Press A again to approve PR #${pr.number}`);
+            navigate("prs/approve");
           }
         }
       },
@@ -324,7 +289,7 @@ export function PrListView() {
       },
     },
     {
-      active: !searchMode && !commentMode && !pendingApprove && isMainView,
+      active: !searchMode && !commentMode && isMainView,
     },
   );
 

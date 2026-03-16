@@ -91,6 +91,7 @@ const ROUTE_BAR: Record<string, string[]> = {
     "help",
   ],
   "prs/detail": ["close", "switchTab", "open"],
+  "prs/approve": [],
   "prs/help": [],
   "prs/notifications": ["close", "open"],
   "prs/search": [],
@@ -119,6 +120,7 @@ const ROUTE_BAR: Record<string, string[]> = {
     "startAll",
     "openInVscode",
     "openClaude",
+    "openTerminal",
     "help",
   ],
   "projects/help": [],
@@ -126,6 +128,7 @@ const ROUTE_BAR: Record<string, string[]> = {
 
   jira: [
     "open",
+    "transition",
     "filterMine",
     "filterTeam",
     "filterPerson",
@@ -139,6 +142,7 @@ const ROUTE_BAR: Record<string, string[]> = {
   "jira/help": [],
   "jira/statusFilter": [],
   "jira/sort": [],
+  "jira/transition": [],
   "jira/memberSelect": [],
 
   slack: [
@@ -266,6 +270,14 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       key: "escape",
       help: "Clear search / close",
     },
+  },
+
+  // ── PR Approve ──────────────────────────────────────────────────────────
+  "prs/approve": {
+    escape: { action: "close", key: "escape", help: "Cancel" },
+    return: { action: "select", key: "return", help: "Confirm" },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
   },
 
   // ── PR Detail ─────────────────────────────────────────────────────────
@@ -510,8 +522,17 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       label: "Claude",
       help: "Open Claude Code in new terminal tab",
     },
+    T: {
+      action: "openTerminal",
+      key: "T",
+      label: "Terminal",
+      help: "Open terminal at project folder",
+    },
+    return: { action: "select", key: "return", help: "Select" },
     up: { action: "up", key: "up", help: "Navigate up" },
     down: { action: "down", key: "down", help: "Navigate down" },
+    left: { action: "left", key: "left", help: "Focus sidebar" },
+    right: { action: "right", key: "right", help: "Focus commands" },
   },
 
   // ── Jira ──────────────────────────────────────────────────────────────
@@ -560,6 +581,12 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       label: "Sort",
       help: "Cycle sort mode",
     },
+    T: {
+      action: "transition",
+      key: "T",
+      label: "Transition",
+      help: "Change issue status",
+    },
     up: { action: "up", key: "up", help: "Navigate up" },
     down: { action: "down", key: "down", help: "Navigate down" },
     escape: {
@@ -567,6 +594,14 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       key: "escape",
       help: "Clear search / close",
     },
+  },
+
+  // ── Jira Transition ────────────────────────────────────────────────────
+  "jira/transition": {
+    escape: { action: "close", key: "escape", help: "Cancel" },
+    return: { action: "select", key: "return", help: "Apply transition" },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
   },
 
   // ── Jira Sort ─────────────────────────────────────────────────────────

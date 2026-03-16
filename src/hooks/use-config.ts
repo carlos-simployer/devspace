@@ -13,6 +13,8 @@ import {
   DEFAULT_REFRESH_INTERVAL,
   migrateV1toV2,
   pruneLastViewed,
+  isLocalProjectV1,
+  migrateLocalProjectV1,
 } from "../utils/config-migration.ts";
 import { setTheme, type ThemeName } from "../ui/theme.ts";
 import { DEFAULT_CONFIG_DIR } from "../constants.ts";
@@ -130,7 +132,21 @@ export function useConfig(orgArg?: string) {
       azureProject: raw.azureProject || "",
       pinnedPipelines: raw.pinnedPipelines || [],
       pinnedReleaseDefinitions: raw.pinnedReleaseDefinitions || [],
-      localProjects: raw.localProjects || [],
+      localProjects: (raw.localProjects || []).map((p: any) => {
+        if (isLocalProjectV1(p)) return migrateLocalProjectV1(p);
+        // Migrate url from project level to first command if needed
+        if (p.url && Array.isArray(p.commands) && p.commands.length > 0) {
+          const { url, ...rest } = p;
+          if (!p.commands[0].url) {
+            rest.commands = [
+              { ...rest.commands[0], url },
+              ...rest.commands.slice(1),
+            ];
+          }
+          return rest;
+        }
+        return p;
+      }),
       persistCache: raw.persistCache !== false, // default true
       jiraSite: raw.jiraSite || "",
       jiraEmail: raw.jiraEmail || "",
@@ -350,7 +366,10 @@ export function useConfig(orgArg?: string) {
           .filter((p) => p.name !== name)
           .map((p) => ({
             ...p,
-            dependencies: p.dependencies.filter((d) => d !== name),
+            commands: p.commands.map((cmd) => ({
+              ...cmd,
+              dependencies: cmd.dependencies.filter((d) => d !== name),
+            })),
           })),
       }));
     },

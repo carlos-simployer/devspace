@@ -12,9 +12,24 @@ interface Props {
   height: number;
 }
 
-type Step = "name" | "path" | "command" | "url" | "dependencies";
+type Step =
+  | "name"
+  | "path"
+  | "cmdName"
+  | "command"
+  | "cmdCwd"
+  | "url"
+  | "dependencies";
 
-const STEPS: Step[] = ["name", "path", "command", "url", "dependencies"];
+const STEPS: Step[] = [
+  "name",
+  "path",
+  "cmdName",
+  "command",
+  "cmdCwd",
+  "url",
+  "dependencies",
+];
 
 export function AddProjectOverlay({
   existingNames,
@@ -26,7 +41,9 @@ export function AddProjectOverlay({
   const [step, setStep] = useState<Step>("name");
   const [name, setName] = useState("");
   const [path, setPath] = useState("");
+  const [cmdName, setCmdName] = useState("default");
   const [command, setCommand] = useState("");
+  const [cmdCwd, setCmdCwd] = useState("");
   const [url, setUrl] = useState("");
   const [deps, setDeps] = useState<string[]>([]);
   const [depSelIdx, setDepSelIdx] = useState(0);
@@ -57,9 +74,15 @@ export function AddProjectOverlay({
         onSubmit({
           name,
           path,
-          command,
-          url: url || undefined,
-          dependencies: deps,
+          commands: [
+            {
+              name: cmdName || "default",
+              command,
+              cwd: cmdCwd || undefined,
+              url: url || undefined,
+              dependencies: deps,
+            },
+          ],
         });
       }
     }
@@ -78,7 +101,7 @@ export function AddProjectOverlay({
     <Box
       position="absolute"
       marginLeft={Math.floor((width - overlayWidth) / 2)}
-      marginTop={Math.floor((height - 16) / 2)}
+      marginTop={Math.floor((height - 18) / 2)}
     >
       <Box
         flexDirection="column"
@@ -129,8 +152,26 @@ export function AddProjectOverlay({
           </Box>
         )}
 
-        {/* Command */}
+        {/* Command Name */}
         {STEPS.indexOf(step) >= 2 && (
+          <Box>
+            <Text bold={step === "cmdName"}>Command name: </Text>
+            {step === "cmdName" ? (
+              <TextInput
+                placeholder="default"
+                onSubmit={(val) => {
+                  setCmdName(val.trim() || "default");
+                  advance();
+                }}
+              />
+            ) : (
+              <Text color={theme.ui.activeIndicator}>{cmdName}</Text>
+            )}
+          </Box>
+        )}
+
+        {/* Command */}
+        {STEPS.indexOf(step) >= 3 && (
           <Box>
             <Text bold={step === "command"}>Command: </Text>
             {step === "command" ? (
@@ -149,8 +190,26 @@ export function AddProjectOverlay({
           </Box>
         )}
 
+        {/* Command CWD */}
+        {STEPS.indexOf(step) >= 4 && (
+          <Box>
+            <Text bold={step === "cmdCwd"}>Exec path: </Text>
+            {step === "cmdCwd" ? (
+              <TextInput
+                placeholder={`${path} (optional, Enter to use project path)`}
+                onSubmit={(val) => {
+                  setCmdCwd(val.trim());
+                  advance();
+                }}
+              />
+            ) : (
+              <Text color={theme.ui.activeIndicator}>{cmdCwd || path}</Text>
+            )}
+          </Box>
+        )}
+
         {/* URL */}
-        {STEPS.indexOf(step) >= 3 && (
+        {STEPS.indexOf(step) >= 5 && (
           <Box>
             <Text bold={step === "url"}>URL: </Text>
             {step === "url" ? (

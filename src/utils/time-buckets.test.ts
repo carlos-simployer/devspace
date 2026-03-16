@@ -4,6 +4,8 @@ import {
   groupByTimeBucket,
   orderByTimeBucket,
   flattenGroups,
+  groupByTimeBucketGeneric,
+  flattenGroupsGeneric,
 } from "./time-buckets.ts";
 import type { PRGroup } from "./time-buckets.ts";
 
@@ -270,6 +272,66 @@ describe("time-buckets", () => {
         type: "header",
         label: "Today",
         count: 3,
+      });
+    });
+  });
+
+  describe("groupByTimeBucketGeneric", () => {
+    interface TestItem {
+      id: string;
+      date: string;
+    }
+
+    it("groups items by time bucket using a date accessor", () => {
+      const items: TestItem[] = [
+        { id: "a", date: localDate(2024, 3, 13, 8, 0) },
+        { id: "b", date: localDate(2024, 2, 1, 8, 0) },
+        { id: "c", date: localDate(2024, 3, 11, 8, 0) },
+      ];
+
+      const groups = groupByTimeBucketGeneric(items, (i) => i.date);
+
+      expect(groups.map((g) => g.label)).toEqual([
+        "Today",
+        "This week",
+        "Older",
+      ]);
+      expect(groups[0].items[0].id).toBe("a");
+      expect(groups[1].items[0].id).toBe("c");
+      expect(groups[2].items[0].id).toBe("b");
+    });
+
+    it("returns empty array for empty input", () => {
+      const groups = groupByTimeBucketGeneric([], (i: any) => i.date);
+      expect(groups).toEqual([]);
+    });
+  });
+
+  describe("flattenGroupsGeneric", () => {
+    it("interleaves headers and items correctly", () => {
+      const groups = [
+        { label: "Today" as const, items: [{ id: "a" }, { id: "b" }] },
+        { label: "Older" as const, items: [{ id: "c" }] },
+      ];
+
+      const rows = flattenGroupsGeneric(groups);
+      expect(rows).toHaveLength(5);
+      expect(rows[0]).toEqual({ type: "header", label: "Today", count: 2 });
+      expect(rows[1]).toEqual({
+        type: "item",
+        item: { id: "a" },
+        itemIndex: 0,
+      });
+      expect(rows[2]).toEqual({
+        type: "item",
+        item: { id: "b" },
+        itemIndex: 1,
+      });
+      expect(rows[3]).toEqual({ type: "header", label: "Older", count: 1 });
+      expect(rows[4]).toEqual({
+        type: "item",
+        item: { id: "c" },
+        itemIndex: 2,
       });
     });
   });

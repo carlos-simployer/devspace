@@ -6,6 +6,7 @@ import { Outlet, useOutlet } from "../../ui/router.ts";
 import {
   ProjectsContext,
   type ProjectsContextValue,
+  type ProjectFocus,
 } from "./projects-context.ts";
 
 export function ProjectsLayout() {
@@ -14,18 +15,36 @@ export function ProjectsLayout() {
   const outlet = useOutlet();
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+  const [focus, setFocus] = useState<ProjectFocus>("sidebar");
 
-  const { states, start, stop, restart, clearLogs, getDependents } =
-    useLocalProcesses(localProjects);
+  const {
+    states,
+    startCommand,
+    startAll,
+    stopOne,
+    stopAll,
+    restartCommand,
+    clearLogs,
+    getProjectStatus,
+    getDependents,
+  } = useLocalProcesses(localProjects);
 
   const ctx: ProjectsContextValue = {
     selectedIndex,
     setSelectedIndex,
+    selectedCommandIndex,
+    setSelectedCommandIndex,
+    focus,
+    setFocus,
     states,
-    start,
-    stop,
-    restart,
+    startCommand,
+    startAll,
+    stopOne,
+    stopAll,
+    restartCommand,
     clearLogs,
+    getProjectStatus,
     getDependents,
   };
 

@@ -3,6 +3,7 @@ import { PrsLayout } from "./views/prs/prs-layout.tsx";
 import { PrListView } from "./views/prs/pr-list-view.tsx";
 import { PRDetailPanel } from "./views/prs/pr-detail/index.tsx";
 import { PrsHelpView } from "./views/prs/prs-help-view.tsx";
+import { ApproveOverlay } from "./views/prs/approve-overlay.tsx";
 import { NotificationsView } from "./views/prs/notifications-view.tsx";
 import { RepoSearch } from "./views/prs/repo-search.tsx";
 import { DepsLayout } from "./views/dependencies/deps-layout.tsx";
@@ -30,6 +31,7 @@ import { IssueDetail } from "./views/jira/issue-detail/index.tsx";
 import { SortOverlay } from "./views/jira/sort-overlay.tsx";
 import { StatusFilter } from "./views/jira/status-filter.tsx";
 import { MemberSelect } from "./views/jira/member-select.tsx";
+import { TransitionOverlay } from "./views/jira/transition-overlay.tsx";
 import { JiraHelpView } from "./views/jira/jira-help-view.tsx";
 import { SlackLayout } from "./views/slack/slack-layout.tsx";
 import { SlackListView } from "./views/slack/slack-list-view.tsx";
@@ -47,6 +49,7 @@ export const routes = defineRoutes({
     children: {
       "": { component: PrListView },
       detail: { component: PRDetailPanel },
+      approve: { component: ApproveOverlay, layout: "overlay" },
       help: { component: PrsHelpView, layout: "overlay" },
       logs: { component: LogOverlayView, layout: "overlay" },
       notifications: { component: NotificationsView },
@@ -108,6 +111,7 @@ export const routes = defineRoutes({
       sort: { component: SortOverlay, layout: "overlay" },
       statusFilter: { component: StatusFilter, layout: "overlay" },
       memberSelect: { component: MemberSelect, layout: "overlay" },
+      transition: { component: TransitionOverlay, layout: "overlay" },
       help: { component: JiraHelpView, layout: "overlay" },
       logs: { component: LogOverlayView, layout: "overlay" },
     },

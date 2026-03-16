@@ -121,6 +121,11 @@ export function JiraIssueListView() {
       sort: () => {
         navigate("jira/sort");
       },
+      transition: () => {
+        if (selectedIssue) {
+          navigate("jira/transition");
+        }
+      },
       search: () => {
         searchJustActivated.current = true;
         setSearchMode(true);

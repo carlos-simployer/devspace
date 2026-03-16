@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { AzureRelease } from "../../api/types.ts";
 import { ReleaseRow } from "./release-row.tsx";
+import {
+  groupByTimeBucketGeneric,
+  flattenGroupsGeneric,
+  type GenericFlatRow,
+} from "../../utils/time-buckets.ts";
+import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
   releases: AzureRelease[];
@@ -36,19 +42,65 @@ export const ReleaseList = React.memo(function ReleaseList({
 }: Props) {
   const listHeight = height - 1;
   const sourceWidth = getSourceWidth(width);
+  const theme = getTheme();
 
-  // Viewport windowing
-  let startIndex = 0;
-  if (releases.length > listHeight) {
+  // Group releases by time bucket
+  const groups = useMemo(
+    () => groupByTimeBucketGeneric(releases, (r) => r.createdOn),
+    [releases],
+  );
+  const flatRows: GenericFlatRow<AzureRelease>[] = useMemo(
+    () => flattenGroupsGeneric(groups),
+    [groups],
+  );
+
+  // Calculate visual line positions (headers after first get +1 margin)
+  const rowVisualPos = useMemo(() => {
+    const positions: number[] = [];
+    let line = 0;
+    let seenHeader = false;
+    for (const row of flatRows) {
+      if (row.type === "header" && seenHeader) line++;
+      if (row.type === "header") seenHeader = true;
+      positions.push(line);
+      line++;
+    }
+    return positions;
+  }, [flatRows]);
+
+  const totalVisualLines =
+    rowVisualPos.length > 0 ? rowVisualPos[rowVisualPos.length - 1]! + 1 : 0;
+
+  // Find the flat-row index of the selected release
+  const selectedRowIdx = useMemo(() => {
+    for (let i = 0; i < flatRows.length; i++) {
+      const row = flatRows[i]!;
+      if (row.type === "item" && row.itemIndex === selectedIndex) return i;
+    }
+    return 0;
+  }, [flatRows, selectedIndex]);
+
+  // Viewport: keep selected row centered
+  let visualStart = 0;
+  if (totalVisualLines > listHeight) {
+    const selectedVisual = rowVisualPos[selectedRowIdx] ?? 0;
     const halfView = Math.floor(listHeight / 2);
-    if (selectedIndex > halfView) {
-      startIndex = Math.min(
-        selectedIndex - halfView,
-        releases.length - listHeight,
-      );
+    visualStart = Math.max(
+      0,
+      Math.min(selectedVisual - halfView, totalVisualLines - listHeight),
+    );
+  }
+
+  // Collect visible rows within viewport
+  const visibleRows: GenericFlatRow<AzureRelease>[] = [];
+  for (let i = 0; i < flatRows.length; i++) {
+    const pos = rowVisualPos[i]!;
+    if (pos >= visualStart && pos < visualStart + listHeight) {
+      visibleRows.push(flatRows[i]!);
+    } else if (pos >= visualStart + listHeight) {
+      break;
     }
   }
-  const visible = releases.slice(startIndex, startIndex + listHeight);
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -72,9 +124,23 @@ export const ReleaseList = React.memo(function ReleaseList({
           </Text>
         </Box>
       ) : (
-        visible.map((release, i) => {
-          const actualIndex = startIndex + i;
-          const isSelected = isFocused && actualIndex === selectedIndex;
+        visibleRows.map((row, i) => {
+          if (row.type === "header") {
+            return (
+              <Box
+                key={`hdr-${row.label}`}
+                paddingLeft={1}
+                marginTop={i === 0 ? 0 : 1}
+              >
+                <Text bold color={theme.ui.heading}>
+                  {"\u25B6"} {row.label}
+                </Text>
+                <Text dimColor> ({row.count})</Text>
+              </Box>
+            );
+          }
+          const { item: release, itemIndex } = row;
+          const isSelected = isFocused && itemIndex === selectedIndex;
           return (
             <ReleaseRow
               key={release.id}

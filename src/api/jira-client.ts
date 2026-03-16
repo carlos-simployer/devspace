@@ -1,4 +1,4 @@
-import type { JiraIssue, JiraUser } from "./types.ts";
+import type { JiraIssue, JiraUser, JiraTransition } from "./types.ts";
 import * as logger from "../utils/logger.ts";
 
 function authHeader(email: string, token: string): string {
@@ -107,6 +107,48 @@ export async function getJiraIssue(
     token,
     `issue/${issueKey}?fields=${fields}`,
   );
+}
+
+export async function getJiraTransitions(
+  site: string,
+  email: string,
+  token: string,
+  issueKey: string,
+): Promise<JiraTransition[]> {
+  const data = await jiraFetch<{ transitions: JiraTransition[] }>(
+    site,
+    email,
+    token,
+    `issue/${issueKey}/transitions`,
+  );
+  return data.transitions;
+}
+
+export async function transitionJiraIssue(
+  site: string,
+  email: string,
+  token: string,
+  issueKey: string,
+  transitionId: string,
+): Promise<void> {
+  const url = `https://${cleanSiteUrl(site)}/rest/api/3/issue/${issueKey}/transitions`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader(email, token),
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ transition: { id: transitionId } }),
+  });
+
+  if (!res.ok) {
+    logger.error(
+      "jira",
+      `Transition error: ${res.status} ${res.statusText} for ${issueKey}`,
+    );
+    throw new Error(`Jira transition error: ${res.status} ${res.statusText}`);
+  }
 }
 
 export async function getJiraMyself(

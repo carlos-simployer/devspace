@@ -1,4 +1,9 @@
-import type { Config, ConfigV1 } from "../api/types.ts";
+import type {
+  Config,
+  ConfigV1,
+  LocalProject,
+  LocalProjectV1,
+} from "../api/types.ts";
 
 export const DEFAULT_REFRESH_INTERVAL = 60;
 
@@ -35,6 +40,32 @@ export function migrateV1toV2(v1: ConfigV1): Config {
     slackChannels: [],
     enabledTabs: [],
   };
+}
+
+/** Migrate a v1 local project (single command) to v2 (commands array). */
+export function migrateLocalProjectV1(old: LocalProjectV1): LocalProject {
+  return {
+    name: old.name,
+    path: old.path,
+    commands: [
+      {
+        name: "default",
+        command: old.command,
+        url: old.url,
+        dependencies: old.dependencies,
+      },
+    ],
+  };
+}
+
+/** Check if a project uses the old shape (has `command` string instead of `commands` array). */
+export function isLocalProjectV1(project: any): project is LocalProjectV1 {
+  return (
+    typeof project === "object" &&
+    project !== null &&
+    typeof project.command === "string" &&
+    !Array.isArray(project.commands)
+  );
 }
 
 export function pruneLastViewed(

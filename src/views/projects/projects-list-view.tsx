@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import { exec } from "child_process";
-import type { ProcessState } from "../../hooks/use-local-processes.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
+import { processKey } from "../../hooks/use-local-processes.ts";
 import { getTheme } from "../../ui/index.ts";
 import { useProjectsContext } from "./projects-context.ts";
-import { ProjectList } from "./project-list.tsx";
-import { LogPanel } from "./log-panel.tsx";
+import { ProjectSidebar } from "./project-sidebar.tsx";
+import { CommandPanel } from "./command-panel.tsx";
 import { AddProjectOverlay } from "./add-project.tsx";
 
 export function ProjectsListView() {
@@ -25,15 +25,22 @@ export function ProjectsListView() {
   const {
     selectedIndex,
     setSelectedIndex,
+    selectedCommandIndex,
+    setSelectedCommandIndex,
+    focus,
+    setFocus,
     states,
-    start,
-    stop,
-    restart,
+    startCommand,
+    startAll,
+    stopOne,
+    stopAll,
+    restartCommand,
     clearLogs,
+    getProjectStatus,
     getDependents,
   } = useProjectsContext();
 
-  const [logScroll, setLogScroll] = useState<number | null>(null); // null = auto-follow
+  const [logScroll, setLogScroll] = useState<number | null>(null);
   const [confirmKill, setConfirmKill] = useState<string | null>(null);
   const [uptimeTick, setUptimeTick] = useState(0);
 
@@ -42,9 +49,10 @@ export function ProjectsListView() {
   const theme = getTheme();
   const selected = localProjects[selectedIndex];
   const selectedName = selected?.name ?? "";
-  const selectedState: ProcessState = selected
-    ? (states[selected.name] ?? { status: "stopped", logs: [] })
-    : { status: "stopped", logs: [] };
+  const selectedCmd = selected?.commands[selectedCommandIndex];
+  const selectedCmdKey =
+    selected && selectedCmd ? processKey(selected.name, selectedCmd.name) : "";
+  const selectedCmdState = selectedCmdKey ? states[selectedCmdKey] : undefined;
 
   // Tick every 10s to update uptime display
   useEffect(() => {
@@ -52,27 +60,51 @@ export function ProjectsListView() {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-scroll logs when new output arrives (if focused on logs)
-  const logState: ProcessState = selected
-    ? (states[selected.name] ?? { status: "stopped", logs: [] })
-    : { status: "stopped", logs: [] };
+  // Reset command index when project changes
+  useEffect(() => {
+    setSelectedCommandIndex(0);
+    setLogScroll(null);
+  }, [selectedIndex, setSelectedCommandIndex]);
 
   // Log scroll helper
-  const currentOffset = () =>
-    logScroll ?? Math.max(0, logState.logs.length - (height - 4));
+  const currentOffset = () => {
+    const logs = selectedCmdState?.logs ?? [];
+    return logScroll ?? Math.max(0, logs.length - (height - 8));
+  };
 
   useRouteShortcuts(
     {
       quit: () => onQuit(),
 
-      // Project list navigation
+      // Focus switching
+      left: () => setFocus("sidebar"),
+      right: () => {
+        if (selected && selected.commands.length > 0) {
+          setFocus("commands");
+        }
+      },
+
+      // Navigation
       up: () => {
-        setSelectedIndex((i) => Math.max(0, i - 1));
-        setLogScroll(null);
+        if (focus === "sidebar") {
+          setSelectedIndex((i) => Math.max(0, i - 1));
+          setLogScroll(null);
+        } else {
+          setSelectedCommandIndex((i) => Math.max(0, i - 1));
+          setLogScroll(null);
+        }
       },
       down: () => {
-        setSelectedIndex((i) => Math.min(localProjects.length - 1, i + 1));
-        setLogScroll(null);
+        if (focus === "sidebar") {
+          // Allow selecting [+] Add at the end
+          setSelectedIndex((i) => Math.min(localProjects.length, i + 1));
+          setLogScroll(null);
+        } else if (selected) {
+          setSelectedCommandIndex((i) =>
+            Math.min(selected.commands.length - 1, i + 1),
+          );
+          setLogScroll(null);
+        }
       },
 
       // Log scrolling
@@ -83,41 +115,57 @@ export function ProjectsListView() {
       logTop: () => setLogScroll(0),
       logBottom: () => setLogScroll(null),
       clearLogs: () => {
-        if (selected) {
-          clearLogs(selectedName);
+        if (selected && selectedCmd) {
+          clearLogs(selectedName, selectedCmd.name);
           setLogScroll(null);
         }
       },
 
-      // Project actions
+      // Command actions
       start: () => {
-        if (selected && selectedState.status !== "running") {
-          start(selected.name);
+        if (focus === "commands" && selected && selectedCmd) {
+          const key = processKey(selected.name, selectedCmd.name);
+          if (states[key]?.status !== "running") {
+            startCommand(selected.name, selectedCmd.name);
+          }
+        } else if (focus === "sidebar" && selected) {
+          startAll(selected.name);
         }
       },
       kill: () => {
         if (!selected) return;
-        if (
-          selectedState.status !== "running" &&
-          selectedState.status !== "starting"
-        )
-          return;
-        const dependents = getDependents(selected.name).filter(
-          (d) => states[d]?.status === "running",
-        );
-        if (dependents.length > 0) {
-          setConfirmKill(selected.name);
-        } else {
-          stop(selected.name);
+        if (focus === "commands" && selectedCmd) {
+          const key = processKey(selected.name, selectedCmd.name);
+          const st = states[key];
+          if (st?.status === "running" || st?.status === "starting") {
+            stopOne(selected.name, selectedCmd.name);
+          }
+        } else if (focus === "sidebar") {
+          const status = getProjectStatus(selected.name);
+          if (status !== "running" && status !== "starting") return;
+          const dependents = getDependents(selected.name).filter(
+            (d) => getProjectStatus(d) === "running",
+          );
+          if (dependents.length > 0) {
+            setConfirmKill(selected.name);
+          } else {
+            stopAll(selected.name);
+          }
         }
       },
       restart: () => {
-        if (selected) restart(selected.name);
+        if (focus === "commands" && selected && selectedCmd) {
+          restartCommand(selected.name, selectedCmd.name);
+        } else if (focus === "sidebar" && selected) {
+          stopAll(selected.name);
+          setTimeout(() => startAll(selected.name), 500);
+        }
       },
       open: () => {
-        if (selected?.url) {
+        const cmdUrl = selectedCmd?.url;
+        if (cmdUrl) {
           try {
-            exec(`open "${selected.url}"`);
+            exec(`open "${cmdUrl}"`);
           } catch {
             // ignore
           }
@@ -143,30 +191,41 @@ export function ProjectsListView() {
           }
         }
       },
+      openTerminal: () => {
+        if (selected) {
+          try {
+            exec(
+              `osascript -e 'tell application "iTerm2"' -e 'tell current window' -e 'create tab with default profile' -e 'tell current session' -e 'write text "cd ${selected.path.replace(/"/g, '\\"')}"' -e 'end tell' -e 'end tell' -e 'end tell'`,
+            );
+          } catch {
+            // ignore
+          }
+        }
+      },
+      select: () => {
+        if (focus === "sidebar" && selectedIndex === localProjects.length) {
+          navigate("projects/add");
+        }
+      },
       add: () => navigate("projects/add"),
       remove: () => {
         if (selected) {
-          if (selectedState.status === "running") {
-            stop(selected.name);
-          }
+          stopAll(selected.name);
           removeLocalProject(selected.name);
           setSelectedIndex((i) => Math.max(0, i - 1));
         }
       },
       startAll: () => {
         for (const p of localProjects) {
-          if (states[p.name]?.status !== "running") {
-            start(p.name);
-          }
+          startAll(p.name);
         }
       },
     },
     {
       onUnhandled: (input, _key) => {
-        // Handle confirmKill dialog -- captures all input
         if (confirmKill) {
           if (input === "y" || input === "Y") {
-            stop(confirmKill);
+            stopAll(confirmKill);
           }
           setConfirmKill(null);
         }
@@ -174,56 +233,67 @@ export function ProjectsListView() {
     },
   );
 
+  // Use uptimeTick to avoid lint warning
+  void uptimeTick;
+
   const runningCount = Object.values(states).filter(
     (s) => s.status === "running",
   ).length;
 
-  // Layout: project list on top, logs below, status bar at bottom
+  // Layout: sidebar on left, command panel on right
+  const sidebarWidth = Math.min(
+    Math.max(
+      ...localProjects.map((p) => p.name.length + 5),
+      "[+] Add project".length + 2,
+      16,
+    ),
+    Math.floor(width * 0.3),
+  );
+  const mainWidth = width - sidebarWidth;
   const statusBarHeight = 2;
-  const borderHeight = 1; // bottom border of project list box
-  const headerRow = 1; // column headers in project list
-  const maxProjectRows = Math.min(localProjects.length, 10);
-  const listHeight = maxProjectRows + headerRow + borderHeight;
-  const logPanelHeight = Math.max(3, height - listHeight - statusBarHeight);
+  const mainContentHeight = height - statusBarHeight;
 
-  // Use uptimeTick to avoid lint warning (it triggers re-renders)
-  void uptimeTick;
+  // Handle sidebar-only selection of [+] Add
+  const isSidebarAddSelected =
+    focus === "sidebar" && selectedIndex === localProjects.length;
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Project table (top) */}
-      <Box
-        flexDirection="column"
-        height={listHeight}
-        borderStyle="single"
-        borderTop={false}
-        borderLeft={false}
-        borderRight={false}
-        borderBottom
-        paddingX={0}
-      >
-        <ProjectList
+      {/* Main area: sidebar + command panel */}
+      <Box flexGrow={1} height={mainContentHeight}>
+        <ProjectSidebar
           projects={localProjects}
-          states={states}
           selectedIndex={selectedIndex}
-          width={width}
-          maxRows={maxProjectRows}
+          isFocused={focus === "sidebar"}
+          height={mainContentHeight}
+          width={sidebarWidth}
+          getProjectStatus={getProjectStatus}
         />
+        {selected && !isSidebarAddSelected ? (
+          <CommandPanel
+            project={selected}
+            states={states}
+            selectedCommandIndex={selectedCommandIndex}
+            isFocused={focus === "commands"}
+            height={mainContentHeight}
+            width={mainWidth}
+            logScrollOffset={logScroll}
+          />
+        ) : (
+          <Box
+            width={mainWidth}
+            height={mainContentHeight}
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text dimColor>
+              {localProjects.length === 0
+                ? "No projects configured. Press + to add one."
+                : "Select a project"}
+            </Text>
+          </Box>
+        )}
       </Box>
-
-      {/* Log panel (bottom) */}
-      {selected && logPanelHeight > 2 && (
-        <LogPanel
-          projectName={selectedName}
-          state={logState}
-          height={logPanelHeight}
-          width={width}
-          scrollOffset={logScroll}
-        />
-      )}
-
-      {/* Spacer if no logs */}
-      {(!selected || logPanelHeight <= 2) && <Box flexGrow={1} />}
 
       {/* Status bar */}
       <Box
@@ -251,15 +321,15 @@ export function ProjectsListView() {
                 <Text dimColor> {"\u2502"} </Text>
                 <Text bold>{selected.name}</Text>
                 <Text dimColor>: {selected.path}</Text>
-                {selected.url && (
-                  <Text color={theme.status.info}> {selected.url}</Text>
+                {selectedCmd?.url && (
+                  <Text color={theme.status.info}> {selectedCmd.url}</Text>
                 )}
               </>
             )}
           </Text>
           <Box flexGrow={1} />
           <Text dimColor>
-            {"[ ]"} scroll logs {"\u2502"} g/G top/bottom
+            {"\u2190\u2192"} focus {"\u2502"} {"[ ]"} scroll logs
           </Text>
         </Box>
       </Box>
@@ -298,7 +368,7 @@ export function ProjectsListView() {
             <Text>
               Running dependents:{" "}
               {getDependents(confirmKill)
-                .filter((dd) => states[dd]?.status === "running")
+                .filter((dd) => getProjectStatus(dd) === "running")
                 .join(", ")}
             </Text>
             <Text dimColor>y: kill anyway {"\u2502"} any key: cancel</Text>

@@ -158,6 +158,64 @@ describe("groupByStatus", () => {
     expect(groups[1].status).toBe("Waiting");
   });
 
+  it("should place done-category groups last even when statusOrder puts them first", () => {
+    const issues = [
+      makeJiraIssue({
+        key: "UUX-1",
+        statusName: "Done",
+        statusCategoryKey: "done",
+      }),
+      makeJiraIssue({
+        key: "UUX-2",
+        statusName: "In Progress",
+        statusCategoryKey: "indeterminate",
+      }),
+      makeJiraIssue({
+        key: "UUX-3",
+        statusName: "To Do",
+        statusCategoryKey: "new",
+      }),
+    ];
+
+    // statusOrder places Done first
+    const groups = groupByStatus(issues, ["Done", "In Progress", "To Do"]);
+
+    expect(groups.map((g) => g.status)).toEqual([
+      "In Progress",
+      "To Do",
+      "Done",
+    ]);
+    expect(groups[2].category).toBe("done");
+  });
+
+  it("should handle multiple done-category statuses at the end", () => {
+    const issues = [
+      makeJiraIssue({
+        key: "UUX-1",
+        statusName: "Closed",
+        statusCategoryKey: "done",
+      }),
+      makeJiraIssue({
+        key: "UUX-2",
+        statusName: "In Progress",
+        statusCategoryKey: "indeterminate",
+      }),
+      makeJiraIssue({
+        key: "UUX-3",
+        statusName: "Done",
+        statusCategoryKey: "done",
+      }),
+    ];
+
+    const groups = groupByStatus(issues, ["Closed", "In Progress", "Done"]);
+
+    expect(groups.map((g) => g.status)).toEqual([
+      "In Progress",
+      "Closed",
+      "Done",
+    ]);
+  });
+
   it("should handle empty statusOrder array", () => {
     const issues = [
       makeJiraIssue({ key: "UUX-1", statusName: "To Do" }),

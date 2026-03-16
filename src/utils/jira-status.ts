@@ -42,7 +42,18 @@ export function groupByStatus(
     }
   }
 
-  return ordered;
+  // Ensure done-category groups always appear last
+  const doneGroups: StatusGroup[] = [];
+  const nonDoneGroups: StatusGroup[] = [];
+  for (const group of ordered) {
+    if (group.category === "done") {
+      doneGroups.push(group);
+    } else {
+      nonDoneGroups.push(group);
+    }
+  }
+
+  return [...nonDoneGroups, ...doneGroups];
 }
 
 export type JiraSortField =
