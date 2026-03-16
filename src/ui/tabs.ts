@@ -5,11 +5,11 @@ export interface TabDef {
 
 export const TABS: TabDef[] = [
   { route: "prs", label: "PRs" },
-  { route: "dependencies", label: "Deps" },
+  { route: "jira", label: "Jira" },
+  { route: "projects", label: "Projects" },
   { route: "pipelines", label: "Pipelines" },
   { route: "releases", label: "Releases" },
-  { route: "projects", label: "Projects" },
-  { route: "jira", label: "Jira" },
+  { route: "dependencies", label: "Deps" },
   { route: "config", label: "Config" },
 ];
 
