@@ -124,6 +124,7 @@ const ROUTE_BAR: Record<string, string[]> = {
     "help",
   ],
   "projects/help": [],
+  "projects/confirm": [],
   "projects/add": [],
 
   jira: [
@@ -769,6 +770,14 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
   "slack/logs": _logShortcuts,
   "about/logs": _logShortcuts,
   "config/logs": _logShortcuts,
+
+  // ── Projects Confirm ────────────────────────────────────────────────
+  "projects/confirm": {
+    escape: { action: "close", key: "escape", help: "Cancel" },
+    return: { action: "select", key: "return", help: "Confirm" },
+    up: { action: "up", key: "up", help: "Navigate up" },
+    down: { action: "down", key: "down", help: "Navigate down" },
+  },
 
   // ── About ─────────────────────────────────────────────────────────────
   about: {

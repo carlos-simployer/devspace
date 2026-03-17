@@ -6,6 +6,13 @@ import type {
 
 export type ProjectFocus = "sidebar" | "commands";
 
+export interface ConfirmActionDef {
+  type: "startAll" | "killAll" | "killProject" | "removeProject";
+  projectName?: string;
+  label: string;
+  detail?: string;
+}
+
 export interface ProjectsContextValue {
   selectedIndex: number;
   setSelectedIndex: (v: number | ((prev: number) => number)) => void;
@@ -22,6 +29,8 @@ export interface ProjectsContextValue {
   clearLogs: (projectName: string, commandName: string) => void;
   getProjectStatus: (projectName: string) => ProcessStatus;
   getDependents: (name: string) => string[];
+  confirmAction: ConfirmActionDef | null;
+  setConfirmAction: (v: ConfirmActionDef | null) => void;
 }
 
 export const ProjectsContext = createContext<ProjectsContextValue>(null!);

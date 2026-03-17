@@ -22,6 +22,7 @@ import { DefinitionSearch } from "./views/releases/definition-search.tsx";
 import { ProjectsLayout } from "./views/projects/projects-layout.tsx";
 import { ProjectsListView } from "./views/projects/projects-list-view.tsx";
 import { ProjectsHelpView } from "./views/projects/projects-help-view.tsx";
+import { ConfirmOverlay } from "./views/projects/confirm-overlay.tsx";
 import { ConfigLayout } from "./views/config/config-layout.tsx";
 import { ConfigMainView } from "./views/config/config-main-view.tsx";
 import { ConfigHelpView } from "./views/config/config-help-view.tsx";
@@ -101,6 +102,7 @@ export const routes = defineRoutes({
       "": { component: ProjectsListView },
       help: { component: ProjectsHelpView, layout: "overlay" },
       logs: { component: LogOverlayView, layout: "overlay" },
+      confirm: { component: ConfirmOverlay, layout: "overlay" },
       add: { component: ProjectsListView, layout: "overlay" },
     },
   },

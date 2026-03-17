@@ -7,6 +7,7 @@ import {
   ProjectsContext,
   type ProjectsContextValue,
   type ProjectFocus,
+  type ConfirmActionDef,
 } from "./projects-context.ts";
 
 export function ProjectsLayout() {
@@ -17,6 +18,9 @@ export function ProjectsLayout() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
   const [focus, setFocus] = useState<ProjectFocus>("sidebar");
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionDef | null>(
+    null,
+  );
 
   const {
     states,
@@ -46,6 +50,8 @@ export function ProjectsLayout() {
     clearLogs,
     getProjectStatus,
     getDependents,
+    confirmAction,
+    setConfirmAction,
   };
 
   // For overlay children: center them

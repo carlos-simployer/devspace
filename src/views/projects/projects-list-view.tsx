@@ -38,10 +38,10 @@ export function ProjectsListView() {
     clearLogs,
     getProjectStatus,
     getDependents,
+    setConfirmAction,
   } = useProjectsContext();
 
   const [logScroll, setLogScroll] = useState<number | null>(null);
-  const [confirmKill, setConfirmKill] = useState<string | null>(null);
   const [uptimeTick, setUptimeTick] = useState(0);
 
   const showAdd = route === "projects/add";
@@ -129,7 +129,17 @@ export function ProjectsListView() {
             startCommand(selected.name, selectedCmd.name);
           }
         } else if (focus === "sidebar" && selected) {
-          startAll(selected.name);
+          if (selected.commands.length > 1) {
+            setConfirmAction({
+              type: "startAll",
+              projectName: selected.name,
+              label: `Start all commands for ${selected.name}?`,
+              detail: selected.commands.map((c) => c.name).join(", "),
+            });
+            navigate("projects/confirm");
+          } else {
+            startAll(selected.name);
+          }
         }
       },
       kill: () => {
@@ -146,11 +156,16 @@ export function ProjectsListView() {
           const dependents = getDependents(selected.name).filter(
             (d) => getProjectStatus(d) === "running",
           );
-          if (dependents.length > 0) {
-            setConfirmKill(selected.name);
-          } else {
-            stopAll(selected.name);
-          }
+          setConfirmAction({
+            type: "killProject",
+            projectName: selected.name,
+            label: `Kill all commands for ${selected.name}?`,
+            detail:
+              dependents.length > 0
+                ? `Running dependents: ${dependents.join(", ")}`
+                : undefined,
+          });
+          navigate("projects/confirm");
         }
       },
       restart: () => {
@@ -210,27 +225,28 @@ export function ProjectsListView() {
       add: () => navigate("projects/add"),
       remove: () => {
         if (selected) {
-          stopAll(selected.name);
-          removeLocalProject(selected.name);
-          setSelectedIndex((i) => Math.max(0, i - 1));
+          setConfirmAction({
+            type: "removeProject",
+            projectName: selected.name,
+            label: `Remove project "${selected.name}"?`,
+            detail:
+              "This will stop all commands and remove the project from config.",
+          });
+          navigate("projects/confirm");
         }
       },
       startAll: () => {
-        for (const p of localProjects) {
-          startAll(p.name);
+        if (localProjects.length > 0) {
+          setConfirmAction({
+            type: "startAll",
+            label: "Start all projects?",
+            detail: localProjects.map((p) => p.name).join(", "),
+          });
+          navigate("projects/confirm");
         }
       },
     },
-    {
-      onUnhandled: (input, _key) => {
-        if (confirmKill) {
-          if (input === "y" || input === "Y") {
-            stopAll(confirmKill);
-          }
-          setConfirmKill(null);
-        }
-      },
-    },
+    {},
   );
 
   // Use uptimeTick to avoid lint warning
@@ -346,34 +362,6 @@ export function ProjectsListView() {
           width={width}
           height={height}
         />
-      )}
-
-      {/* Confirm kill overlay */}
-      {confirmKill && (
-        <Box
-          position="absolute"
-          marginLeft={Math.floor((width - 50) / 2)}
-          marginTop={Math.floor((height - 6) / 2)}
-        >
-          <Box
-            flexDirection="column"
-            width={50}
-            borderStyle="round"
-            borderColor={theme.input.warning}
-            paddingX={1}
-          >
-            <Text bold color={theme.input.warning}>
-              Kill {confirmKill}?
-            </Text>
-            <Text>
-              Running dependents:{" "}
-              {getDependents(confirmKill)
-                .filter((dd) => getProjectStatus(dd) === "running")
-                .join(", ")}
-            </Text>
-            <Text dimColor>y: kill anyway {"\u2502"} any key: cancel</Text>
-          </Box>
-        </Box>
       )}
     </Box>
   );
