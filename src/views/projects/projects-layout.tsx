@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Box } from "ink";
-import { useLocalProcesses } from "../../hooks/use-local-processes.ts";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet } from "../../ui/router.ts";
 import {
@@ -11,19 +10,10 @@ import {
 } from "./projects-context.ts";
 
 export function ProjectsLayout() {
-  const { config, contentHeight: height, width } = useAppContext();
-  const localProjects = config.localProjects;
-  const outlet = useOutlet();
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
-  const [focus, setFocus] = useState<ProjectFocus>("sidebar");
-  const [confirmAction, setConfirmAction] = useState<ConfirmActionDef | null>(
-    null,
-  );
-
   const {
-    states,
+    contentHeight: height,
+    width,
+    processStates: states,
     startCommand,
     startAll,
     stopOne,
@@ -32,7 +22,15 @@ export function ProjectsLayout() {
     clearLogs,
     getProjectStatus,
     getDependents,
-  } = useLocalProcesses(localProjects);
+  } = useAppContext();
+  const outlet = useOutlet();
+
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+  const [focus, setFocus] = useState<ProjectFocus>("sidebar");
+  const [confirmAction, setConfirmAction] = useState<ConfirmActionDef | null>(
+    null,
+  );
 
   const ctx: ProjectsContextValue = {
     selectedIndex,

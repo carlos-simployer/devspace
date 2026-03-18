@@ -13,6 +13,7 @@ import { useConfig } from "./hooks/use-config.ts";
 import { useRepos } from "./hooks/use-repos.ts";
 import { useNotifications } from "./hooks/use-notifications.ts";
 import { useDependencySearch } from "./hooks/use-dependency-search.ts";
+import { useLocalProcesses } from "./hooks/use-local-processes.ts";
 import { ViewHeader } from "./components/view-header.tsx";
 import { QuitConfirm } from "./components/quit-confirm.tsx";
 import { RouterProvider, RouteRenderer, useRouter } from "./ui/router.ts";
@@ -83,6 +84,18 @@ function AppInner({ client, org, token }: Props) {
     unreadCount,
   } = useNotifications(token);
 
+  const {
+    states: processStates,
+    startCommand,
+    startAll,
+    stopOne,
+    stopAll,
+    restartCommand,
+    clearLogs,
+    getProjectStatus,
+    getDependents,
+  } = useLocalProcesses(config.localProjects);
+
   // Router — all views use router for sub-navigation
   const { route, baseRoute } = useRouter();
 
@@ -151,6 +164,15 @@ function AppInner({ client, org, token }: Props) {
       notifications,
       notifLoading,
       unreadCount,
+      processStates,
+      startCommand,
+      startAll,
+      stopOne,
+      stopAll,
+      restartCommand,
+      clearLogs,
+      getProjectStatus,
+      getDependents,
     }),
     [
       height,
@@ -193,6 +215,15 @@ function AppInner({ client, org, token }: Props) {
       notifications,
       notifLoading,
       unreadCount,
+      processStates,
+      startCommand,
+      startAll,
+      stopOne,
+      stopAll,
+      restartCommand,
+      clearLogs,
+      getProjectStatus,
+      getDependents,
     ],
   );
 

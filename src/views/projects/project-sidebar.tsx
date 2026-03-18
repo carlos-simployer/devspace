@@ -18,6 +18,8 @@ function statusCircle(status: ProcessStatus): { icon: string; color: string } {
   switch (status) {
     case "running":
       return { icon: "\u25CF", color: theme.status.success };
+    case "partial":
+      return { icon: "\u25D0", color: theme.status.pending };
     case "starting":
       return { icon: "\u25CF", color: theme.status.pending };
     case "error":

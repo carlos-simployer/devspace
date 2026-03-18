@@ -9,6 +9,10 @@ import type {
 } from "./api/types.ts";
 import type { GitHubNotification } from "./hooks/use-notifications.ts";
 import type { ConfigError } from "./hooks/use-config.ts";
+import type {
+  ProcessState,
+  ProcessStatus,
+} from "./hooks/use-local-processes.ts";
 
 export interface AppContextValue {
   // Layout
@@ -60,6 +64,17 @@ export interface AppContextValue {
   notifications: GitHubNotification[];
   notifLoading: boolean;
   unreadCount: number;
+
+  // Local processes (persisted across tab switches)
+  processStates: Record<string, ProcessState>;
+  startCommand: (projectName: string, commandName: string) => void;
+  startAll: (projectName: string) => void;
+  stopOne: (projectName: string, commandName: string) => void;
+  stopAll: (projectName: string) => void;
+  restartCommand: (projectName: string, commandName: string) => void;
+  clearLogs: (projectName: string, commandName: string) => void;
+  getProjectStatus: (projectName: string) => ProcessStatus;
+  getDependents: (name: string) => string[];
 }
 
 // Default value is never actually used — the provider always supplies a real one.

@@ -28,7 +28,12 @@ function killAllChildren() {
 
 process.on("exit", killAllChildren);
 
-export type ProcessStatus = "stopped" | "starting" | "running" | "error";
+export type ProcessStatus =
+  | "stopped"
+  | "starting"
+  | "running"
+  | "partial"
+  | "error";
 
 export interface ProcessState {
   status: ProcessStatus;
@@ -357,19 +362,21 @@ export function useLocalProcesses(projects: LocalProject[]) {
       const project = projects.find((p) => p.name === projectName);
       if (!project) return "stopped";
 
-      let hasRunning = false;
+      let runningCount = 0;
       let hasError = false;
       let hasStarting = false;
+      const totalCommands = project.commands.length;
 
       for (const cmd of project.commands) {
         const key = processKey(projectName, cmd.name);
         const state = states[key];
-        if (state?.status === "running") hasRunning = true;
+        if (state?.status === "running") runningCount++;
         if (state?.status === "error") hasError = true;
         if (state?.status === "starting") hasStarting = true;
       }
 
-      if (hasRunning) return "running";
+      if (runningCount === totalCommands) return "running";
+      if (runningCount > 0) return "partial";
       if (hasStarting) return "starting";
       if (hasError) return "error";
       return "stopped";

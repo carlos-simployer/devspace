@@ -19,6 +19,7 @@ function statusIcon(status: ProcessState["status"]): string {
   switch (status) {
     case "running":
       return icons.success;
+    case "partial":
     case "starting":
       return icons.pending;
     case "error":
@@ -33,6 +34,7 @@ function statusColor(status: ProcessState["status"]): string {
   switch (status) {
     case "running":
       return theme.status.success;
+    case "partial":
     case "starting":
       return theme.status.pending;
     case "error":
@@ -125,6 +127,23 @@ export function CommandPanel({
   const visibleLogs = logs.slice(effectiveOffset, effectiveOffset + logHeight);
   const isAtBottom = effectiveOffset >= maxOffset;
 
+  // Viewport windowing for command list (tableHeight includes header row)
+  const visibleCmdCount = tableHeight - 1; // subtract header row
+  let cmdStartIdx = 0;
+  if (commands.length > visibleCmdCount) {
+    const halfView = Math.floor(visibleCmdCount / 2);
+    if (selectedCommandIndex > halfView) {
+      cmdStartIdx = Math.min(
+        selectedCommandIndex - halfView,
+        commands.length - visibleCmdCount,
+      );
+    }
+  }
+  const visibleCommands = commands.slice(
+    cmdStartIdx,
+    cmdStartIdx + visibleCmdCount,
+  );
+
   return (
     <Box flexDirection="column" width={width} height={height}>
       {/* Command table */}
@@ -132,7 +151,8 @@ export function CommandPanel({
         <Box>
           <Text dimColor>{header}</Text>
         </Box>
-        {commands.map((cmd, i) => {
+        {visibleCommands.map((cmd, vi) => {
+          const i = cmdStartIdx + vi;
           const key = processKey(project.name, cmd.name);
           const state = states[key] ?? { status: "stopped" as const, logs: [] };
           const isSelected = isFocused && i === selectedCommandIndex;
