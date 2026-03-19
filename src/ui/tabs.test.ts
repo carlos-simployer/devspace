@@ -86,7 +86,7 @@ describe("getTabLabel", () => {
     expect(getTabLabel("projects")).toBe("3 Projects");
     expect(getTabLabel("pipelines")).toBe("4 Pipelines");
     expect(getTabLabel("releases")).toBe("5 Releases");
-    expect(getTabLabel("dependencies")).toBe("6 Deps");
+    expect(getTabLabel("dependencies")).toBe("6 Packages");
     expect(getTabLabel("slack")).toBe("7 Slack");
     expect(getTabLabel("config")).toBe("8 Config");
     expect(getTabLabel("about")).toBe("9 About");
@@ -126,7 +126,7 @@ describe("getTabViews", () => {
     const prsTab = tabs.find((t) => t.route === "prs");
     expect(prsTab?.label).toBe("1 PRs");
     const depsTab = tabs.find((t) => t.route === "dependencies");
-    expect(depsTab?.label).toBe("6 Deps");
+    expect(depsTab?.label).toBe("6 Packages");
     const pipelinesTab = tabs.find((t) => t.route === "pipelines");
     expect(pipelinesTab?.label).toBe("4 Pipelines");
     const releasesTab = tabs.find((t) => t.route === "releases");

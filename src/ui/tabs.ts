@@ -10,7 +10,7 @@ const ALL_TABS: TabDef[] = [
   { route: "projects", label: "Projects" },
   { route: "pipelines", label: "Pipelines" },
   { route: "releases", label: "Releases" },
-  { route: "dependencies", label: "Deps" },
+  { route: "dependencies", label: "Packages" },
   { route: "slack", label: "Slack" },
 ];
 
