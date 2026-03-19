@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Text } from "ink";
-import type { FocusArea } from "../../api/types.ts";
+import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet, useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
@@ -11,6 +11,7 @@ import {
   PipelinesContext,
   type PipelinesContextValue,
 } from "./pipelines-context.ts";
+import { pipelinesStore } from "./pipelines-store.ts";
 
 export function PipelinesLayout() {
   const { config, contentHeight: height, width, onQuit } = useAppContext();
@@ -20,9 +21,14 @@ export function PipelinesLayout() {
   // Enables tab switching, number keys, quit even on "not configured" screen.
   useRouteShortcuts({ quit: onQuit });
 
-  const [focus, setFocus] = useState<FocusArea>("sidebar");
-  const [sidebarIndex, setSidebarIndex] = useState(0);
-  const [listIndex, setListIndex] = useState(0);
+  const {
+    focus,
+    setFocus,
+    sidebarIndex,
+    setSidebarIndex,
+    listIndex,
+    setListIndex,
+  } = useStore(pipelinesStore);
 
   const isConfigured = !!config.azureOrg && !!config.azureProject;
 

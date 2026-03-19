@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Box, Text, measureElement } from "ink";
 import type { DOMElement } from "ink";
-import type { FilterMode, FocusArea, SortMode } from "../../api/types.ts";
+import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
@@ -19,6 +19,7 @@ import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "../../api/mutations.ts";
 import { TabBar } from "../../components/tab-bar.tsx";
 import { Shortcuts } from "../../components/shortcuts.tsx";
 import { PrsContext, type PrsContextValue } from "./prs-context.ts";
+import { prsStore } from "./prs-store.ts";
 
 export function PrsLayout() {
   const {
@@ -49,14 +50,22 @@ export function PrsLayout() {
     }
   }, [isFirstLaunch, route, navigate]);
 
-  // ── Shared state ──────────────────────────────────────────────────────
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
-  const [focus, setFocus] = useState<FocusArea>("list");
-  const [sidebarIndex, setSidebarIndex] = useState(0);
-  const [listIndex, setListIndex] = useState(0);
+  // ── Persisted state (survives tab switches) ─────────────────────────
+  const {
+    filterMode,
+    setFilterMode,
+    focus,
+    setFocus,
+    sidebarIndex,
+    setSidebarIndex,
+    listIndex,
+    setListIndex,
+    sortMode,
+    setSortMode,
+  } = useStore(prsStore);
+  // ── Transient state (resets on tab switch) ──────────────────────────
   const [searchMode, setSearchMode] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [sortMode, setSortMode] = useState<SortMode>("repo-updated");
   const [statusMessage, setStatusMessage] = useState("");
   const [commentMode, setCommentMode] = useState(false);
   const [commentText, setCommentText] = useState("");

@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Box } from "ink";
-import type { FocusArea, TrackedPackage } from "../../api/types.ts";
+import { useStore } from "zustand";
+import type { TrackedPackage } from "../../api/types.ts";
 import { compareDependencyByVersion } from "../../api/dependency-queries.ts";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet } from "../../ui/router.ts";
 import { DepsContext, type DepsContextValue } from "./deps-context.ts";
+import { depsStore } from "./deps-store.ts";
 
 export function DepsLayout() {
   const {
@@ -17,9 +19,14 @@ export function DepsLayout() {
   const trackedPackages = config.trackedPackages;
   const outlet = useOutlet();
 
-  const [focus, setFocus] = useState<FocusArea>("sidebar");
-  const [packageIndex, setPackageIndex] = useState(0);
-  const [resultIndex, setResultIndex] = useState(0);
+  const {
+    focus,
+    setFocus,
+    packageIndex,
+    setPackageIndex,
+    resultIndex,
+    setResultIndex,
+  } = useStore(depsStore);
 
   const packageList: TrackedPackage[] = useMemo(
     () =>

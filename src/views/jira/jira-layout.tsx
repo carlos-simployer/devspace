@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Box, Text } from "ink";
-import type { JiraFilterMode } from "../../api/types.ts";
+import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { getToken } from "../../utils/tokens.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
@@ -8,12 +8,9 @@ import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
-import {
-  groupByStatus,
-  sortIssuesInGroups,
-  type JiraSortField,
-} from "../../utils/jira-status.ts";
+import { groupByStatus, sortIssuesInGroups } from "../../utils/jira-status.ts";
 import { JiraContext, type JiraContextValue } from "./jira-context.ts";
+import { jiraStore } from "./jira-store.ts";
 
 const DEFAULT_STATUS_ORDER = [
   "In Progress",
@@ -24,10 +21,6 @@ const DEFAULT_STATUS_ORDER = [
   "Done",
 ];
 
-// Note: State resets when leaving and returning to the Jira tab
-// because JiraLayout unmounts. This is acceptable for now; if
-// persistence is needed, state can be lifted to AppContext or
-// stored in a ref-backed cache.
 export function JiraLayout() {
   const { config, contentHeight: height, width, onQuit } = useAppContext();
   const { route } = useRouter();
@@ -41,17 +34,25 @@ export function JiraLayout() {
       ? config.jiraStatusOrder
       : DEFAULT_STATUS_ORDER;
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [filterMode, setFilterMode] = useState<JiraFilterMode>("mine");
-  const [filterAccountIds, setFilterAccountIds] = useState<Set<string>>(
-    new Set(),
-  );
+  // Persisted state (survives tab switches)
+  const {
+    selectedIndex,
+    setSelectedIndex,
+    filterMode,
+    setFilterMode,
+    filterAccountIds,
+    setFilterAccountIds,
+    sortFields,
+    setSortFields,
+    enabledStatuses,
+    setEnabledStatuses,
+    initialize: initializeStore,
+  } = useStore(jiraStore);
+  // Initialize enabledStatuses from config on first mount
+  initializeStore(statusOrder);
+  // Transient state (resets on tab switch)
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState(false);
-  const [sortFields, setSortFields] = useState<JiraSortField[]>(["updated"]);
-  const [enabledStatuses, setEnabledStatuses] = useState<Set<string>>(
-    () => new Set(statusOrder),
-  );
 
   const jiraToken = getToken("jiraToken");
   const isConfigured = !!config.jiraSite && !!config.jiraEmail && !!jiraToken;
