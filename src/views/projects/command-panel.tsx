@@ -241,7 +241,7 @@ export function CommandPanel({
         </Text>
         <Box flexGrow={1} />
         <Text dimColor>
-          {"[ ] scroll \u2502 g/G top/bottom \u2502 c clear"}
+          {"[ ] scroll \u2502 g/b top/bottom \u2502 c clear"}
         </Text>
       </Box>
 

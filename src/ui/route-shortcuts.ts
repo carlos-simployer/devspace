@@ -114,6 +114,7 @@ const ROUTE_BAR: Record<string, string[]> = {
     "kill",
     "restart",
     "open",
+    "openGitRepo",
     "add",
     "remove",
     "scrollLogs",
@@ -513,8 +514,14 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
     "}": { action: "pageDown", key: "}", help: "Page down logs" },
     "{": { action: "pageUp", key: "{", help: "Page up logs" },
     g: { action: "logTop", key: "g", help: "Logs: jump to top" },
-    G: { action: "logBottom", key: "G", help: "Logs: jump to bottom" },
+    b: { action: "logBottom", key: "b", help: "Logs: jump to bottom" },
     c: { action: "clearLogs", key: "c", help: "Clear logs" },
+    G: {
+      action: "openGitRepo",
+      key: "G",
+      label: "Git Repo",
+      help: "Open GitHub repo in browser",
+    },
     V: {
       action: "openInVscode",
       key: "V",

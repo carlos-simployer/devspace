@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import { exec } from "child_process";
+import { execSync } from "child_process";
+import { openInBrowser } from "../../utils/browser.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
@@ -60,11 +62,16 @@ export function ProjectsListView() {
     return () => clearInterval(timer);
   }, []);
 
-  // Reset command index when project changes
+  // Reset command index and log scroll when project changes
   useEffect(() => {
     setSelectedCommandIndex(0);
     setLogScroll(null);
   }, [selectedIndex, setSelectedCommandIndex]);
+
+  // Reset log scroll when selected command changes (not when clamped at boundary)
+  useEffect(() => {
+    setLogScroll(null);
+  }, [selectedCommandIndex]);
 
   // Log scroll helper
   const currentOffset = () => {
@@ -91,7 +98,6 @@ export function ProjectsListView() {
           setLogScroll(null);
         } else {
           setSelectedCommandIndex((i) => Math.max(0, i - 1));
-          setLogScroll(null);
         }
       },
       down: () => {
@@ -103,7 +109,6 @@ export function ProjectsListView() {
           setSelectedCommandIndex((i) =>
             Math.min(selected.commands.length - 1, i + 1),
           );
-          setLogScroll(null);
         }
       },
 
@@ -215,6 +220,22 @@ export function ProjectsListView() {
           } catch {
             // ignore
           }
+        }
+      },
+      openGitRepo: () => {
+        if (!selected) return;
+        try {
+          const raw = execSync("git remote get-url origin", {
+            cwd: selected.path,
+            encoding: "utf8",
+          }).trim();
+          // Convert SSH to HTTPS: git@github.com:org/repo.git -> https://github.com/org/repo
+          const url = raw
+            .replace(/^git@([^:]+):(.+?)(?:\.git)?$/, "https://$1/$2")
+            .replace(/\.git$/, "");
+          void openInBrowser(url);
+        } catch {
+          // not a git repo or no remote
         }
       },
       select: () => {
