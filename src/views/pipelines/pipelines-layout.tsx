@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Box, Text } from "ink";
 import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet, useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { FocusProvider, useFocus } from "../../ui/focus.ts";
 import { usePipelines } from "../../hooks/use-pipelines.ts";
 import { useAllPipelineDefinitions } from "../../hooks/use-pipelines.ts";
 import { usePipelineRuns } from "../../hooks/use-pipeline-runs.ts";
@@ -11,10 +12,11 @@ import {
   PipelinesContext,
   type PipelinesContextValue,
 } from "./pipelines-context.ts";
+import { PipelinesListView } from "./pipelines-list-view.tsx";
 import { pipelinesStore } from "./pipelines-store.ts";
 
 export function PipelinesLayout() {
-  const { config, contentHeight: height, width, onQuit } = useAppContext();
+  const { config, contentHeight, width, onQuit } = useAppContext();
   const { route } = useRouter();
   const outlet = useOutlet();
 
@@ -58,7 +60,7 @@ export function PipelinesLayout() {
   );
 
   // Reset list index when pipelines change
-  React.useEffect(() => {
+  useEffect(() => {
     if (listIndex >= pipelines.length) {
       setListIndex(Math.max(0, pipelines.length - 1));
     }
@@ -67,7 +69,7 @@ export function PipelinesLayout() {
   if (!isConfigured) {
     return (
       <Box
-        height={height}
+        height={contentHeight}
         width={width}
         alignItems="center"
         justifyContent="center"
@@ -98,26 +100,55 @@ export function PipelinesLayout() {
     runsError,
   };
 
-  // For overlay children: center them
-  if (outlet?.isOverlay) {
-    return (
+  const isOverlay = outlet?.isOverlay ?? false;
+
+  return (
+    <FocusProvider initialFocus={focus}>
       <PipelinesContext.Provider value={ctx}>
-        <Box
-          height={height}
-          width={width}
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Outlet />
+        <FocusSync setFocus={setFocus} />
+        <Box height={contentHeight} width={width}>
+          {/* Main content layer — always show index view */}
+          <Box height={contentHeight} width={width} flexDirection="column">
+            {isOverlay ? <PipelinesListView /> : <Outlet />}
+          </Box>
+
+          {/* Overlay layer — dialog on top */}
+          {isOverlay && (
+            <Box
+              position="absolute"
+              width={width}
+              height={contentHeight}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Outlet />
+            </Box>
+          )}
         </Box>
       </PipelinesContext.Provider>
-    );
-  }
-
-  // For full children (index, runs): render directly
-  return (
-    <PipelinesContext.Provider value={ctx}>
-      <Outlet />
-    </PipelinesContext.Provider>
+    </FocusProvider>
   );
+}
+
+/**
+ * FocusSync — syncs FocusProvider's focusedId back to the Zustand store.
+ */
+function FocusSync({
+  setFocus,
+}: {
+  setFocus: (v: "sidebar" | "list") => void;
+}) {
+  const { focusedId } = useFocus();
+  const prevRef = useRef(focusedId);
+
+  useEffect(() => {
+    if (focusedId !== prevRef.current) {
+      prevRef.current = focusedId;
+      if (focusedId === "sidebar" || focusedId === "list") {
+        setFocus(focusedId);
+      }
+    }
+  }, [focusedId, setFocus]);
+
+  return null;
 }

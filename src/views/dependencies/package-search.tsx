@@ -4,6 +4,7 @@ import { TextInput } from "@inkjs/ui";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useDepsContext } from "./deps-context.ts";
 
 export function PackageSearch() {
@@ -29,19 +30,7 @@ export function PackageSearch() {
   });
 
   return (
-    <Box
-      flexDirection="column"
-      width={boxWidth}
-      height={7}
-      borderStyle="round"
-      borderColor={getTheme().ui.border}
-      paddingX={1}
-    >
-      <Box>
-        <Text bold color={getTheme().ui.heading}>
-          Add Package to Track
-        </Text>
-      </Box>
+    <Dialog title="Add Package to Track" width={boxWidth} height={7}>
       <Box>
         <Text>Name: </Text>
         <TextInput
@@ -56,6 +45,6 @@ export function PackageSearch() {
       ) : (
         <Text dimColor>Type a package name, then press Enter</Text>
       )}
-    </Box>
+    </Dialog>
   );
 }

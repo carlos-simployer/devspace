@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
-import { Overlay } from "../../ui/overlay.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
@@ -52,7 +52,7 @@ export function SortOverlay() {
   });
 
   return (
-    <Overlay
+    <Dialog
       title="Sort Issues (within status groups)"
       width={boxWidth}
       height={boxHeight}
@@ -79,6 +79,6 @@ export function SortOverlay() {
           </Box>
         );
       })}
-    </Overlay>
+    </Dialog>
   );
 }

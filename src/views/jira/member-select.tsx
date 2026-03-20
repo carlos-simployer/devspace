@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
-import { Overlay } from "../../ui/overlay.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
@@ -101,7 +101,7 @@ export function MemberSelect() {
   });
 
   return (
-    <Overlay
+    <Dialog
       title="Filter by Team Member"
       width={boxWidth}
       height={boxHeight}
@@ -125,6 +125,6 @@ export function MemberSelect() {
           </Box>
         );
       })}
-    </Overlay>
+    </Dialog>
   );
 }

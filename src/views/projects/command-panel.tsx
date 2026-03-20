@@ -225,7 +225,6 @@ export function CommandPanel({
         borderBottom={false}
         borderLeft={false}
         borderRight={false}
-        paddingX={1}
         width={width}
       >
         <Text bold color={theme.ui.heading}>
@@ -246,7 +245,7 @@ export function CommandPanel({
       </Box>
 
       {/* Log content */}
-      <Box flexDirection="column" paddingX={1} height={logHeight}>
+      <Box flexDirection="column" height={logHeight}>
         {visibleLogs.length === 0 ? (
           <Text dimColor>No output yet...</Text>
         ) : (

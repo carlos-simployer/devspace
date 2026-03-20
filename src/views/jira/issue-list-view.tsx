@@ -3,6 +3,8 @@ import { Box, useInput, measureElement } from "ink";
 import type { DOMElement } from "ink";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
+import { useFocusNode } from "../../ui/focus.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { openInBrowser } from "../../utils/browser.ts";
 import { SORT_FIELD_LABELS } from "../../utils/jira-status.ts";
@@ -32,6 +34,9 @@ export function JiraIssueListView() {
     error,
     refetch,
   } = useJiraContext();
+
+  // ── Focus node ──────────────────────────────────────────────────────
+  useFocusNode({ id: "list", order: 0 });
 
   // Layout measurement
   const statusRef = useRef<DOMElement>(null);
@@ -155,18 +160,18 @@ export function JiraIssueListView() {
 
   return (
     <Box height={height} width={width} flexDirection="column">
-      {/* Main issue list */}
-      <Box flexGrow={1} height={mainHeight}>
+      {/* Main issue list in a Panel */}
+      <Panel title="Issues" focused={true} width={width} height={mainHeight}>
         <IssueList
           issues={filteredIssues}
           statusOrder={statusOrder}
           selectedIndex={selectedIndex}
-          height={mainHeight}
-          width={width}
+          height={mainHeight - 2}
+          width={width - 4}
           searchText={searchMode ? searchText : null}
           loading={loading}
         />
-      </Box>
+      </Panel>
 
       {/* Status bar */}
       <Box ref={statusRef} flexDirection="column">

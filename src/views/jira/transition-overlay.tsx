@@ -7,7 +7,7 @@ import {
   transitionJiraIssue,
 } from "../../api/jira-client.ts";
 import { getToken } from "../../utils/tokens.ts";
-import { Overlay } from "../../ui/overlay.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
@@ -99,14 +99,14 @@ export function TransitionOverlay() {
 
   if (!selectedIssue) {
     return (
-      <Overlay title="Transition" width={boxWidth} height={boxHeight}>
+      <Dialog title="Transition" width={boxWidth} height={boxHeight}>
         <Text dimColor>No issue selected</Text>
-      </Overlay>
+      </Dialog>
     );
   }
 
   return (
-    <Overlay
+    <Dialog
       title={`Transition ${issueKey}`}
       width={boxWidth}
       height={boxHeight}
@@ -161,6 +161,6 @@ export function TransitionOverlay() {
           </Box>
         </>
       )}
-    </Overlay>
+    </Dialog>
   );
 }

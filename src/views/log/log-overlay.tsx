@@ -2,7 +2,7 @@ import React, { useSyncExternalStore } from "react";
 import { Box, Text } from "ink";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
-import { Overlay } from "../../ui/overlay.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import { getTheme } from "../../ui/theme.ts";
 import {
   getLogEntries,
@@ -63,45 +63,32 @@ export function LogOverlayView() {
     },
   });
 
-  const theme = getTheme();
-
   return (
-    <Box
-      height={height}
-      width={width}
-      alignItems="center"
-      justifyContent="center"
+    <Dialog
+      title="Logs"
+      width={boxWidth}
+      height={boxHeight}
+      footer={
+        <Text dimColor>
+          {"\u2191\u2193"}: scroll | c: clear | L/esc: close | {entries.length}{" "}
+          entries
+        </Text>
+      }
     >
-      <Overlay
-        title="Logs"
-        titleColor={theme.ui.heading}
-        width={boxWidth}
-        height={boxHeight}
-        footer={
-          <Text dimColor>
-            {"\u2191\u2193"}: scroll | c: clear | L/esc: close |{" "}
-            {entries.length} entries
-          </Text>
-        }
-      >
-        {entries.length === 0 ? (
-          <Text dimColor>No log entries yet</Text>
-        ) : (
-          visible.map((entry, i) => (
-            <Box key={scrollOffset + i}>
-              <Text dimColor>{formatTime(entry.timestamp)} </Text>
-              <Text
-                color={levelColor(entry.level)}
-                bold={entry.level !== "info"}
-              >
-                {entry.level.toUpperCase().padEnd(5)}{" "}
-              </Text>
-              <Text dimColor>[{entry.category}] </Text>
-              <Text>{entry.message.slice(0, boxWidth - 30)}</Text>
-            </Box>
-          ))
-        )}
-      </Overlay>
-    </Box>
+      {entries.length === 0 ? (
+        <Text dimColor>No log entries yet</Text>
+      ) : (
+        visible.map((entry, i) => (
+          <Box key={scrollOffset + i}>
+            <Text dimColor>{formatTime(entry.timestamp)} </Text>
+            <Text color={levelColor(entry.level)} bold={entry.level !== "info"}>
+              {entry.level.toUpperCase().padEnd(5)}{" "}
+            </Text>
+            <Text dimColor>[{entry.category}] </Text>
+            <Text>{entry.message.slice(0, boxWidth - 30)}</Text>
+          </Box>
+        ))
+      )}
+    </Dialog>
   );
 }

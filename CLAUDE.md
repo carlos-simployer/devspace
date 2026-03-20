@@ -41,13 +41,34 @@ src/
 │   └── types.ts                 # All shared TypeScript interfaces
 ├── ui/                          # Reusable UI primitives (barrel-exported via index.ts)
 │   ├── index.ts                 # Barrel export for all ui/ modules
-│   ├── theme.ts                 # Centralized color + icon constants
+│   ├── theme.ts                 # Centralized color + icon + theme constants
 │   ├── router.ts                # RouterProvider, useRouter, defineRoutes, RouteRenderer, Outlet, useOutlet
 │   ├── router.test.tsx          # Router tests (param extraction, navigation, goBack, nested routes)
 │   ├── route-shortcuts.ts       # All keyboard shortcuts grouped by route path
 │   ├── route-shortcuts.test.ts  # Tests for route-based shortcut system
 │   ├── tabs.ts                  # TABS array, getTabViews, getTabNumberKeys, getBaseRoute
 │   ├── tabs.test.ts             # Tests for tab system
+│   ├── panel.tsx                # Bordered section with title-in-border, focus color, item count, edge merging
+│   ├── panel.test.tsx           # Tests for panel
+│   ├── focus.ts                 # FocusProvider, useFocus, useFocusNode — focus management context
+│   ├── focus.test.tsx           # Tests for focus system
+│   ├── scroll-area.tsx          # Viewport container paired with ScrollBar
+│   ├── scroll-area.test.tsx     # Tests for scroll area
+│   ├── scroll-bar.tsx           # Vertical scroll indicator (proportional thumb + track)
+│   ├── scroll-bar.test.tsx      # Tests for scroll bar
+│   ├── dialog.tsx               # Dialog (solid-bg modal) + DialogLayer (content + dialog compositor)
+│   ├── dialog.test.tsx          # Tests for dialog
+│   ├── sidebar.tsx              # Generic sidebar with Panel + ScrollArea (replaces per-view sidebars)
+│   ├── sidebar.test.tsx         # Tests for sidebar
+│   ├── search-list.tsx          # Search dialog with fuzzy filter + selectable list
+│   ├── search-list.test.tsx     # Tests for search list
+│   ├── detail-panel.tsx         # Tabbed detail view with ScrollArea (PR detail, Jira detail, etc.)
+│   ├── detail-panel.test.tsx    # Tests for detail panel
+│   ├── confirm-dialog.tsx       # Confirmation dialog with selectable options
+│   ├── confirm-dialog.test.tsx  # Tests for confirm dialog
+│   ├── table-row.tsx            # TableRow + TableHeader — fixed-width columns with flex, truncation
+│   ├── table-row.test.tsx       # Tests for table row
+│   ├── create-view-store.ts     # Zustand store factory for per-view persisted state
 │   ├── selectable-list-item.tsx # Blue-bg selected row component
 │   ├── selectable-list-item.test.tsx # Tests for selectable list item
 │   ├── tab-item.tsx             # Single tab label component
@@ -60,15 +81,17 @@ src/
 │   ├── prs/                     # PR dashboard view
 │   │   ├── index.tsx            # Re-exports PrsLayout
 │   │   ├── prs-context.ts       # PrsContext — shared state for all PR child routes
-│   │   ├── prs-layout.tsx       # PrsLayout — parent layout, owns state + own header
+│   │   ├── prs-store.ts         # Zustand store for persisted PR view state
+│   │   ├── prs-layout.tsx       # PrsLayout — parent layout, owns state, FocusProvider
 │   │   ├── pr-list-view.tsx     # PrListView — index route (list + sidebar + shortcuts)
 │   │   ├── prs-help-view.tsx    # PrsHelpView — help overlay route
-│   │   ├── sidebar.tsx          # Pinned repos sidebar
+│   │   ├── sidebar.tsx          # Pinned repos sidebar (uses ui/Sidebar)
 │   │   ├── sidebar.test.tsx     # Tests for sidebar
 │   │   ├── pr-list.tsx          # Scrollable PR list
 │   │   ├── pr-row.tsx           # Single PR row
 │   │   ├── pr-row.test.tsx      # Tests for PR row
 │   │   ├── status-bar.tsx       # Filter, count, refresh timer
+│   │   ├── approve-overlay.tsx  # PR approval overlay (child route)
 │   │   ├── repo-search.tsx      # Repo search overlay (child route)
 │   │   ├── notifications-view.tsx # GitHub notifications panel (child route)
 │   │   └── pr-detail/           # PR detail panel (child route)
@@ -79,6 +102,7 @@ src/
 │   ├── dependencies/            # Dependency tracker view
 │   │   ├── index.tsx            # Re-exports DepsLayout
 │   │   ├── deps-context.ts     # DepsContext — shared state for all dep child routes
+│   │   ├── deps-store.ts       # Zustand store for persisted deps view state
 │   │   ├── deps-layout.tsx     # DepsLayout — parent layout, owns state
 │   │   ├── deps-list-view.tsx  # DepsListView — index route (list + sidebar + shortcuts)
 │   │   ├── deps-help-view.tsx  # DepsHelpView — help overlay route
@@ -89,6 +113,7 @@ src/
 │   ├── pipelines/               # Azure DevOps pipelines view
 │   │   ├── index.tsx            # Re-exports PipelinesLayout
 │   │   ├── pipelines-context.ts # PipelinesContext — shared state
+│   │   ├── pipelines-store.ts   # Zustand store for persisted pipeline view state
 │   │   ├── pipelines-layout.tsx # PipelinesLayout — parent layout, owns state
 │   │   ├── pipelines-list-view.tsx # PipelinesListView — index route
 │   │   ├── pipelines-help-view.tsx # PipelinesHelpView — help overlay route
@@ -101,6 +126,7 @@ src/
 │   ├── releases/                # Azure DevOps releases view
 │   │   ├── index.tsx            # Re-exports ReleasesLayout
 │   │   ├── releases-context.ts  # ReleasesContext — shared state
+│   │   ├── releases-store.ts    # Zustand store for persisted release view state
 │   │   ├── releases-layout.tsx  # ReleasesLayout — parent layout, owns state
 │   │   ├── releases-list-view.tsx # ReleasesListView — index route
 │   │   ├── releases-help-view.tsx # ReleasesHelpView — help overlay route
@@ -112,15 +138,19 @@ src/
 │   ├── projects/                # Local projects runner view
 │   │   ├── index.tsx            # Re-exports ProjectsLayout
 │   │   ├── projects-context.ts  # ProjectsContext — shared state
+│   │   ├── projects-store.ts    # Zustand store for persisted project view state
 │   │   ├── projects-layout.tsx  # ProjectsLayout — parent layout, owns state
 │   │   ├── projects-list-view.tsx # ProjectsListView — index route
 │   │   ├── projects-help-view.tsx # ProjectsHelpView — help overlay route
-│   │   ├── project-list.tsx     # Project list with status indicators
+│   │   ├── project-sidebar.tsx  # Project list sidebar with status indicators
+│   │   ├── command-panel.tsx    # Command output / log panel (right side)
 │   │   ├── log-panel.tsx        # Live log detail panel (right side)
+│   │   ├── confirm-overlay.tsx  # Kill/stop confirmation overlay
 │   │   └── add-project.tsx      # Multi-step add project wizard
 │   ├── jira/                    # Jira issue tracker view
 │   │   ├── index.tsx            # Re-exports JiraLayout
 │   │   ├── jira-context.ts      # JiraContext — shared state for all Jira child routes
+│   │   ├── jira-store.ts        # Zustand store for persisted Jira view state
 │   │   ├── jira-layout.tsx      # JiraLayout — parent layout, owns state
 │   │   ├── issue-list-view.tsx  # JiraIssueListView — index route (list + shortcuts)
 │   │   ├── jira-help-view.tsx   # JiraHelpView — help overlay route
@@ -130,6 +160,7 @@ src/
 │   │   ├── status-filter.tsx    # Status filter overlay (child route)
 │   │   ├── sort-overlay.tsx     # Sort overlay (child route)
 │   │   ├── member-select.tsx    # Team member select overlay (child route)
+│   │   ├── transition-overlay.tsx # Issue status transition overlay (child route)
 │   │   └── issue-detail/        # Issue detail panel (child route)
 │   │       ├── index.tsx        # Tab switching (overview/comments/subtasks) + scroll
 │   │       ├── overview-tab.tsx # Issue metadata, description, status
@@ -137,6 +168,7 @@ src/
 │   │       └── subtasks-tab.tsx # Subtask list
 │   ├── slack/                   # Slack messaging view
 │   │   ├── slack-context.ts     # SlackContext — shared state for all Slack child routes
+│   │   ├── slack-store.ts       # Zustand store for persisted Slack view state
 │   │   ├── slack-layout.tsx     # SlackLayout — parent layout, owns state
 │   │   ├── slack-list-view.tsx  # SlackListView — index route (channel sidebar + messages)
 │   │   ├── slack-help-view.tsx  # SlackHelpView — help overlay route
@@ -159,7 +191,8 @@ src/
 │   ├── view-header.tsx          # Shared header (TabBar + Shortcuts bar, reads from route-shortcuts)
 │   ├── help-overlay.tsx         # Keyboard shortcut help overlay (reads from route-shortcuts)
 │   ├── tab-bar.tsx              # View switcher tab bar (reads from tabs.ts)
-│   └── shortcuts.tsx            # Bottom shortcut hint bar
+│   ├── shortcuts.tsx            # Bottom shortcut hint bar
+│   └── quit-confirm.tsx         # Quit confirmation dialog
 ├── hooks/                       # React hooks
 │   ├── use-config.ts            # Config read/write (~/.config/devhub/)
 │   ├── use-pull-requests.ts     # PR search + pagination + polling
@@ -169,7 +202,9 @@ src/
 │   ├── use-repos.ts             # Org repo list fetch
 │   ├── use-screen-size.ts       # Terminal dimensions
 │   ├── use-github-auth.ts       # Auth token resolution
-│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (auto-scopes from current route)
+│   ├── use-route-shortcuts.ts   # Route-aware shortcut hook (auto-scopes, focus-aware dispatch)
+│   ├── use-text-input.ts        # Reusable text capture hook (query state + handleInput)
+│   ├── use-text-input.test.ts   # Tests for text input hook
 │   ├── use-local-processes.ts   # Child process management for local projects
 │   ├── use-pipelines.ts         # Azure DevOps pipeline data
 │   ├── use-pipeline-runs.ts     # Pipeline run history
@@ -183,6 +218,7 @@ src/
 │   ├── use-slack-presence.ts    # Slack user presence tracking
 │   ├── use-slack-thread.ts      # Slack thread replies fetch
 │   ├── use-slack-users.ts       # Slack user cache + lookup
+│   ├── use-terminal-title.ts    # Terminal tab title updates
 │   └── use-theme.ts             # Theme state management
 ├── utils/                       # Pure utility functions (each has *.test.ts)
 │   ├── time.ts                  # Relative time formatting
@@ -227,7 +263,7 @@ Centralizes directory paths and the app name:
 
 ### View Architecture (Router + Nested Routes)
 
-All 8 views use the same nested route pattern. `src/app.tsx` wraps the app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer`, which matches the current route to a component defined in `src/routes.ts`. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"slack"`, `"config"`).
+All 8 views use the same nested route pattern. `src/app.tsx` wraps the app in a `RouterProvider` (from `src/ui/router.ts`) and an `AppContext.Provider` (from `src/app-context.ts`). It renders a shared `ViewHeader` component (TabBar + Shortcuts bar) above the `RouteRenderer` for all views (including PRs -- there is no per-view header override). The `RouteRenderer` matches the current route to a component defined in `src/routes.ts`. Navigation uses slash-separated route strings (e.g. `"prs"`, `"jira/detail/UUX-1629"`, `"slack"`, `"config"`).
 
 The architecture consists of 5 key files:
 - **`src/app-context.ts`** — `AppContext` (React context) and `useAppContext()` hook. Provides all shared data to views: config + all config mutators, GraphQL client, token, org repos, dependency data, notifications, layout dimensions, and `onQuit`. Views call `useAppContext()` to access everything they need — no props are passed from `app.tsx` to views.
@@ -238,13 +274,14 @@ The architecture consists of 5 key files:
 
 #### Consistent View Decomposition Pattern
 
-Every view follows the same 4-file pattern:
+Every view follows the same 5-file pattern:
 
 | File | Role |
 |------|------|
 | `*-context.ts` | React context + hook (e.g. `PrsContext`, `usePrsContext()`) for view-specific shared state |
-| `*-layout.tsx` | Parent layout component: owns state, provides Context, renders `<Outlet />`. Handles overlay vs full-child rendering. |
-| `*-list-view.tsx` (or `*-main-view.tsx`) | Index route: main UI with `useRouteShortcuts` for view-specific key bindings |
+| `*-store.ts` | Zustand vanilla store for state that persists across tab switches (focus, indices, filter mode). Created via `createViewStore()` from `src/ui/create-view-store.ts`. |
+| `*-layout.tsx` | Parent layout component: owns state, wraps in `FocusProvider` + `ViewContext.Provider`, renders `<Outlet />`. Includes `FocusSync` component to sync focus back to the Zustand store. |
+| `*-list-view.tsx` (or `*-main-view.tsx`) | Index route: main UI with `useRouteShortcuts` for view-specific key bindings, uses `focusHandlers` for focus-aware dispatch |
 | `*-help-view.tsx` | Help overlay: thin wrapper calling `useRouteShortcuts({})` to activate global help-close behavior |
 
 Each view's `index.tsx` re-exports the layout component (e.g. `export { PrsLayout } from "./prs-layout.tsx"`).
@@ -252,12 +289,12 @@ Each view's `index.tsx` re-exports the layout component (e.g. `export { PrsLayou
 **All views take zero props.** Layout components call `useAppContext()` for shared data, own view-specific state, and provide it via their context. Child route components access view state via the context hook (e.g. `usePrsContext()`, `useDepsContext()`).
 
 The 8 views and their layouts (every view also has a `logs` child route for the shared `LogOverlayView`):
-- **PrsLayout** (`views/prs/prs-layout.tsx`) — manages its own header/TabBar instead of using the shared `ViewHeader`. Children: `PrListView`, `PrsHelpView`, `PRDetailPanel`, `NotificationsView`, `RepoSearch`.
+- **PrsLayout** (`views/prs/prs-layout.tsx`) — Uses the shared `ViewHeader` like all other views. Wraps in `FocusProvider` + `PrsContext.Provider`. Children: `PrListView`, `PrsHelpView`, `PRDetailPanel`, `NotificationsView`, `RepoSearch`, `ApproveOverlay`.
 - **DepsLayout** (`views/dependencies/deps-layout.tsx`) — Children: `DepsListView`, `DepsHelpView`, `PackageSearch`.
 - **PipelinesLayout** (`views/pipelines/pipelines-layout.tsx`) — Children: `PipelinesListView`, `PipelinesHelpView`, `PipelineSearch`, `PipelineRuns`.
 - **ReleasesLayout** (`views/releases/releases-layout.tsx`) — Children: `ReleasesListView`, `ReleasesHelpView`, `DefinitionSearch`.
 - **ProjectsLayout** (`views/projects/projects-layout.tsx`) — Children: `ProjectsListView`, `ProjectsHelpView`.
-- **JiraLayout** (`views/jira/jira-layout.tsx`) — Children: `JiraIssueListView`, `JiraHelpView`, `IssueDetail`, `SortOverlay`, `StatusFilter`, `MemberSelect`.
+- **JiraLayout** (`views/jira/jira-layout.tsx`) — Children: `JiraIssueListView`, `JiraHelpView`, `IssueDetail`, `SortOverlay`, `StatusFilter`, `MemberSelect`, `TransitionOverlay`.
 - **SlackLayout** (`views/slack/slack-layout.tsx`) — Children: `SlackListView`, `SlackHelpView`, `SlackThreadView`, `SlackChannelSearch`, `SlackEmojiPicker`, `SlackStatusView`.
 - **ConfigLayout** (`views/config/config-layout.tsx`) — Minimal layout (overlay routing only, no context). Children: `ConfigMainView`, `ConfigHelpView`. Config edit dialogs use local state with `position="absolute"` overlays inside `ConfigMainView`. Config sections: GitHub, Azure, Jira, Slack, System.
 
@@ -266,6 +303,7 @@ The 8 views and their layouts (every view also has a `logs` child route for the 
 - **Auto-scope:** The hook automatically scopes to the current route from `RouterContext` -- no manual `scope` parameter needed.
 - **`active` flag:** Set to `false` to disable during text input modes (search typing, etc.).
 - **`onUnhandled`:** Fallback for keys not matching any shortcut.
+- **`focusHandlers`:** Per-focus-node handler map for focus-aware dispatch. When provided, left/right arrow keys auto-wire to `focusPrev`/`focusNext` unless a handler is explicitly defined for those actions. See "Focus-Aware Shortcut Dispatch" below.
 - **Help overlay:** When on a `/help` route, `?` and `Esc` automatically close it (navigate back). Tab switching and quit still work from help overlays.
 - **Global shortcuts** (quit, help, logs, tab switch) are always active within any route.
 - **Sub-views with raw `useInput`:** Components like `PRDetailPanel`, `NotificationsView`, and `PipelineRuns` that use raw `useInput` for scrolling also call `useRouteShortcuts({})` to get global shortcuts (quit, help, logs, tab switch).
@@ -293,34 +331,63 @@ pipelines: {
 
 `defineRoutes()` flattens this into routes like `"pipelines"`, `"pipelines/help"`, `"pipelines/logs"`, `"pipelines/search"`, `"pipelines/runs"`. Each flattened entry stores both `parentComponent` and `childComponent`.
 
-Layout components use `useOutlet()` to conditionally render overlays centered vs full children directly:
+Layout components use `useOutlet()` to conditionally render overlays. When an overlay is active, the index view is always rendered as the background layer, with `<Outlet />` positioned absolutely on top:
 
 ```tsx
 function PipelinesLayout() {
   const outlet = useOutlet(); // { layout, isOverlay } or null
+  const isOverlay = outlet?.isOverlay ?? false;
+
   return (
-    <PipelinesContext.Provider value={ctx}>
-      {outlet?.isOverlay ? (
-        <Box alignItems="center" justifyContent="center"><Outlet /></Box>
-      ) : (
-        <Outlet />
-      )}
-    </PipelinesContext.Provider>
+    <FocusProvider initialFocus={focus}>
+      <PipelinesContext.Provider value={ctx}>
+        <FocusSync setFocus={setFocus} />
+        <Box height={contentHeight} width={width}>
+          {/* Main content — always show index view */}
+          <Box height={contentHeight} width={width} flexDirection="column">
+            {isOverlay ? <PipelinesListView /> : <Outlet />}
+          </Box>
+          {/* Overlay layer — dialog on top */}
+          {isOverlay && (
+            <Box position="absolute" width={width} height={contentHeight}
+              alignItems="center" justifyContent="center">
+              <Outlet />
+            </Box>
+          )}
+        </Box>
+      </PipelinesContext.Provider>
+    </FocusProvider>
   );
 }
 ```
 
-**State flow:** `AppContext` (global) -> Layout (owns view state) -> ViewContext.Provider -> child components via `useViewContext()`.
+**State flow:** `AppContext` (global) -> Layout (wraps `FocusProvider` + owns view state) -> ViewContext.Provider -> child components via `useViewContext()`. `FocusSync` syncs `FocusProvider.focusedId` back to the Zustand store so focus persists across tab switches.
 
 #### Overlay Types
 
-**Route-based overlays** (search, help, member select, sort) are child routes with `layout: "overlay"` in `routes.ts`. The parent layout detects `outlet?.isOverlay` and centers the child. These are separate components that navigate via `navigate("view/search")`.
+**Route-based overlays** (search, help, member select, sort) are child routes with `layout: "overlay"` in `routes.ts`. The parent layout detects `outlet?.isOverlay` and renders the index view as a background layer, with the overlay centered on top via `position="absolute"`. These are separate components that navigate via `navigate("view/search")`. Many route-based overlays now use shared UI primitives like `SearchList`, `ConfirmDialog`, or `Dialog`.
 
-**Local state overlays** (config edit dialogs, confirm kill dialogs in projects) use `position="absolute"` centered on screen, rendered within the index route's JSX tree. These are used for `TextInput`-based overlays that need raw keyboard input. Config sub-routes (e.g. `config/addOrg`) are tracked in the router for shortcut scoping but rendered by local state within `ConfigMainView`.
+**Local state overlays** (config edit dialogs, confirm kill dialogs in projects) use `position="absolute"` centered on screen, rendered within the index route's JSX tree via `DialogLayer`. These are used for `TextInput`-based overlays that need raw keyboard input. Config sub-routes (e.g. `config/addOrg`) are tracked in the router for shortcut scoping but rendered by local state within `ConfigMainView`.
 
 ### State & Data
 
-No external state management library. Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`. Each view manages its own view-specific state via local React hooks.
+Shared app-level state (config, client, repos, notifications, dependencies) is provided via `AppContext` from `src/app-context.ts` and accessed in views via `useAppContext()`.
+
+**Per-view persisted state** uses **Zustand** vanilla stores (one per view) to survive tab switches. The `createViewStore()` factory in `src/ui/create-view-store.ts` auto-generates `set*` setters for every field. Each view's `*-store.ts` creates a store with defaults (focus area, selected indices, filter mode, sort mode), and the layout component reads it via `useStore(viewStore)`. Example:
+
+```ts
+// prs-store.ts
+export const prsStore = createViewStore({
+  focus: "sidebar" as FocusArea,
+  sidebarIndex: 0,
+  listIndex: 0,
+  filterMode: "all" as FilterMode,
+  sortMode: "updated" as SortMode,
+});
+// Produces: focus, setFocus, sidebarIndex, setSidebarIndex, listIndex, setListIndex, ...
+```
+
+Views with 7 stores: PRs, Dependencies, Pipelines, Releases, Projects, Jira, Slack. Config has no store (stateless layout).
 
 - **useConfig** — reads/writes `~/.config/devhub/config.json` (v2 format: multi-org, pinned repos, tracked packages, refresh interval, local projects, Jira settings, Slack channels). Auto-saves on mutation. Handles v1 → v2 migration. Tokens are **not** stored in config -- see Token Storage below.
 - **usePullRequests** — builds a GitHub search query from pinned repos + filter mode, fetches via cursor-paginated GraphQL, polls on configurable interval (default 30s). Client-side filters by selected sidebar repo.
@@ -436,19 +503,36 @@ Token (in `tokens.json`):
 
 ### UI Primitives (`src/ui/`)
 
-Reusable building blocks barrel-exported from `src/ui/index.ts`:
-- **theme.ts** — `colors` and `icons` constants used throughout the app
+Reusable building blocks barrel-exported from `src/ui/index.ts`. Import via `from "../ui/index.ts"` or directly (e.g. `from "../ui/router.ts"`, `from "../ui/focus.ts"`).
+
+#### Core Infrastructure
+
+- **theme.ts** — `getTheme()`, `setTheme()`, `icons` constants. Theme `ui` section includes `panelBorder` (dim border for unfocused panels) and `focusBorder` (accent border for focused panels). All 5 themes define both.
 - **router.ts** — `RouterProvider` wraps the app, `useRouter()` provides `{ route, params, baseRoute, matchedPath, navigate, goBack }`. `defineRoutes()` creates the route map from nested path definitions. `RouteRenderer` matches the current route and renders the component. `Outlet` renders the child route in nested layouts; `useOutlet()` returns `{ layout, isOverlay }` for conditional rendering.
 - **route-shortcuts.ts** — `ROUTE_SHORTCUTS` object with all keyboard shortcuts grouped by route path, `ROUTE_BAR` with bottom bar action lists per route. `getShortcutRoute(matchedPath)` strips `:param` segments for lookup. Query helpers accept optional `matchedPath`: `getBarShortcuts(route, matchedPath)`, `getHelpShortcuts(route, matchedPath)`, `matchShortcut(input, key, route, matchedPath)`.
 - **tabs.ts** — `TABS` array defining tab order: PRs (1) / Jira (2) / Projects (3) / Pipelines (4) / Releases (5) / Deps (6) / Slack (7) / Config (8, always last). Helpers: `getTabViews()`, `getTabNumberKeys()`, `getBaseRoute()`.
+- **create-view-store.ts** — `createViewStore(defaults)` factory that creates a Zustand vanilla store with auto-generated `set*` setters for every field in the defaults object. Also exports `useStore` for React consumption.
+
+#### Layout Components (lazygit-style panels)
+
+- **Panel** — bordered section with title-in-border, `focused` prop controls border color (`theme.ui.focusBorder` vs `theme.ui.panelBorder`), optional `count` in bottom border, `merge` prop for shared edges between adjacent panels. Uses box-drawing characters (`╭╮╰╯│─├┤`).
+- **FocusProvider / useFocus / useFocusNode** — Focus management context. `FocusProvider` wraps a view, `useFocusNode({ id, order })` registers a focusable region. Three dispatch layers: focus node -> route -> global. `focusNext()`/`focusPrev()` cycle through registered nodes by `order`. `trap(id)`/`release()` locks focus to a single node (for dialogs). `FocusSync` pattern: a small component that syncs `focusedId` back to the Zustand store via `useEffect`.
+- **ScrollArea / ScrollBar** — `ScrollArea` pairs visible content with a `ScrollBar` indicator. The caller is responsible for slicing items; `ScrollArea` just renders the scroll bar alongside content. `ScrollBar` shows a proportional thumb (`┃`) on a track (`│`), renders nothing when all items fit.
+- **Dialog / DialogLayer** — `Dialog` renders a solid-background modal on top of view content (fills behind the Panel so text does not bleed through). Built on `Panel` with `focused={true}`. `DialogLayer` is a compositor that renders content + an optional centered dialog on top.
+- **Sidebar** — Generic sidebar component using `Panel` + `ScrollArea`. Props: `title`, `items: SidebarItem[]`, `selectedIndex`, `focused`, `width`, `height`. Handles viewport centering, selection highlighting (inverse+bold), add actions, and current-item bolding. Replaces 6 view-specific sidebar implementations.
+- **SearchList** — Search dialog with fuzzy filter (`fuzzyMatch`/`fuzzyScore` from `utils/fuzzy.ts`) + scrollable selectable list. Built on `Dialog`. Props include `items: SearchListItem[]`, `onSelect`, `onClose`, optional `renderItem` for custom rows. Handles keyboard input internally (type to search, arrows to navigate, Enter to select, Esc to close). Replaces 4 search overlay implementations.
+- **DetailPanel** — Tabbed detail view with `Panel` + `ScrollArea`. Props: `tabs: DetailTab[]`, `activeTab`, `lines: ContentLine[]`, `scrollOffset`, `height`, `width`. Renders a tab bar with `TabItem` components, a separator, scrollable content lines, and an optional footer. Replaces PR detail and Jira detail boilerplate.
+- **ConfirmDialog** — Confirmation dialog with selectable options. Built on `Dialog`. Props: `title`, `message`, `detail?`, `options: ConfirmOption[]`, `onSelect`, `onCancel`. Default options: No/Yes. Arrow keys navigate, Enter selects, Esc cancels.
+- **TableRow / TableHeader** — Fixed-width table rows with flex columns, truncation with ellipsis, and selection highlighting (inverse+bold). `Column` type supports `width` (fixed) or `flex` (fill remaining), `align` (left/right), `color`, `bold`, `dimColor`.
+
+#### Simple Components
+
 - **SelectableListItem** — row with blue background when selected
 - **TabItem** — single tab label component
 - **useListViewport** — handles viewport windowing for scrollable lists
 - **Overlay** — renders content as a floating panel over the main UI
 - **StatusBarLayout** — consistent status bar wrapper
 - **KeyboardHint** — dim hint text for keyboard shortcuts
-
-Import these via `from "../ui/index.ts"` or directly (e.g. `from "../ui/router.ts"`, `from "../ui/route-shortcuts.ts"`).
 
 ### Shortcut System (Route-based)
 
@@ -475,9 +559,28 @@ Query helpers (all accept optional `matchedPath` to handle parameterized routes 
 
 **`useRouteShortcuts` behavior:** Auto-scopes from the current route via `RouterContext`. No manual scope needed -- the hook only fires handlers for shortcuts defined on the current route. Global shortcuts (quit, help, tab switching) are handled automatically. The `active` flag can disable shortcuts during text input modes.
 
+#### Focus-Aware Shortcut Dispatch (`focusHandlers`)
+
+Views with multiple focusable regions (e.g. sidebar + list) pass a `focusHandlers` map to `useRouteShortcuts`. This replaces manual `if (focus === "sidebar")` branching:
+
+```ts
+useRouteShortcuts(
+  { open: () => openPR(), refresh: () => refetch() },
+  {
+    focusHandlers: {
+      sidebar: { up: () => moveSidebar(-1), down: () => moveSidebar(1) },
+      list: { up: () => moveList(-1), down: () => moveList(1) },
+    },
+  },
+);
+```
+
+Dispatch order: (1) if the focused node has a handler for the action, call it; (2) if `focusHandlers` is provided and the action is `"left"`/`"right"`, auto-wire to `focusPrev()`/`focusNext()`; (3) fall through to the top-level handlers map.
+
 **When to use `useRouteShortcuts` vs `useInput`:**
 - `useRouteShortcuts` -- for discrete action shortcuts (open, close, navigate, filter). This is the default for all views and sub-views.
 - `useInput` -- only for free-text input modes (search typing, comment typing) and as a `TextInput` companion (e.g. Escape to close an overlay). Overlays with only discrete keys (like `MemberSelect`, `SortOverlay`) should use `useRouteShortcuts`, not `useInput`.
+- `useTextInput` (`src/hooks/use-text-input.ts`) -- reusable hook for character-by-character text capture. Provides `query`, `setQuery`, `clear`, and `handleInput(input, key)` that handles backspace and printable chars. Also exports a pure `handleTextInput()` function for testing.
 
 ### Status Mapping
 

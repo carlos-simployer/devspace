@@ -8,8 +8,10 @@ import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useJiraIssues } from "../../hooks/use-jira-issues.ts";
 import { useJiraIssueDetail } from "../../hooks/use-jira-issue-detail.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { FocusProvider } from "../../ui/focus.ts";
 import { groupByStatus, sortIssuesInGroups } from "../../utils/jira-status.ts";
 import { JiraContext, type JiraContextValue } from "./jira-context.ts";
+import { JiraIssueListView } from "./issue-list-view.tsx";
 import { jiraStore } from "./jira-store.ts";
 
 const DEFAULT_STATUS_ORDER = [
@@ -165,26 +167,31 @@ export function JiraLayout() {
     detailError,
   };
 
-  // For overlay children: center them
-  if (outlet?.isOverlay) {
-    return (
+  const isOverlay = outlet?.isOverlay ?? false;
+
+  return (
+    <FocusProvider initialFocus="list">
       <JiraContext.Provider value={ctx}>
-        <Box
-          height={height}
-          width={width}
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Outlet />
+        <Box height={height} width={width}>
+          {/* Main content layer — always show index view */}
+          <Box height={height} width={width} flexDirection="column">
+            {isOverlay ? <JiraIssueListView /> : <Outlet />}
+          </Box>
+
+          {/* Overlay layer — dialog on top */}
+          {isOverlay && (
+            <Box
+              position="absolute"
+              width={width}
+              height={height}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Outlet />
+            </Box>
+          )}
         </Box>
       </JiraContext.Provider>
-    );
-  }
-
-  // For full children (index, detail): render directly
-  return (
-    <JiraContext.Provider value={ctx}>
-      <Outlet />
-    </JiraContext.Provider>
+    </FocusProvider>
   );
 }

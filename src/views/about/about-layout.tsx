@@ -2,23 +2,33 @@ import React from "react";
 import { Box } from "ink";
 import { useAppContext } from "../../app-context.ts";
 import { Outlet, useOutlet } from "../../ui/router.ts";
+import { AboutMainView } from "./about-main-view.tsx";
 
 export function AboutLayout() {
   const { contentHeight: height, width } = useAppContext();
   const outlet = useOutlet();
 
-  if (outlet?.isOverlay) {
-    return (
-      <Box
-        height={height}
-        width={width}
-        alignItems="center"
-        justifyContent="center"
-      >
-        <Outlet />
-      </Box>
-    );
-  }
+  const isOverlay = outlet?.isOverlay ?? false;
 
-  return <Outlet />;
+  return (
+    <Box height={height} width={width}>
+      {/* Main content layer -- always show index view */}
+      <Box height={height} width={width} flexDirection="column">
+        {isOverlay ? <AboutMainView /> : <Outlet />}
+      </Box>
+
+      {/* Overlay layer -- dialog on top */}
+      {isOverlay && (
+        <Box
+          position="absolute"
+          width={width}
+          height={height}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Outlet />
+        </Box>
+      )}
+    </Box>
+  );
 }

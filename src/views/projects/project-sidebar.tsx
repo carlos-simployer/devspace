@@ -52,35 +52,27 @@ export function ProjectSidebar({
   }
 
   const visibleCount = Math.min(totalItems - startIdx, height);
-  const innerWidth = width - 2; // padding
+  const innerWidth = width;
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="single"
-      borderRight
-      borderTop={false}
-      borderBottom={false}
-      borderLeft={false}
-    >
+    <Box flexDirection="column">
       {Array.from({ length: visibleCount }, (_, vi) => {
         const itemIdx = startIdx + vi;
 
         // [+] Add project at the end
         if (itemIdx === projects.length) {
           const isSelected = isFocused && selectedIndex === projects.length;
-          const label = "[+] Add project".padEnd(innerWidth);
+          const label = "[+] Add project";
+          const padded = isSelected ? label.padEnd(innerWidth) : label;
           return (
             <Box key="add-project">
               <Text
                 inverse={isSelected}
                 bold={isSelected}
-                color={isSelected ? undefined : theme.status.info}
+                color={isSelected ? undefined : theme.list.addAction}
+                dimColor={!isFocused && !isSelected}
               >
-                {" "}
-                {label}
+                {padded}
               </Text>
             </Box>
           );
@@ -92,14 +84,13 @@ export function ProjectSidebar({
         const { icon, color } = statusCircle(status);
 
         const nameStr = project.name.slice(0, innerWidth - 3);
-        const label = `${icon} ${nameStr}`.padEnd(innerWidth);
+        const label = `${icon} ${nameStr}`;
 
         if (isSelected) {
           return (
             <Box key={project.name}>
               <Text inverse bold>
-                {" "}
-                {label}
+                {label.padEnd(innerWidth)}
               </Text>
             </Box>
           );
@@ -107,8 +98,7 @@ export function ProjectSidebar({
 
         return (
           <Box key={project.name}>
-            <Text>
-              {" "}
+            <Text dimColor={!isFocused}>
               <Text color={color}>{icon}</Text> {nameStr}
             </Text>
           </Box>

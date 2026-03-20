@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { getHelpShortcuts } from "../ui/route-shortcuts.ts";
 import { getTheme } from "../ui/theme.ts";
-import { Overlay } from "../ui/overlay.tsx";
+import { Dialog } from "../ui/dialog.tsx";
 import { useRouter } from "../ui/router.ts";
 
 interface Props {
@@ -27,45 +27,37 @@ export function HelpOverlay({ route, height, width }: Props) {
   const boxHeight = Math.min(height - 2, totalLines);
 
   return (
-    <Box
-      height={height}
-      width={width}
-      alignItems="center"
-      justifyContent="center"
+    <Dialog
+      title="Keyboard Shortcuts"
+      width={boxWidth}
+      height={boxHeight}
+      footer={<Text dimColor>Press ? to close</Text>}
     >
-      <Overlay
-        title="Keyboard Shortcuts"
-        titleColor={theme.ui.heading}
-        width={boxWidth}
-        height={boxHeight}
-        footer={<Text dimColor>Press ? to close</Text>}
-      >
-        {viewShortcuts.map(([key, desc]) => (
-          <Box key={key + desc}>
-            <Text bold color={theme.ui.shortcutKey}>
-              {key!.padEnd(12)}
+      {viewShortcuts.map(([key, desc]) => (
+        <Box key={key + desc}>
+          <Text bold color={theme.ui.shortcutKey}>
+            {key!.padEnd(12)}
+          </Text>
+          <Text>{desc}</Text>
+        </Box>
+      ))}
+      {globalShortcuts.length > 0 && (
+        <>
+          <Box marginTop={1}>
+            <Text bold color={theme.ui.heading}>
+              Global
             </Text>
-            <Text>{desc}</Text>
           </Box>
-        ))}
-        {globalShortcuts.length > 0 && (
-          <>
-            <Box marginTop={1}>
-              <Text bold color={theme.ui.heading}>
-                Global
+          {globalShortcuts.map(([key, desc]) => (
+            <Box key={key + desc}>
+              <Text bold color={theme.ui.shortcutKey}>
+                {key!.padEnd(12)}
               </Text>
+              <Text>{desc}</Text>
             </Box>
-            {globalShortcuts.map(([key, desc]) => (
-              <Box key={key + desc}>
-                <Text bold color={theme.ui.shortcutKey}>
-                  {key!.padEnd(12)}
-                </Text>
-                <Text>{desc}</Text>
-              </Box>
-            ))}
-          </>
-        )}
-      </Overlay>
-    </Box>
+          ))}
+        </>
+      )}
+    </Dialog>
   );
 }

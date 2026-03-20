@@ -6,6 +6,8 @@ import { openInBrowser } from "../../utils/browser.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
+import { useFocusNode } from "../../ui/focus.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { processKey } from "../../hooks/use-local-processes.ts";
 import { getTheme } from "../../ui/index.ts";
 import { useProjectsContext } from "./projects-context.ts";
@@ -17,7 +19,6 @@ export function ProjectsListView() {
   const {
     config,
     addLocalProject,
-    removeLocalProject,
     contentHeight: height,
     width,
     onQuit,
@@ -29,8 +30,6 @@ export function ProjectsListView() {
     setSelectedIndex,
     selectedCommandIndex,
     setSelectedCommandIndex,
-    focus,
-    setFocus,
     states,
     startCommand,
     startAll,
@@ -42,6 +41,16 @@ export function ProjectsListView() {
     getDependents,
     setConfirmAction,
   } = useProjectsContext();
+
+  // ── Focus nodes ─────────────────────────────────────────────────────
+  const { isFocused: sidebarFocused } = useFocusNode({
+    id: "sidebar",
+    order: 0,
+  });
+  const { isFocused: commandsFocused } = useFocusNode({
+    id: "commands",
+    order: 1,
+  });
 
   const [logScroll, setLogScroll] = useState<number | null>(null);
   const [uptimeTick, setUptimeTick] = useState(0);
@@ -83,35 +92,6 @@ export function ProjectsListView() {
     {
       quit: () => onQuit(),
 
-      // Focus switching
-      left: () => setFocus("sidebar"),
-      right: () => {
-        if (selected && selected.commands.length > 0) {
-          setFocus("commands");
-        }
-      },
-
-      // Navigation
-      up: () => {
-        if (focus === "sidebar") {
-          setSelectedIndex((i) => Math.max(0, i - 1));
-          setLogScroll(null);
-        } else {
-          setSelectedCommandIndex((i) => Math.max(0, i - 1));
-        }
-      },
-      down: () => {
-        if (focus === "sidebar") {
-          // Allow selecting [+] Add at the end
-          setSelectedIndex((i) => Math.min(localProjects.length, i + 1));
-          setLogScroll(null);
-        } else if (selected) {
-          setSelectedCommandIndex((i) =>
-            Math.min(selected.commands.length - 1, i + 1),
-          );
-        }
-      },
-
       // Log scrolling
       scrollUp: () => setLogScroll(Math.max(0, currentOffset() - 1)),
       scrollDown: () => setLogScroll(currentOffset() + 1),
@@ -126,61 +106,7 @@ export function ProjectsListView() {
         }
       },
 
-      // Command actions
-      start: () => {
-        if (focus === "commands" && selected && selectedCmd) {
-          const key = processKey(selected.name, selectedCmd.name);
-          if (states[key]?.status !== "running") {
-            startCommand(selected.name, selectedCmd.name);
-          }
-        } else if (focus === "sidebar" && selected) {
-          if (selected.commands.length > 1) {
-            setConfirmAction({
-              type: "startAll",
-              projectName: selected.name,
-              label: `Start all commands for ${selected.name}?`,
-              detail: selected.commands.map((c) => c.name).join(", "),
-            });
-            navigate("projects/confirm");
-          } else {
-            startAll(selected.name);
-          }
-        }
-      },
-      kill: () => {
-        if (!selected) return;
-        if (focus === "commands" && selectedCmd) {
-          const key = processKey(selected.name, selectedCmd.name);
-          const st = states[key];
-          if (st?.status === "running" || st?.status === "starting") {
-            stopOne(selected.name, selectedCmd.name);
-          }
-        } else if (focus === "sidebar") {
-          const status = getProjectStatus(selected.name);
-          if (status !== "running" && status !== "starting") return;
-          const dependents = getDependents(selected.name).filter(
-            (d) => getProjectStatus(d) === "running",
-          );
-          setConfirmAction({
-            type: "killProject",
-            projectName: selected.name,
-            label: `Kill all commands for ${selected.name}?`,
-            detail:
-              dependents.length > 0
-                ? `Running dependents: ${dependents.join(", ")}`
-                : undefined,
-          });
-          navigate("projects/confirm");
-        }
-      },
-      restart: () => {
-        if (focus === "commands" && selected && selectedCmd) {
-          restartCommand(selected.name, selectedCmd.name);
-        } else if (focus === "sidebar" && selected) {
-          stopAll(selected.name);
-          setTimeout(() => startAll(selected.name), 500);
-        }
-      },
+      // Command actions (shared)
       open: () => {
         const cmdUrl = selectedCmd?.url;
         if (cmdUrl) {
@@ -229,7 +155,6 @@ export function ProjectsListView() {
             cwd: selected.path,
             encoding: "utf8",
           }).trim();
-          // Convert SSH to HTTPS: git@github.com:org/repo.git -> https://github.com/org/repo
           const url = raw
             .replace(/^git@([^:]+):(.+?)(?:\.git)?$/, "https://$1/$2")
             .replace(/\.git$/, "");
@@ -238,24 +163,7 @@ export function ProjectsListView() {
           // not a git repo or no remote
         }
       },
-      select: () => {
-        if (focus === "sidebar" && selectedIndex === localProjects.length) {
-          navigate("projects/add");
-        }
-      },
       add: () => navigate("projects/add"),
-      remove: () => {
-        if (selected) {
-          setConfirmAction({
-            type: "removeProject",
-            projectName: selected.name,
-            label: `Remove project "${selected.name}"?`,
-            detail:
-              "This will stop all commands and remove the project from config.",
-          });
-          navigate("projects/confirm");
-        }
-      },
       startAll: () => {
         if (localProjects.length > 0) {
           setConfirmAction({
@@ -267,7 +175,110 @@ export function ProjectsListView() {
         }
       },
     },
-    {},
+    {
+      focusHandlers: {
+        sidebar: {
+          up: () => {
+            setSelectedIndex((i) => Math.max(0, i - 1));
+            setLogScroll(null);
+          },
+          down: () => {
+            // Allow selecting [+] Add at the end
+            setSelectedIndex((i) => Math.min(localProjects.length, i + 1));
+            setLogScroll(null);
+          },
+          select: () => {
+            if (selectedIndex === localProjects.length) {
+              navigate("projects/add");
+            }
+          },
+          start: () => {
+            if (selected) {
+              if (selected.commands.length > 1) {
+                setConfirmAction({
+                  type: "startAll",
+                  projectName: selected.name,
+                  label: `Start all commands for ${selected.name}?`,
+                  detail: selected.commands.map((c) => c.name).join(", "),
+                });
+                navigate("projects/confirm");
+              } else {
+                startAll(selected.name);
+              }
+            }
+          },
+          kill: () => {
+            if (!selected) return;
+            const status = getProjectStatus(selected.name);
+            if (status !== "running" && status !== "starting") return;
+            const dependents = getDependents(selected.name).filter(
+              (d) => getProjectStatus(d) === "running",
+            );
+            setConfirmAction({
+              type: "killProject",
+              projectName: selected.name,
+              label: `Kill all commands for ${selected.name}?`,
+              detail:
+                dependents.length > 0
+                  ? `Running dependents: ${dependents.join(", ")}`
+                  : undefined,
+            });
+            navigate("projects/confirm");
+          },
+          restart: () => {
+            if (selected) {
+              stopAll(selected.name);
+              setTimeout(() => startAll(selected.name), 500);
+            }
+          },
+          remove: () => {
+            if (selected) {
+              setConfirmAction({
+                type: "removeProject",
+                projectName: selected.name,
+                label: `Remove project "${selected.name}"?`,
+                detail:
+                  "This will stop all commands and remove the project from config.",
+              });
+              navigate("projects/confirm");
+            }
+          },
+        },
+        commands: {
+          up: () => {
+            setSelectedCommandIndex((i) => Math.max(0, i - 1));
+          },
+          down: () => {
+            if (selected) {
+              setSelectedCommandIndex((i) =>
+                Math.min(selected.commands.length - 1, i + 1),
+              );
+            }
+          },
+          start: () => {
+            if (selected && selectedCmd) {
+              const key = processKey(selected.name, selectedCmd.name);
+              if (states[key]?.status !== "running") {
+                startCommand(selected.name, selectedCmd.name);
+              }
+            }
+          },
+          kill: () => {
+            if (!selected || !selectedCmd) return;
+            const key = processKey(selected.name, selectedCmd.name);
+            const st = states[key];
+            if (st?.status === "running" || st?.status === "starting") {
+              stopOne(selected.name, selectedCmd.name);
+            }
+          },
+          restart: () => {
+            if (selected && selectedCmd) {
+              restartCommand(selected.name, selectedCmd.name);
+            }
+          },
+        },
+      },
+    },
   );
 
   // Use uptimeTick to avoid lint warning
@@ -286,49 +297,72 @@ export function ProjectsListView() {
     ),
     Math.floor(width * 0.3),
   );
-  const mainWidth = width - sidebarWidth;
+  const gap = 1;
+  const mainWidth = width - sidebarWidth - gap;
   const statusBarHeight = 2;
   const mainContentHeight = height - statusBarHeight;
 
   // Handle sidebar-only selection of [+] Add
   const isSidebarAddSelected =
-    focus === "sidebar" && selectedIndex === localProjects.length;
+    sidebarFocused && selectedIndex === localProjects.length;
 
   return (
     <Box height={height} width={width} flexDirection="column">
       {/* Main area: sidebar + command panel */}
-      <Box flexGrow={1} height={mainContentHeight}>
-        <ProjectSidebar
-          projects={localProjects}
-          selectedIndex={selectedIndex}
-          isFocused={focus === "sidebar"}
-          height={mainContentHeight}
+      <Box flexGrow={1} height={mainContentHeight} gap={gap}>
+        <Panel
+          title="Projects"
+          focused={sidebarFocused}
           width={sidebarWidth}
-          getProjectStatus={getProjectStatus}
-        />
-        {selected && !isSidebarAddSelected ? (
-          <CommandPanel
-            project={selected}
-            states={states}
-            selectedCommandIndex={selectedCommandIndex}
-            isFocused={focus === "commands"}
-            height={mainContentHeight}
-            width={mainWidth}
-            logScrollOffset={logScroll}
+          height={mainContentHeight}
+          paddingX={0}
+        >
+          <ProjectSidebar
+            projects={localProjects}
+            selectedIndex={selectedIndex}
+            isFocused={sidebarFocused}
+            height={mainContentHeight - 2}
+            width={sidebarWidth - 2}
+            getProjectStatus={getProjectStatus}
           />
-        ) : (
-          <Box
+        </Panel>
+        {selected && !isSidebarAddSelected ? (
+          <Panel
+            title={selected.name}
+            focused={commandsFocused}
             width={mainWidth}
             height={mainContentHeight}
-            alignItems="center"
-            justifyContent="center"
           >
-            <Text dimColor>
-              {localProjects.length === 0
-                ? "No projects configured. Press + to add one."
-                : "Select a project"}
-            </Text>
-          </Box>
+            <CommandPanel
+              project={selected}
+              states={states}
+              selectedCommandIndex={selectedCommandIndex}
+              isFocused={commandsFocused}
+              height={mainContentHeight - 2}
+              width={mainWidth - 4}
+              logScrollOffset={logScroll}
+            />
+          </Panel>
+        ) : (
+          <Panel
+            title="Commands"
+            focused={commandsFocused}
+            width={mainWidth}
+            height={mainContentHeight}
+          >
+            <Box
+              width={mainWidth - 4}
+              height={mainContentHeight - 2}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text dimColor>
+                {localProjects.length === 0
+                  ? "No projects configured. Press + to add one."
+                  : "Select a project"}
+              </Text>
+            </Box>
+          </Panel>
         )}
       </Box>
 

@@ -4,6 +4,7 @@ import { Spinner } from "@inkjs/ui";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { useTextInput } from "../../hooks/use-text-input.ts";
 import { useSlackThread } from "../../hooks/use-slack-thread.ts";
 import { openInBrowser } from "../../utils/browser.ts";
 import { slackMessageLink } from "../../utils/slack-links.ts";
@@ -13,6 +14,7 @@ import {
   getUserDisplayName,
 } from "../../utils/slack-format.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { useSlackContext } from "./slack-context.ts";
 import { getToken } from "../../utils/tokens.ts";
 
@@ -41,7 +43,7 @@ export function SlackThreadView() {
 
   const [replyIndex, setReplyIndex] = useState(0);
   const [replyMode, setReplyMode] = useState(false);
-  const [replyText, setReplyText] = useState("");
+  const replyInput = useTextInput();
 
   // Resolve user IDs
   useEffect(() => {
@@ -65,19 +67,15 @@ export function SlackThreadView() {
     (input, key) => {
       if (key.escape) {
         setReplyMode(false);
-        setReplyText("");
-        return;
-      }
-      if (key.backspace || key.delete) {
-        setReplyText((s) => s.slice(0, -1));
+        replyInput.clear();
         return;
       }
       if (key.return) {
-        if (replyText.trim() && selectedChannel && threadTs) {
+        if (replyInput.query.trim() && selectedChannel && threadTs) {
           mutations.sendMessage.mutate(
             {
               channel: selectedChannel.id,
-              text: replyText,
+              text: replyInput.query,
               threadTs,
             },
             {
@@ -87,12 +85,10 @@ export function SlackThreadView() {
           );
         }
         setReplyMode(false);
-        setReplyText("");
+        replyInput.clear();
         return;
       }
-      if (input && !key.ctrl && !key.meta) {
-        setReplyText((s) => s + input);
-      }
+      replyInput.handleInput(input, key);
     },
     { isActive: replyMode },
   );
@@ -103,7 +99,7 @@ export function SlackThreadView() {
       close: () => navigate("slack"),
       reply: () => {
         setReplyMode(true);
-        setReplyText("");
+        replyInput.clear();
       },
       react: () => navigate("slack/emoji"),
       open: () => {
@@ -123,40 +119,30 @@ export function SlackThreadView() {
     { active: !replyMode },
   );
 
-  // Viewport windowing for replies
-  const listHeight = contentHeight - 4; // header + status lines
+  // Panel borders (2) + status bar (2) = 4
+  const panelHeight = contentHeight - 2;
+  const listHeight = panelHeight - 2; // panel borders
   const startIdx = Math.max(0, replyIndex - Math.floor(listHeight / 2));
   const visibleReplies = replies.slice(startIdx, startIdx + listHeight);
 
+  const threadTitle = selectedMessage
+    ? `Thread \u2014 ${getUserDisplayName(selectedMessage.user, userCache)}: ${formatSlackText(selectedMessage.text, userCache).slice(0, 40)}`
+    : "Thread";
+
   return (
     <Box flexDirection="column" height={contentHeight} width={width}>
-      {/* Thread header */}
-      <Box
-        borderStyle="single"
-        borderBottom
-        borderTop={false}
-        borderLeft={false}
-        borderRight={false}
-        paddingX={1}
+      <Panel
+        title={threadTitle}
+        focused={true}
+        width={width}
+        height={panelHeight}
       >
-        <Text bold>Thread</Text>
-        {selectedMessage && (
-          <Text dimColor>
-            {" "}
-            — {getUserDisplayName(selectedMessage.user, userCache)}:{" "}
-            {formatSlackText(selectedMessage.text, userCache).slice(0, 60)}
-          </Text>
-        )}
-      </Box>
-
-      {/* Replies */}
-      <Box flexDirection="column" flexGrow={1}>
         {loading ? (
-          <Box paddingLeft={2} paddingTop={1}>
+          <Box paddingLeft={1} paddingTop={1}>
             <Spinner label="Loading thread..." />
           </Box>
         ) : replies.length === 0 ? (
-          <Box paddingLeft={2} paddingTop={1}>
+          <Box paddingLeft={1} paddingTop={1}>
             <Text dimColor>No replies</Text>
           </Box>
         ) : (
@@ -185,7 +171,7 @@ export function SlackThreadView() {
             );
           })
         )}
-      </Box>
+      </Panel>
 
       {/* Status bar */}
       <Box
@@ -211,7 +197,7 @@ export function SlackThreadView() {
               <Text dimColor>|</Text>
               <Text color={theme.input.comment}>
                 {" "}
-                Reply: {replyText}
+                Reply: {replyInput.query}
                 {"\u258C"}{" "}
               </Text>
             </>

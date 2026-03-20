@@ -10,6 +10,7 @@ import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { FocusProvider, useFocus } from "../../ui/focus.ts";
 import { useSlackAuth } from "../../hooks/use-slack-auth.ts";
 import { useSlackUsers } from "../../hooks/use-slack-users.ts";
 import { useSlackChannels } from "../../hooks/use-slack-channels.ts";
@@ -21,6 +22,7 @@ import {
   type SlackContextValue,
   type SlackInputMode,
 } from "./slack-context.ts";
+import { SlackListView } from "./slack-list-view.tsx";
 import { getToken } from "../../utils/tokens.ts";
 import { slackStore } from "./slack-store.ts";
 
@@ -199,27 +201,56 @@ export function SlackLayout() {
     );
   }
 
-  // Overlay child
-  if (outlet?.isOverlay) {
-    return (
-      <SlackContext.Provider value={ctx}>
-        <Box
-          height={contentHeight}
-          width={width}
-          alignItems="center"
-          justifyContent="center"
-        >
-          <Outlet />
-        </Box>
-      </SlackContext.Provider>
-    );
-  }
+  const isOverlay = outlet?.isOverlay ?? false;
 
   return (
-    <SlackContext.Provider value={ctx}>
-      <Box height={contentHeight} width={width} flexDirection="column">
-        <Outlet />
-      </Box>
-    </SlackContext.Provider>
+    <FocusProvider initialFocus={focus}>
+      <SlackContext.Provider value={ctx}>
+        <FocusSync setFocus={setFocus} />
+        <Box height={contentHeight} width={width}>
+          {/* Main content layer — always show index view */}
+          <Box height={contentHeight} width={width} flexDirection="column">
+            {isOverlay ? <SlackListView /> : <Outlet />}
+          </Box>
+
+          {/* Overlay layer — dialog on top */}
+          {isOverlay && (
+            <Box
+              position="absolute"
+              width={width}
+              height={contentHeight}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Outlet />
+            </Box>
+          )}
+        </Box>
+      </SlackContext.Provider>
+    </FocusProvider>
   );
+}
+
+/**
+ * FocusSync — syncs FocusProvider's focusedId back to the Zustand store.
+ * Must be rendered inside both FocusProvider and SlackContext.Provider.
+ */
+function FocusSync({
+  setFocus,
+}: {
+  setFocus: (v: "sidebar" | "list") => void;
+}) {
+  const { focusedId } = useFocus();
+  const prevRef = useRef(focusedId);
+
+  useEffect(() => {
+    if (focusedId !== prevRef.current) {
+      prevRef.current = focusedId;
+      if (focusedId === "sidebar" || focusedId === "list") {
+        setFocus(focusedId);
+      }
+    }
+  }, [focusedId, setFocus]);
+
+  return null;
 }

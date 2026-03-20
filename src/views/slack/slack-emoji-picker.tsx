@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import { getTheme } from "../../ui/theme.ts";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useSlackContext } from "./slack-context.ts";
@@ -72,21 +72,21 @@ export function SlackEmojiPicker() {
     }
   });
 
-  const theme = getTheme();
   const boxWidth = Math.min(50, width - 4);
+  // Title (1) + border (2) + spacing (1) + rows (3) + spacing (1) + footer (1)
+  const boxHeight = ROWS + 6;
 
   return (
-    <Box
-      flexDirection="column"
+    <Dialog
+      title="Add Reaction"
       width={boxWidth}
-      borderStyle="round"
-      borderColor={theme.ui.border}
-      paddingX={1}
+      height={boxHeight}
+      footer={
+        <Text dimColor>
+          {"\u2191\u2193\u2190\u2192"}: navigate | Enter: apply | Esc: cancel
+        </Text>
+      }
     >
-      <Text bold color={theme.ui.heading}>
-        Add Reaction
-      </Text>
-      <Box height={1} />
       {EMOJIS.map((rowEmojis, ri) => (
         <Box key={ri}>
           {rowEmojis.map((emoji, ci) => {
@@ -100,10 +100,6 @@ export function SlackEmojiPicker() {
           })}
         </Box>
       ))}
-      <Box height={1} />
-      <Text dimColor>
-        {"\u2191\u2193\u2190\u2192"}: navigate | Enter: apply | Esc: cancel
-      </Text>
-    </Box>
+    </Dialog>
   );
 }

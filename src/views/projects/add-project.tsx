@@ -3,6 +3,7 @@ import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
 import type { LocalProject } from "../../api/types.ts";
 import { getTheme } from "../../ui/index.ts";
+import { Dialog } from "../../ui/dialog.tsx";
 
 interface Props {
   existingNames: string[];
@@ -103,17 +104,17 @@ export function AddProjectOverlay({
       marginLeft={Math.floor((width - overlayWidth) / 2)}
       marginTop={Math.floor((height - 18) / 2)}
     >
-      <Box
-        flexDirection="column"
+      <Dialog
+        title="Add Project"
         width={overlayWidth}
-        borderStyle="round"
-        borderColor={theme.ui.activeIndicator}
-        paddingX={1}
+        footer={
+          <Text dimColor>
+            {step === "dependencies"
+              ? "Space: toggle | Enter: finish | Esc: cancel"
+              : "Enter: next | Esc: cancel"}
+          </Text>
+        }
       >
-        <Text bold color={theme.ui.activeIndicator}>
-          Add Project
-        </Text>
-
         {/* Name */}
         <Box marginTop={1}>
           <Text bold={step === "name"}>Name: </Text>
@@ -245,15 +246,7 @@ export function AddProjectOverlay({
             )}
           </Box>
         )}
-
-        <Box marginTop={1}>
-          <Text dimColor>
-            {step === "dependencies"
-              ? "Space: toggle | Enter: finish | Esc: cancel"
-              : "Enter: next | Esc: cancel"}
-          </Text>
-        </Box>
-      </Box>
+      </Dialog>
     </Box>
   );
 }

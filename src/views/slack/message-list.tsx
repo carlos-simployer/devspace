@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { SlackMessage, SlackUser } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { MessageRow } from "./message-row.tsx";
 
 interface Props {
@@ -25,7 +26,8 @@ export function MessageList({
   currentUserId,
   userCache,
 }: Props) {
-  const listHeight = height - 1; // header
+  // Panel borders (2 rows) + no header needed (Panel title serves as header)
+  const listHeight = height - 2;
 
   // Viewport windowing — keep selected message visible
   // Count visual lines per message (1 for basic, 2 if has reactions)
@@ -72,20 +74,16 @@ export function MessageList({
     linesUsed += h;
   }
 
+  const title = `Messages${messages.length > 0 ? ` (${messages.length})` : ""}`;
+
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Box marginBottom={0}>
-        <Text bold dimColor={!isFocused}>
-          {"  "}Messages
-        </Text>
-        {messages.length > 0 && <Text dimColor> ({messages.length})</Text>}
-      </Box>
+    <Panel title={title} focused={isFocused} width={width} height={height}>
       {loading ? (
-        <Box paddingLeft={2} paddingTop={1}>
+        <Box paddingLeft={1} paddingTop={1}>
           <Spinner label="Loading messages..." />
         </Box>
       ) : messages.length === 0 ? (
-        <Box paddingLeft={2} paddingTop={1}>
+        <Box paddingLeft={1} paddingTop={1}>
           <Text dimColor>No messages</Text>
         </Box>
       ) : (
@@ -97,12 +95,12 @@ export function MessageList({
               message={msg}
               isSelected={isFocused && actualIdx === selectedIndex}
               isOwnMessage={msg.user === currentUserId}
-              width={width}
+              width={width - 4}
               userCache={userCache}
             />
           );
         })
       )}
-    </Box>
+    </Panel>
   );
 }

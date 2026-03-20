@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
-import { Overlay } from "../../ui/overlay.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
@@ -64,7 +64,7 @@ export function StatusFilter() {
   const innerWidth = boxWidth - 4;
 
   return (
-    <Overlay
+    <Dialog
       title="Filter by Status"
       width={boxWidth}
       height={boxHeight}
@@ -98,6 +98,6 @@ export function StatusFilter() {
           </Box>
         );
       })}
-    </Overlay>
+    </Dialog>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
-import { getTheme } from "../../ui/theme.ts";
+import { Dialog } from "../../ui/dialog.tsx";
 import { useRouter } from "../../ui/router.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useSlackContext } from "./slack-context.ts";
@@ -53,21 +53,21 @@ export function SlackStatusView() {
     }
   });
 
-  const theme = getTheme();
   const boxWidth = Math.min(45, width - 4);
+  // Title (1) + border (2) + items (6) + footer (1) + spacing (1)
+  const boxHeight = STATUS_OPTIONS.length + 5;
 
   return (
-    <Box
-      flexDirection="column"
+    <Dialog
+      title="Set Status"
       width={boxWidth}
-      borderStyle="round"
-      borderColor={theme.ui.border}
-      paddingX={1}
+      height={boxHeight}
+      footer={
+        <Text dimColor>
+          {"\u2191\u2193"}: navigate | Enter: apply | Esc: cancel
+        </Text>
+      }
     >
-      <Text bold color={theme.ui.heading}>
-        Set Status
-      </Text>
-      <Box height={1} />
       {STATUS_OPTIONS.map((opt, i) => {
         const isSelected = i === selectedIndex;
         const label = opt.label ?? `${opt.emoji} ${opt.text}`;
@@ -80,10 +80,6 @@ export function SlackStatusView() {
           </Box>
         );
       })}
-      <Box height={1} />
-      <Text dimColor>
-        {"\u2191\u2193"}: navigate | Enter: apply | Esc: cancel
-      </Text>
-    </Box>
+    </Dialog>
   );
 }

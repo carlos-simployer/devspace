@@ -11,6 +11,8 @@ import {
 } from "../../utils/query-persister.ts";
 import { useAppContext } from "../../app-context.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { Dialog } from "../../ui/dialog.tsx";
 import {
   getTheme,
   getThemeNames,
@@ -472,7 +474,7 @@ export function ConfigMainView() {
       />
 
       {/* Section content -- full width, one section at a time */}
-      <Box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
+      <Panel title={SECTION_LABELS[section]} focused={true} width={width}>
         <Text dimColor>
           {section === "github" &&
             "GitHub organizations for repo and dependency search."}
@@ -627,7 +629,7 @@ export function ConfigMainView() {
             </Box>
           );
         })}
-      </Box>
+      </Panel>
 
       {/* Status bar */}
       <Box
@@ -661,25 +663,34 @@ export function ConfigMainView() {
           marginLeft={Math.floor((width - 50) / 2)}
           marginTop={Math.floor((height - 8) / 2)}
         >
-          <Box
-            flexDirection="column"
+          <Dialog
+            title={
+              editingField === "add-org"
+                ? "Add Organization"
+                : editingField === "github-token"
+                  ? "GitHub API Token"
+                  : editingField === "azure-org"
+                    ? "Azure DevOps Organization"
+                    : editingField === "azure-project"
+                      ? "Azure DevOps Project"
+                      : editingField === "azure-token"
+                        ? "Azure DevOps PAT"
+                        : editingField === "jira-site"
+                          ? "Jira Site"
+                          : editingField === "jira-email"
+                            ? "Jira Email"
+                            : editingField === "jira-token"
+                              ? "Jira API Token"
+                              : editingField === "jira-project"
+                                ? "Jira Project Key"
+                                : editingField === "slack-token"
+                                  ? "Slack Token"
+                                  : "Edit"
+            }
             width={50}
-            borderStyle="round"
-            borderColor={theme.ui.activeIndicator}
-            paddingX={1}
+            height={5}
+            footer={<Text dimColor>Enter: save {"\u2502"} Esc: cancel</Text>}
           >
-            <Text bold color={theme.ui.activeIndicator}>
-              {editingField === "add-org" && "Add Organization"}
-              {editingField === "github-token" && "GitHub API Token"}
-              {editingField === "azure-org" && "Azure DevOps Organization"}
-              {editingField === "azure-project" && "Azure DevOps Project"}
-              {editingField === "azure-token" && "Azure DevOps PAT"}
-              {editingField === "jira-site" && "Jira Site"}
-              {editingField === "jira-email" && "Jira Email"}
-              {editingField === "jira-token" && "Jira API Token"}
-              {editingField === "jira-project" && "Jira Project Key"}
-              {editingField === "slack-token" && "Slack Token"}
-            </Text>
             <Box>
               <Text>
                 {editingField === "add-org" && "Name: "}
@@ -743,8 +754,7 @@ export function ConfigMainView() {
                 }}
               />
             </Box>
-            <Text dimColor>Enter: save {"\u2502"} Esc: cancel</Text>
-          </Box>
+          </Dialog>
         </Box>
       )}
     </Box>
