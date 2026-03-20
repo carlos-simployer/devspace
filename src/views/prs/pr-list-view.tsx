@@ -152,6 +152,8 @@ export function PrListView() {
       filterReview: () => setFilterMode("review"),
       filterAll: () => setFilterMode("all"),
       filterClosed: () => setFilterMode("closed"),
+      toggleMerged: () =>
+        setFilterMode(filterMode === "merged" ? "all" : "merged"),
       refresh: () => refetch(),
       add: () => navigate("prs/search"),
       sort: () => {
@@ -218,12 +220,6 @@ export function PrListView() {
         if (focus === "list") {
           const pr = prs[listIndex];
           if (pr) openInBrowser(pr.repository.url);
-        }
-      },
-      openActions: () => {
-        if (focus === "list") {
-          const pr = prs[listIndex];
-          if (pr) openInBrowser(`${pr.repository.url}/actions`);
         }
       },
       copyUrl: () => {

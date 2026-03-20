@@ -24,6 +24,7 @@ const FILTER_LABELS: Record<FilterMode, string> = {
   mine: "My PRs",
   review: "To Review",
   closed: "Closed/Merged",
+  merged: "Merged",
 };
 
 const SORT_LABELS: Record<SortMode, string> = {

@@ -18,7 +18,12 @@ async function fetchPullRequests(
   viewer: string,
 ): Promise<PullRequest[]> {
   const repoQueries = repos.map((r) => `repo:${r}`).join(" ");
-  const stateFilter = filterMode === "closed" ? "is:closed" : "is:open";
+  const stateFilter =
+    filterMode === "closed"
+      ? "is:closed"
+      : filterMode === "merged"
+        ? "is:merged"
+        : "is:open";
   let searchQuery = `is:pr ${stateFilter} ${repoQueries}`;
 
   if (filterMode === "mine" && viewer) {
@@ -27,7 +32,7 @@ async function fetchPullRequests(
     searchQuery += ` review-requested:${viewer}`;
   }
 
-  if (filterMode === "closed") {
+  if (filterMode === "closed" || filterMode === "merged") {
     searchQuery += ` sort:updated-desc`;
   }
 
@@ -45,7 +50,7 @@ async function fetchPullRequests(
 
   const sorted = sortPRs(allPRs, sortMode);
 
-  if (filterMode === "closed") {
+  if (filterMode === "closed" || filterMode === "merged") {
     const counts = new Map<string, number>();
     return sorted.filter((pr) => {
       const repo = `${pr.repository.owner.login}/${pr.repository.name}`;

@@ -197,7 +197,7 @@ export interface AzureRelease {
 
 export const REFRESH_PRESETS = [30, 45, 60, 120] as const;
 
-export type FilterMode = "all" | "mine" | "review" | "closed";
+export type FilterMode = "all" | "mine" | "review" | "closed" | "merged";
 
 export type FocusArea = "sidebar" | "list";
 

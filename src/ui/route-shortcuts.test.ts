@@ -357,6 +357,7 @@ describe("getBarShortcuts", () => {
       "My PRs",
       "To Review",
       "All",
+      "Merged",
     ]);
     expect(bar[0]).toEqual({ key: "o", label: "Open" });
     expect(bar[1]).toEqual({ key: "p", label: "Detail" });
