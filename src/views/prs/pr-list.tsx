@@ -74,39 +74,42 @@ export function PRList({
     return lines;
   };
 
-  // Viewport windowing on flat rows (headers + PRs)
-  let startRow = 0;
-  if (visualHeight(flatRows) > listHeight) {
-    const halfView = Math.floor(listHeight / 2);
-    if (selectedRowIdx > halfView) {
-      // Binary search for the right start so visual lines fit
-      let candidate = Math.min(selectedRowIdx - halfView, flatRows.length - 1);
-      while (
-        candidate > 0 &&
-        candidate < flatRows.length &&
-        visualHeight(flatRows.slice(candidate)) > listHeight
-      ) {
-        candidate++;
-      }
-      startRow = Math.min(candidate, flatRows.length - 1);
-    }
-  }
-
-  // Trim visible rows to fit listHeight visual lines
-  const visibleRows: FlatRow[] = [];
-  {
+  // Build visible rows from a given start index
+  const buildVisible = (start: number): FlatRow[] => {
+    const rows: FlatRow[] = [];
     let lines = 0;
     let seenHeader = false;
-    for (let i = startRow; i < flatRows.length; i++) {
+    for (let i = start; i < flatRows.length; i++) {
       const row = flatRows[i];
       if (!row) break;
       let needed = 1;
       if (row.type === "header" && seenHeader) needed = 2; // margin + row
       if (row.type === "header") seenHeader = true;
       if (lines + needed > listHeight) break;
-      visibleRows.push(row);
+      rows.push(row);
       lines += needed;
     }
+    return rows;
+  };
+
+  // Viewport windowing on flat rows (headers + PRs)
+  let startRow = 0;
+  if (visualHeight(flatRows) > listHeight) {
+    const halfView = Math.floor(listHeight / 2);
+    if (selectedRowIdx > halfView) {
+      startRow = Math.min(selectedRowIdx - halfView, flatRows.length - 1);
+    }
+  }
+
+  let visibleRows = buildVisible(startRow);
+
+  // Safety: if headers pushed the selected row out of the viewport, scroll to it
+  const selectedVisible = visibleRows.some(
+    (r) => r.type === "pr" && r.prIndex === selectedIndex,
+  );
+  if (!selectedVisible && flatRows.length > 0) {
+    startRow = selectedRowIdx;
+    visibleRows = buildVisible(startRow);
   }
 
   return (

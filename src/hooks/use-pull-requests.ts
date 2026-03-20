@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import type { GraphQLClient } from "../api/client.ts";
 import type { PullRequest, FilterMode, SortMode } from "../api/types.ts";
 import { PR_QUERY, VIEWER_QUERY } from "../api/queries.ts";
@@ -94,6 +94,7 @@ export function usePullRequests(
       fetchPullRequests(client!, repos, filterMode, sortMode, viewer),
     enabled: !!client && repos.length > 0 && !!viewer,
     refetchInterval: refreshIntervalSec * 1000,
+    placeholderData: keepPreviousData,
   });
 
   // Countdown timer derived from dataUpdatedAt
