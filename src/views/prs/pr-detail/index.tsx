@@ -1,9 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
-import type { PullRequest } from "../../../api/types.ts";
-import type { PRDetail } from "../../../hooks/use-pr-detail.ts";
+import { Text, useInput } from "ink";
+import { DetailPanel, type ContentLine } from "../../../ui/detail-panel.tsx";
 import { getChangeTypeIcon } from "../../../utils/status.ts";
-import { TabItem } from "../../../ui/tab-item.tsx";
 import { useAppContext } from "../../../app-context.ts";
 import { useRouter } from "../../../ui/router.ts";
 import { useRouteShortcuts } from "../../../hooks/use-route-shortcuts.ts";
@@ -17,6 +15,7 @@ type DetailTab = "overview" | "files";
 /**
  * PRDetailPanel — renders the PR detail view.
  * Reads PR data from PrsContext (no props needed when used as a route child).
+ * Uses the generic DetailPanel component for tab bar + scroll structure.
  */
 export function PRDetailPanel() {
   const { height, width } = useAppContext();
@@ -53,11 +52,14 @@ export function PRDetailPanel() {
     [files, expandedFile, contentWidth],
   );
 
-  const lines = tab === "overview" ? overviewLines : filesLines;
+  const lines: ContentLine[] = tab === "overview" ? overviewLines : filesLines;
 
-  const tabBarLines = 2;
-  const footerLines = 1;
-  const viewportHeight = panelHeight - 2 - tabBarLines - footerLines;
+  // DetailPanel computes viewport internally
+  const panelBorders = 2;
+  const tabBarAndSeparator = 2;
+  const footerHeight = 1;
+  const viewportHeight =
+    panelHeight - panelBorders - tabBarAndSeparator - footerHeight;
   const maxScroll = Math.max(0, lines.length - viewportHeight);
 
   useInput((input, key) => {
@@ -163,63 +165,53 @@ export function PRDetailPanel() {
 
   if (!pr) return null;
 
-  const actualOffset = Math.min(scrollOffset, maxScroll);
-  const visibleLines = lines.slice(actualOffset, actualOffset + viewportHeight);
-
   const selectedFileKey = `file-${fileIndex}`;
 
+  // Override the file line rendering for the selected file
+  const processedLines: ContentLine[] = lines.map((line) => {
+    if (tab === "files" && line.key === selectedFileKey) {
+      const file = files[fileIndex];
+      if (!file) return line;
+      const { icon } = getChangeTypeIcon(file.changeType);
+      const isExpanded = expandedFile === fileIndex;
+      const arrow = isExpanded ? "\u25BC" : "\u25B6";
+      const lineText = `> ${icon}  ${file.path}  +${file.additions} -${file.deletions}  ${arrow}`;
+      return {
+        key: line.key,
+        node: (
+          <Text inverse bold>
+            {lineText}
+          </Text>
+        ),
+      };
+    }
+    return line;
+  });
+
+  const tabs = [
+    { id: "overview", label: "d Overview" },
+    {
+      id: "files",
+      label: `f Files${files.length > 0 ? ` (${files.length})` : ""}`,
+    },
+  ];
+
+  const footerText =
+    tab === "files" && expandedFile !== null
+      ? "\u2191\u2193: scroll diff \u2502 Enter/Esc: collapse \u2502 o: browser \u2502 d/f: switch tab"
+      : tab === "files"
+        ? "\u2191\u2193: select file \u2502 Enter: expand diff \u2502 Esc: close \u2502 o: browser \u2502 d/f: switch tab"
+        : "\u2191\u2193: scroll \u2502 Esc: close \u2502 o: browser \u2502 d/f: switch tab";
+
   return (
-    <Box
-      flexDirection="column"
-      width={width}
+    <DetailPanel
+      tabs={tabs}
+      activeTab={tab}
+      lines={processedLines}
+      scrollOffset={scrollOffset}
       height={panelHeight}
-      paddingX={2}
-      paddingY={1}
-    >
-      {/* Tab bar */}
-      <Box>
-        <TabItem label="d Overview" isActive={tab === "overview"} />
-        <Text> </Text>
-        <TabItem
-          label={`f Files${files.length > 0 ? ` (${files.length})` : ""}`}
-          isActive={tab === "files"}
-        />
-      </Box>
-      <Text dimColor>{"─".repeat(contentWidth)}</Text>
-
-      {/* Content */}
-      {visibleLines.map((line) => (
-        <Box key={line.key}>
-          {tab === "files" && line.key === selectedFileKey ? (
-            <Text inverse bold>
-              {(() => {
-                const file = files[fileIndex];
-                if (!file) return null;
-                const { icon, color: _color } = getChangeTypeIcon(
-                  file.changeType,
-                );
-                const isExpanded = expandedFile === fileIndex;
-                const arrow = isExpanded ? "▼" : "▶";
-                const lineText = `> ${icon}  ${file.path}  +${file.additions} -${file.deletions}  ${arrow}`;
-                return lineText;
-              })()}
-            </Text>
-          ) : (
-            line.node
-          )}
-        </Box>
-      ))}
-
-      {/* Footer */}
-      <Box position="absolute" marginTop={panelHeight - 2} marginLeft={2}>
-        <Text dimColor>
-          {tab === "files" && expandedFile !== null
-            ? "↑↓: scroll diff │ Enter/Esc: collapse │ o: browser │ d/f: switch tab"
-            : tab === "files"
-              ? "↑↓: select file │ Enter: expand diff │ Esc: close │ o: browser │ d/f: switch tab"
-              : "↑↓: scroll │ Esc: close │ o: browser │ d/f: switch tab"}
-        </Text>
-      </Box>
-    </Box>
+      width={width}
+      footer={footerText}
+    />
   );
 }

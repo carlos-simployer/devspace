@@ -2,8 +2,10 @@ import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { PullRequest } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { ScrollArea } from "../../ui/scroll-area.tsx";
 import { PRRow } from "./pr-row.tsx";
-import { COL, getTitleWidth } from "../../utils/columns.ts";
+import { TableHeader } from "../../ui/table-row.tsx";
 import {
   groupByTimeBucket,
   flattenGroups,
@@ -31,9 +33,11 @@ export function PRList({
   loading,
   lastViewed,
 }: Props) {
-  // Header takes 1 line + 1 margin line, leave room
-  const listHeight = height - 2;
-  const titleWidth = getTitleWidth(width);
+  // Panel borders (2) + header (1) + margin (1) = 4
+  const panelContentHeight = height - 2;
+  const listHeight = panelContentHeight - 2;
+  // Inner width = panel width minus borders (2) minus paddingX (2)
+  const innerWidth = width - 4;
 
   // Filter by search text
   const filtered = searchText
@@ -112,21 +116,37 @@ export function PRList({
     visibleRows = buildVisible(startRow);
   }
 
+  const count =
+    filtered.length > 0
+      ? `${Math.min(selectedIndex + 1, filtered.length)} of ${filtered.length}`
+      : undefined;
+
   return (
-    <Box flexDirection="column" flexGrow={1}>
+    <Panel
+      title="Pull Requests"
+      focused={isFocused}
+      width={width}
+      height={height}
+      count={count}
+    >
       <Box marginBottom={1}>
-        <Text bold dimColor={!isFocused}>
-          {"".padEnd(COL.selector)}
-          <Text dimColor>{"Repo".padEnd(COL.repo)}</Text>
-          {"PR#".padEnd(COL.num)}
-          {"Title".padEnd(titleWidth)}
-          {"Author".padEnd(COL.author)}
-          {"Rv".padEnd(COL.review)}
-          {"CI".padEnd(COL.ci)}
-          {"Mg".padEnd(COL.merge)}
-          {"Age".padEnd(COL.age)}
-          {"Updated".padEnd(COL.updated)}
-        </Text>
+        <TableHeader
+          width={innerWidth}
+          dimColor={!isFocused}
+          bold
+          columns={[
+            { width: 2, label: "" },
+            { width: 14, label: "Repo", dimColor: true },
+            { width: 6, label: "PR#" },
+            { flex: 1, label: "Title" },
+            { width: 20, label: "Author" },
+            { width: 4, label: "Rv" },
+            { width: 4, label: "CI" },
+            { width: 3, label: "Mg" },
+            { width: 7, label: "Age" },
+            { width: 7, label: "Updated" },
+          ]}
+        />
       </Box>
       {loading ? (
         <Box paddingLeft={2} paddingTop={1}>
@@ -139,35 +159,41 @@ export function PRList({
           </Text>
         </Box>
       ) : (
-        visibleRows.map((row, i) => {
-          if (row.type === "header") {
+        <ScrollArea
+          totalItems={flatRows.length}
+          scrollOffset={startRow}
+          height={listHeight}
+        >
+          {visibleRows.map((row, i) => {
+            if (row.type === "header") {
+              return (
+                <Box
+                  key={`hdr-${row.label}`}
+                  paddingLeft={1}
+                  marginTop={i === 0 ? 0 : 1}
+                >
+                  <Text bold>{row.label}</Text>
+                  <Text dimColor> ({row.count})</Text>
+                </Box>
+              );
+            }
+            const { pr, prIndex } = row;
+            const viewedAt = lastViewed[pr.id];
+            const hasNewActivity =
+              viewedAt !== undefined &&
+              new Date(pr.updatedAt).getTime() > viewedAt;
             return (
-              <Box
-                key={`hdr-${row.label}`}
-                paddingLeft={1}
-                marginTop={i === 0 ? 0 : 1}
-              >
-                <Text bold>{row.label}</Text>
-                <Text dimColor> ({row.count})</Text>
-              </Box>
+              <PRRow
+                key={pr.id}
+                pr={pr}
+                isSelected={isFocused && prIndex === selectedIndex}
+                width={innerWidth}
+                hasNewActivity={hasNewActivity}
+              />
             );
-          }
-          const { pr, prIndex } = row;
-          const viewedAt = lastViewed[pr.id];
-          const hasNewActivity =
-            viewedAt !== undefined &&
-            new Date(pr.updatedAt).getTime() > viewedAt;
-          return (
-            <PRRow
-              key={pr.id}
-              pr={pr}
-              isSelected={isFocused && prIndex === selectedIndex}
-              width={width}
-              hasNewActivity={hasNewActivity}
-            />
-          );
-        })
+          })}
+        </ScrollArea>
       )}
-    </Box>
+    </Panel>
   );
 }

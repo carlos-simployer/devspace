@@ -1,5 +1,6 @@
 import { useInput } from "ink";
 import { useRouter } from "../ui/router.ts";
+import { useFocus } from "../ui/focus.ts";
 import {
   matchShortcut,
   ROUTE_SHORTCUTS,
@@ -20,16 +21,23 @@ type ShortcutHandlers = Record<string, () => void>;
  * @param handlers - Map of action name -> callback
  * @param options.active - Set to false to disable during text input modes
  * @param options.onUnhandled - Fallback for keys not matching any shortcut
+ * @param options.focusHandlers - Per-focus-node handlers; dispatched when a
+ *   FocusProvider is in the tree and the focused node has a handler for the action.
+ *   When provided, left/right arrow keys auto-wire to focusPrev/focusNext unless
+ *   a handler is explicitly defined for those actions.
  */
 export function useRouteShortcuts(
   handlers: ShortcutHandlers,
   options?: {
     active?: boolean;
     onUnhandled?: (input: string, key: any) => void;
+    focusHandlers?: Record<string, ShortcutHandlers>;
   },
 ) {
   const { route, navigate, baseRoute: _baseRoute, matchedPath } = useRouter();
+  const { focusedId, focusNext, focusPrev } = useFocus();
   const enabled = options?.active ?? true;
+  const focusHandlers = options?.focusHandlers;
 
   useInput((input, key) => {
     if (!enabled) return;
@@ -114,9 +122,32 @@ export function useRouteShortcuts(
         : false;
 
       // Fire handler if the action belongs to the current route
-      if (isRouteAction && handlers[action]) {
-        handlers[action]();
-        return;
+      if (isRouteAction) {
+        // Try focus-specific handler first
+        if (focusHandlers && focusedId) {
+          const focusHandler = focusHandlers[focusedId]?.[action];
+          if (focusHandler) {
+            focusHandler();
+            return;
+          }
+        }
+
+        // Auto-wire left/right to focus cycling when focusHandlers is provided
+        if (focusHandlers && focusedId) {
+          if (action === "left") {
+            focusPrev();
+            return;
+          }
+          if (action === "right") {
+            focusNext();
+            return;
+          }
+        }
+
+        if (handlers[action]) {
+          handlers[action]();
+          return;
+        }
       }
 
       // Built-in global handlers

@@ -14,6 +14,8 @@ import { usePRDetail } from "../../hooks/use-pr-detail.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
 import { getBarShortcuts } from "../../ui/route-shortcuts.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { FocusProvider, useFocus } from "../../ui/focus.ts";
+import { DialogLayer } from "../../ui/dialog.tsx";
 import { orderByTimeBucket } from "../../utils/time-buckets.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "../../api/mutations.ts";
 import { TabBar } from "../../components/tab-bar.tsx";
@@ -275,56 +277,73 @@ export function PrsLayout() {
   const barShortcuts = getBarShortcuts(route, matchedPath);
   const contentHeight = height - measuredHeader;
 
-  // For overlay children: center them, no header
-  if (outlet?.isOverlay) {
-    return (
+  return (
+    <FocusProvider initialFocus={focus}>
       <PrsContext.Provider value={ctx}>
-        <Box
+        <FocusSync setFocus={setFocus} />
+        <DialogLayer
+          dialog={outlet?.isOverlay ? <Outlet /> : null}
           height={height}
           width={width}
-          alignItems="center"
-          justifyContent="center"
         >
-          <Outlet />
-        </Box>
-      </PrsContext.Provider>
-    );
-  }
+          <Box height={height} width={width} flexDirection="column">
+            {/* PRs own header: TabBar + Shortcuts + notification count */}
+            <Box
+              ref={headerRef}
+              width={width}
+              flexDirection="column"
+              paddingX={1}
+              borderStyle="single"
+              borderTop={false}
+              borderLeft={false}
+              borderRight={false}
+              borderBottom
+            >
+              <Box>
+                <TabBar activeView="prs" />
+                {unreadCount > 0 && (
+                  <Text color={getTheme().activity.notification} bold>
+                    {"  "}[{unreadCount} notifications]
+                  </Text>
+                )}
+              </Box>
+              <Shortcuts items={barShortcuts} />
+              {error && (
+                <Text color={getTheme().status.failure}>Error: {error}</Text>
+              )}
+            </Box>
 
-  return (
-    <PrsContext.Provider value={ctx}>
-      <Box height={height} width={width} flexDirection="column">
-        {/* PRs own header: TabBar + Shortcuts + notification count */}
-        <Box
-          ref={headerRef}
-          width={width}
-          flexDirection="column"
-          paddingX={1}
-          borderStyle="single"
-          borderTop={false}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom
-        >
-          <Box>
-            <TabBar activeView="prs" />
-            {unreadCount > 0 && (
-              <Text color={getTheme().activity.notification} bold>
-                {"  "}[{unreadCount} notifications]
-              </Text>
-            )}
+            {/* Child view via Outlet — receives remaining height */}
+            <Box flexGrow={1} height={contentHeight} flexDirection="column">
+              <Outlet />
+            </Box>
           </Box>
-          <Shortcuts items={barShortcuts} />
-          {error && (
-            <Text color={getTheme().status.failure}>Error: {error}</Text>
-          )}
-        </Box>
-
-        {/* Child view via Outlet — receives remaining height */}
-        <Box flexGrow={1} height={contentHeight} flexDirection="column">
-          <Outlet />
-        </Box>
-      </Box>
-    </PrsContext.Provider>
+        </DialogLayer>
+      </PrsContext.Provider>
+    </FocusProvider>
   );
+}
+
+/**
+ * FocusSync — syncs FocusProvider's focusedId back to the Zustand store.
+ * Must be rendered inside both FocusProvider and PrsContext.Provider.
+ */
+function FocusSync({
+  setFocus,
+}: {
+  setFocus: (v: "sidebar" | "list") => void;
+}) {
+  const { focusedId } = useFocus();
+  const prevRef = useRef(focusedId);
+
+  useEffect(() => {
+    if (focusedId !== prevRef.current) {
+      prevRef.current = focusedId;
+      if (focusedId === "sidebar" || focusedId === "list") {
+        setFocus(focusedId);
+      }
+    }
+  }, [focusedId, setFocus]);
+
+  return null;
 }

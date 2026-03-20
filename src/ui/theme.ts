@@ -6,6 +6,8 @@ export interface Theme {
     heading: string;
     shortcutKey: string;
     activeIndicator: string;
+    panelBorder: string;
+    focusBorder: string;
   };
   status: {
     success: string;
@@ -58,6 +60,8 @@ const defaultTheme: Theme = {
     heading: "cyan",
     shortcutKey: "cyan",
     activeIndicator: "green",
+    panelBorder: "#4c566a",
+    focusBorder: "cyan",
   },
   status: {
     success: "green",
@@ -100,6 +104,8 @@ const catppuccinTheme: Theme = {
     heading: "#89b4fa",
     shortcutKey: "#89b4fa",
     activeIndicator: "#a6e3a1",
+    panelBorder: "#45475a",
+    focusBorder: "#89b4fa",
   },
   status: {
     success: "#a6e3a1",
@@ -142,6 +148,8 @@ const draculaTheme: Theme = {
     heading: "#bd93f9",
     shortcutKey: "#bd93f9",
     activeIndicator: "#50fa7b",
+    panelBorder: "#44475a",
+    focusBorder: "#bd93f9",
   },
   status: {
     success: "#50fa7b",
@@ -184,6 +192,8 @@ const nordTheme: Theme = {
     heading: "#81a1c1",
     shortcutKey: "#81a1c1",
     activeIndicator: "#a3be8c",
+    panelBorder: "#3b4252",
+    focusBorder: "#81a1c1",
   },
   status: {
     success: "#a3be8c",
@@ -226,6 +236,8 @@ const tokyoNightTheme: Theme = {
     heading: "#7aa2f7",
     shortcutKey: "#7aa2f7",
     activeIndicator: "#9ece6a",
+    panelBorder: "#3b4261",
+    focusBorder: "#7aa2f7",
   },
   status: {
     success: "#9ece6a",
