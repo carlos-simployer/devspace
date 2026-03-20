@@ -222,6 +222,12 @@ export function PrListView() {
           if (pr) openInBrowser(pr.repository.url);
         }
       },
+      openActions: () => {
+        if (focus === "list") {
+          const pr = prs[listIndex];
+          if (pr) openInBrowser(`${pr.repository.url}/actions`);
+        }
+      },
       copyUrl: () => {
         if (focus === "list") {
           const pr = prs[listIndex];

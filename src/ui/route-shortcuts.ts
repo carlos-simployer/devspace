@@ -269,6 +269,7 @@ export const ROUTE_SHORTCUTS: Record<string, Record<string, ShortcutDef>> = {
       label: "Merged",
       help: "Toggle open/merged PRs",
     },
+    M: { action: "openActions", key: "M", help: "Open Actions tab" },
     A: { action: "approve", key: "A", help: "Approve PR" },
     C: { action: "comment", key: "C", help: "Comment on PR" },
     X: { action: "requestChanges", key: "X", help: "Request changes" },
