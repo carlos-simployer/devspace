@@ -87,7 +87,7 @@ describe("DialogLayer", () => {
       </DialogLayer>,
     );
     const withDialog = ref.lastFrame()!;
-    expect(withDialog).toContain("Background text");
+    // Dialog covers the background with a solid fill
     expect(withDialog).toContain("Modal");
     expect(withDialog).toContain("Hi");
   });

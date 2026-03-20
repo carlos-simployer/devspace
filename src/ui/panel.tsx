@@ -72,10 +72,9 @@ export function Panel({
 
   const contentHeight = height !== undefined ? height - 2 : undefined;
 
-  // Build a column of │ characters to fill the side borders
+  // Build a column of │ + fill characters for the side borders
   const borderCol = (h: number | undefined) => {
     if (h === undefined) {
-      // No fixed height — render a single │ and let flex handle it
       return (
         <Box flexDirection="column" width={1} flexGrow={1}>
           <Text color={color}>│</Text>

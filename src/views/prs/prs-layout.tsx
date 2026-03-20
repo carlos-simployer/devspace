@@ -5,21 +5,16 @@ import React, {
   useRef,
   useEffect,
 } from "react";
-import { Box, Text, measureElement } from "ink";
-import type { DOMElement } from "ink";
+import { Box } from "ink";
 import { useStore } from "zustand";
 import { useAppContext } from "../../app-context.ts";
 import { usePullRequests } from "../../hooks/use-pull-requests.ts";
 import { usePRDetail } from "../../hooks/use-pr-detail.ts";
 import { useRouter, Outlet, useOutlet } from "../../ui/router.ts";
-import { getBarShortcuts } from "../../ui/route-shortcuts.ts";
-import { getTheme } from "../../ui/theme.ts";
+import { PrListView } from "./pr-list-view.tsx";
 import { FocusProvider, useFocus } from "../../ui/focus.ts";
-import { DialogLayer } from "../../ui/dialog.tsx";
 import { orderByTimeBucket } from "../../utils/time-buckets.ts";
 import { ADD_PR_REVIEW, ADD_PR_COMMENT } from "../../api/mutations.ts";
-import { TabBar } from "../../components/tab-bar.tsx";
-import { Shortcuts } from "../../components/shortcuts.tsx";
 import { PrsContext, type PrsContextValue } from "./prs-context.ts";
 import { prsStore } from "./prs-store.ts";
 
@@ -37,10 +32,11 @@ export function PrsLayout() {
     notifications,
     notifLoading,
     unreadCount,
+    contentHeight,
     height,
     width,
   } = useAppContext();
-  const { route, navigate, matchedPath } = useRouter();
+  const { route, navigate } = useRouter();
   const outlet = useOutlet();
 
   // Open search overlay on first launch
@@ -126,17 +122,6 @@ export function PrsLayout() {
     prRefForDetail,
   );
 
-  // ── Layout measurement ────────────────────────────────────────────────
-  const headerRef = useRef<DOMElement>(null);
-  const [measuredHeader, setMeasuredHeader] = useState(4);
-
-  useEffect(() => {
-    if (headerRef.current) {
-      const h = measureElement(headerRef.current).height;
-      setMeasuredHeader((prev) => (prev === h ? prev : h));
-    }
-  });
-
   // ── Helpers ───────────────────────────────────────────────────────────
   const showStatus = useCallback((msg: string) => {
     setStatusMessage(msg);
@@ -178,7 +163,7 @@ export function PrsLayout() {
 
   const ctx: PrsContextValue = useMemo(
     () => ({
-      contentHeight: height - measuredHeader,
+      contentHeight,
       selectedPR,
       listIndex,
       setListIndex,
@@ -268,57 +253,37 @@ export function PrsLayout() {
       markViewed,
       submitComment,
       client,
+      contentHeight,
       height,
-      measuredHeader,
     ],
   );
 
   // ── Render ────────────────────────────────────────────────────────────
-  const barShortcuts = getBarShortcuts(route, matchedPath);
-  const contentHeight = height - measuredHeader;
+  const isOverlay = outlet?.isOverlay ?? false;
 
   return (
     <FocusProvider initialFocus={focus}>
       <PrsContext.Provider value={ctx}>
         <FocusSync setFocus={setFocus} />
-        <DialogLayer
-          dialog={outlet?.isOverlay ? <Outlet /> : null}
-          height={height}
-          width={width}
-        >
-          <Box height={height} width={width} flexDirection="column">
-            {/* PRs own header: TabBar + Shortcuts + notification count */}
-            <Box
-              ref={headerRef}
-              width={width}
-              flexDirection="column"
-              paddingX={1}
-              borderStyle="single"
-              borderTop={false}
-              borderLeft={false}
-              borderRight={false}
-              borderBottom
-            >
-              <Box>
-                <TabBar activeView="prs" />
-                {unreadCount > 0 && (
-                  <Text color={getTheme().activity.notification} bold>
-                    {"  "}[{unreadCount} notifications]
-                  </Text>
-                )}
-              </Box>
-              <Shortcuts items={barShortcuts} />
-              {error && (
-                <Text color={getTheme().status.failure}>Error: {error}</Text>
-              )}
-            </Box>
+        <Box height={contentHeight} width={width}>
+          {/* Main content layer — always show index view */}
+          <Box height={contentHeight} width={width} flexDirection="column">
+            {isOverlay ? <PrListView /> : <Outlet />}
+          </Box>
 
-            {/* Child view via Outlet — receives remaining height */}
-            <Box flexGrow={1} height={contentHeight} flexDirection="column">
+          {/* Overlay layer — dialog on top */}
+          {isOverlay && (
+            <Box
+              position="absolute"
+              width={width}
+              height={contentHeight}
+              alignItems="center"
+              justifyContent="center"
+            >
               <Outlet />
             </Box>
-          </Box>
-        </DialogLayer>
+          )}
+        </Box>
       </PrsContext.Provider>
     </FocusProvider>
   );

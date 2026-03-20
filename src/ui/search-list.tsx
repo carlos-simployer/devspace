@@ -111,16 +111,11 @@ export function SearchList({
   const totalCount = items.length;
 
   return (
-    <Dialog title={title} width={width} height={height}>
-      <Box>
-        <Text bold color={theme.ui.heading}>
-          {title}
-        </Text>
-        <Text dimColor>
-          {" "}
-          ({matchCount}/{totalCount})
-        </Text>
-      </Box>
+    <Dialog
+      title={`${title} (${matchCount}/${totalCount})`}
+      width={width}
+      height={height}
+    >
       <Box>
         <Text>Search: </Text>
         <Text>{query}</Text>

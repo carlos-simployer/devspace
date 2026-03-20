@@ -119,8 +119,7 @@ function AppInner({ client, org, token }: Props) {
     }
   });
 
-  const contentHeight =
-    baseRoute === "prs" ? height : height - measuredViewHeader;
+  const contentHeight = height - measuredViewHeader;
 
   const appCtx = useMemo(
     () => ({
@@ -288,15 +287,6 @@ function AppInner({ client, org, token }: Props) {
             onCancel={cancelQuit}
           />
         </Box>
-      </AppContext.Provider>
-    );
-  }
-
-  // PRView manages its own header — render it without ViewHeader wrapper
-  if (baseRoute === "prs") {
-    return (
-      <AppContext.Provider value={appCtx}>
-        <RouteRenderer routes={routes} />
       </AppContext.Provider>
     );
   }
