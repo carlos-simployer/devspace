@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import { Panel } from "../../ui/panel.tsx";
-import { ScrollArea } from "../../ui/scroll-area.tsx";
 import { useAppContext } from "../../app-context.ts";
 import { useRouter } from "../../ui/router.ts";
 import { useRouteShortcuts } from "../../hooks/use-route-shortcuts.ts";
@@ -83,47 +82,41 @@ export function NotificationsView() {
       ) : notifications.length === 0 ? (
         <Text dimColor>No PR notifications</Text>
       ) : (
-        <ScrollArea
-          totalItems={notifications.length}
-          scrollOffset={startIndex}
-          height={listHeight}
-        >
-          {visible.map((n, i) => {
-            const actualIndex = startIndex + i;
-            const isSelected = actualIndex === selectedIndex;
-            const time = relativeTime(n.updated_at);
-            const repoName = n.repository.full_name.padEnd(30).slice(0, 30);
-            const maxTitle = Math.max(10, width - 55);
-            const title = n.subject.title.slice(0, maxTitle);
+        visible.map((n, i) => {
+          const actualIndex = startIndex + i;
+          const isSelected = actualIndex === selectedIndex;
+          const time = relativeTime(n.updated_at);
+          const repoName = n.repository.full_name.padEnd(30).slice(0, 30);
+          const maxTitle = Math.max(10, width - 55);
+          const title = n.subject.title.slice(0, maxTitle);
 
-            return (
-              <Box key={n.id}>
-                <Text
-                  backgroundColor={isSelected ? "blue" : undefined}
-                  color={isSelected ? "white" : undefined}
-                >
-                  {isSelected ? "> " : "  "}
-                  {n.unread ? (
-                    <Text
-                      bold
-                      color={isSelected ? "white" : getTheme().activity.unread}
-                    >
-                      {"● "}
-                    </Text>
-                  ) : (
-                    "  "
-                  )}
-                  <Text dimColor={!isSelected}>{repoName}</Text>
-                  {title}
-                  <Text dimColor={!isSelected}>
-                    {" "}
-                    {n.reason.padEnd(15).slice(0, 15)} {time.text}
+          return (
+            <Box key={n.id}>
+              <Text
+                backgroundColor={isSelected ? "blue" : undefined}
+                color={isSelected ? "white" : undefined}
+              >
+                {isSelected ? "> " : "  "}
+                {n.unread ? (
+                  <Text
+                    bold
+                    color={isSelected ? "white" : getTheme().activity.unread}
+                  >
+                    {"● "}
                   </Text>
+                ) : (
+                  "  "
+                )}
+                <Text dimColor={!isSelected}>{repoName}</Text>
+                {title}
+                <Text dimColor={!isSelected}>
+                  {" "}
+                  {n.reason.padEnd(15).slice(0, 15)} {time.text}
                 </Text>
-              </Box>
-            );
-          })}
-        </ScrollArea>
+              </Text>
+            </Box>
+          );
+        })
       )}
       <Text dimColor>Esc: close │ Enter/o: open in browser │ ↑↓: navigate</Text>
     </Panel>

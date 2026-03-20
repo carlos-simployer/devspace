@@ -3,7 +3,6 @@ import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { PullRequest } from "../../api/types.ts";
 import { Panel } from "../../ui/panel.tsx";
-import { ScrollArea } from "../../ui/scroll-area.tsx";
 import { PRRow } from "./pr-row.tsx";
 import { TableHeader } from "../../ui/table-row.tsx";
 import {
@@ -159,40 +158,34 @@ export function PRList({
           </Text>
         </Box>
       ) : (
-        <ScrollArea
-          totalItems={flatRows.length}
-          scrollOffset={startRow}
-          height={listHeight}
-        >
-          {visibleRows.map((row, i) => {
-            if (row.type === "header") {
-              return (
-                <Box
-                  key={`hdr-${row.label}`}
-                  paddingLeft={1}
-                  marginTop={i === 0 ? 0 : 1}
-                >
-                  <Text bold>{row.label}</Text>
-                  <Text dimColor> ({row.count})</Text>
-                </Box>
-              );
-            }
-            const { pr, prIndex } = row;
-            const viewedAt = lastViewed[pr.id];
-            const hasNewActivity =
-              viewedAt !== undefined &&
-              new Date(pr.updatedAt).getTime() > viewedAt;
+        visibleRows.map((row, i) => {
+          if (row.type === "header") {
             return (
-              <PRRow
-                key={pr.id}
-                pr={pr}
-                isSelected={isFocused && prIndex === selectedIndex}
-                width={innerWidth}
-                hasNewActivity={hasNewActivity}
-              />
+              <Box
+                key={`hdr-${row.label}`}
+                paddingLeft={1}
+                marginTop={i === 0 ? 0 : 1}
+              >
+                <Text bold>{row.label}</Text>
+                <Text dimColor> ({row.count})</Text>
+              </Box>
             );
-          })}
-        </ScrollArea>
+          }
+          const { pr, prIndex } = row;
+          const viewedAt = lastViewed[pr.id];
+          const hasNewActivity =
+            viewedAt !== undefined &&
+            new Date(pr.updatedAt).getTime() > viewedAt;
+          return (
+            <PRRow
+              key={pr.id}
+              pr={pr}
+              isSelected={isFocused && prIndex === selectedIndex}
+              width={innerWidth}
+              hasNewActivity={hasNewActivity}
+            />
+          );
+        })
       )}
     </Panel>
   );
