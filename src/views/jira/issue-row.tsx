@@ -1,9 +1,8 @@
 import React from "react";
-import { Box, Text } from "ink";
 import type { JiraIssue } from "../../api/types.ts";
 import { relativeTime } from "../../utils/time.ts";
-import { getIssueTypeIcon, getPriorityIcon } from "../../utils/jira-status.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { TableRow } from "../../ui/table-row.tsx";
 
 /** Column widths for issue list layout */
 export const JIRA_COL = {
@@ -32,63 +31,44 @@ interface Props {
   width: number;
 }
 
-function typeLabel(typeName: string): string {
-  return typeName;
-}
-
-function prioLabel(priorityName: string): string {
-  return priorityName;
-}
-
 export function IssueRow({ issue, isSelected, width }: Props) {
-  const titleWidth = getIssueTitleWidth(width);
   const updated = relativeTime(issue.fields.updated);
   const assigneeName = issue.fields.assignee?.displayName ?? "Unassigned";
 
-  const truncTitle =
-    issue.fields.summary.length > titleWidth
-      ? issue.fields.summary.slice(0, titleWidth - 1) + "\u2026"
-      : issue.fields.summary;
-
-  const sel = isSelected ? " > " : "   ";
-  const key = issue.key.padEnd(JIRA_COL.key);
-  const tp = typeLabel(issue.fields.issuetype.name).padEnd(JIRA_COL.type);
-  const title = truncTitle.padEnd(titleWidth);
-  const assignee = assigneeName
-    .slice(0, JIRA_COL.assignee - 1)
-    .padEnd(JIRA_COL.assignee);
-  const prio = prioLabel(issue.fields.priority.name).padEnd(JIRA_COL.priority);
-  const upd = updated.text.padEnd(JIRA_COL.updated);
-
-  if (isSelected) {
-    const content = sel + key + tp + title + assignee + prio + upd;
-    const line =
-      content.length < width
-        ? content + " ".repeat(width - content.length)
-        : content;
-    return (
-      <Box>
-        <Text inverse bold>
-          {line}
-        </Text>
-      </Box>
-    );
-  }
-
   return (
-    <Box>
-      <Text>
-        {sel}
-        <Text bold>{key}</Text>
-        <Text color={getTypeColor(issue.fields.issuetype.name)}>{tp}</Text>
-        {title}
-        <Text dimColor>{assignee}</Text>
-        <Text color={getPriorityColor(issue.fields.priority.name)}>{prio}</Text>
-        <Text bold={updated.isRecent} dimColor={!updated.isRecent}>
-          {upd}
-        </Text>
-      </Text>
-    </Box>
+    <TableRow
+      selected={isSelected}
+      width={width}
+      columns={[
+        {
+          width: JIRA_COL.selector,
+          content: isSelected ? " > " : "   ",
+        },
+        { width: JIRA_COL.key, content: issue.key, bold: true },
+        {
+          width: JIRA_COL.type,
+          content: issue.fields.issuetype.name,
+          color: getTypeColor(issue.fields.issuetype.name),
+        },
+        { flex: 1, content: issue.fields.summary },
+        {
+          width: JIRA_COL.assignee,
+          content: assigneeName,
+          dimColor: true,
+        },
+        {
+          width: JIRA_COL.priority,
+          content: issue.fields.priority.name,
+          color: getPriorityColor(issue.fields.priority.name),
+        },
+        {
+          width: JIRA_COL.updated,
+          content: updated.text,
+          bold: updated.isRecent,
+          dimColor: !updated.isRecent,
+        },
+      ]}
+    />
   );
 }
 

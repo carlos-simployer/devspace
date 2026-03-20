@@ -13,6 +13,8 @@ import {
 import { relativeTime } from "../../utils/time.ts";
 import { getTheme } from "../../ui/theme.ts";
 import { openInBrowser } from "../../utils/browser.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { TableHeader, TableRow } from "../../ui/table-row.tsx";
 import { usePipelinesContext } from "./pipelines-context.ts";
 
 const COL = {
@@ -35,7 +37,7 @@ function getMessageWidth(totalWidth: number): number {
     COL.branch +
     COL.time +
     COL.duration;
-  return Math.max(16, totalWidth - fixed - 4); // -4 for padding
+  return Math.max(16, totalWidth - fixed);
 }
 
 export function PipelineRuns() {
@@ -57,11 +59,11 @@ export function PipelineRuns() {
   const azureOrg = config.azureOrg;
   const azureProject = config.azureProject;
 
-  const contentWidth = width - 4;
-  const messageWidth = getMessageWidth(contentWidth);
-  const headerLines = 3; // title + column header + separator
-  const footerLines = 1;
-  const listHeight = height - headerLines - footerLines - 2; // -2 for padding
+  // Panel borders (2) + title bar (1) + header row (1) + margin (1) + footer (1) = 6
+  const panelHeight = height - 1; // leave room for footer
+  const innerWidth = width - 4; // borders (2) + paddingX (2)
+  const messageWidth = getMessageWidth(innerWidth);
+  const listHeight = panelHeight - 2 - 2; // panel borders (2) + header+margin (2)
 
   useInput((input, key) => {
     if (key.escape) {
@@ -100,125 +102,126 @@ export function PipelineRuns() {
 
   const visible = runs.slice(scrollOffset, scrollOffset + listHeight);
 
+  const count =
+    runs.length > 0 ? `${selectedIndex + 1} of ${runs.length}` : undefined;
+
+  const panelTitle = `${pipeline.name} \u2014 Run History`;
+
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      paddingX={2}
-      paddingY={1}
-    >
-      {/* Title */}
-      <Box>
-        <Text bold color={getTheme().ui.heading}>
-          {pipeline.name}
-        </Text>
-        <Text dimColor> {"\u2014"} Run History</Text>
-      </Box>
-
-      {/* Column header */}
-      <Box marginBottom={0}>
-        <Text bold dimColor>
-          {"".padEnd(COL.selector)}
-          {"St".padEnd(COL.status)}
-          {"Build #".padEnd(COL.buildNum)}
-          {"Message".padEnd(messageWidth)}
-          {"Reason".padEnd(COL.reason)}
-          {"Branch".padEnd(COL.branch)}
-          {"Time".padEnd(COL.time)}
-          {"Duration".padEnd(COL.duration)}
-        </Text>
-      </Box>
-      <Text dimColor>{"\u2500".repeat(contentWidth)}</Text>
-
-      {/* Content */}
-      {loading ? (
-        <Box paddingLeft={2} paddingTop={1}>
-          <Spinner label="Loading runs..." />
+    <Box flexDirection="column" width={width} height={height}>
+      <Panel
+        title={panelTitle}
+        focused={true}
+        width={width}
+        height={panelHeight}
+        count={count}
+      >
+        <Box marginBottom={1}>
+          <TableHeader
+            width={innerWidth}
+            dimColor
+            bold
+            columns={[
+              { width: COL.selector, label: "" },
+              { width: COL.status, label: "St" },
+              { width: COL.buildNum, label: "Build #" },
+              { flex: 1, label: "Message" },
+              { width: COL.reason, label: "Reason" },
+              { width: COL.branch, label: "Branch" },
+              { width: COL.time, label: "Time" },
+              { width: COL.duration, label: "Duration" },
+            ]}
+          />
         </Box>
-      ) : error ? (
-        <Box paddingLeft={2} paddingTop={1}>
-          <Text color={getTheme().status.failure}>{error}</Text>
-        </Box>
-      ) : runs.length === 0 ? (
-        <Box paddingLeft={2} paddingTop={1}>
-          <Text dimColor>No runs found for this pipeline</Text>
-        </Box>
-      ) : (
-        visible.map((run, i) => {
-          const actualIndex = scrollOffset + i;
-          const isSelected = actualIndex === selectedIndex;
-          const statusInfo = getBuildStatusIcon(run.status, run.result);
 
-          const selector = isSelected ? "> " : "  ";
-          const statusIcon = (statusInfo.icon + " ").padEnd(COL.status);
-          const buildNum = (run.buildNumber ?? "")
-            .slice(0, COL.buildNum - 1)
-            .padEnd(COL.buildNum);
+        {/* Content */}
+        {loading ? (
+          <Box paddingLeft={2} paddingTop={1}>
+            <Spinner label="Loading runs..." />
+          </Box>
+        ) : error ? (
+          <Box paddingLeft={2} paddingTop={1}>
+            <Text color={getTheme().status.failure}>{error}</Text>
+          </Box>
+        ) : runs.length === 0 ? (
+          <Box paddingLeft={2} paddingTop={1}>
+            <Text dimColor>No runs found for this pipeline</Text>
+          </Box>
+        ) : (
+          visible.map((run, i) => {
+            const actualIndex = scrollOffset + i;
+            const isSelected = actualIndex === selectedIndex;
+            const statusInfo = getBuildStatusIcon(run.status, run.result);
 
-          const requestedBy = run.requestedFor?.displayName ?? "";
-          const msg = requestedBy
-            .slice(0, messageWidth - 1)
-            .padEnd(messageWidth);
+            const requestedBy = run.requestedFor?.displayName ?? "";
 
-          let reasonText = getBuildReasonLabel(run.reason);
-          if (run.reason === "pullRequest" && run.triggerInfo?.["pr.number"]) {
-            reasonText += " #" + run.triggerInfo["pr.number"];
-          }
-          const reason = reasonText.slice(0, COL.reason - 1).padEnd(COL.reason);
+            let reasonText = getBuildReasonLabel(run.reason);
+            if (
+              run.reason === "pullRequest" &&
+              run.triggerInfo?.["pr.number"]
+            ) {
+              reasonText += " #" + run.triggerInfo["pr.number"];
+            }
 
-          const branch = formatBranch(run.sourceBranch)
-            .slice(0, COL.branch - 1)
-            .padEnd(COL.branch);
-          const time = run.queueTime
-            ? relativeTime(run.queueTime).text.padEnd(COL.time)
-            : "".padEnd(COL.time);
-          const duration = formatDuration(run.startTime, run.finishTime).padEnd(
-            COL.duration,
-          );
+            const branchText = formatBranch(run.sourceBranch);
+            const timeText = run.queueTime
+              ? relativeTime(run.queueTime).text
+              : "";
+            const durationText = formatDuration(run.startTime, run.finishTime);
 
-          if (isSelected) {
-            const line =
-              selector +
-              statusIcon +
-              buildNum +
-              msg +
-              reason +
-              branch +
-              time +
-              duration;
             return (
-              <Box key={run.id}>
-                <Text inverse bold>
-                  {line}
-                </Text>
-              </Box>
+              <TableRow
+                key={run.id}
+                selected={isSelected}
+                width={innerWidth}
+                columns={[
+                  {
+                    width: COL.selector,
+                    content: isSelected ? "> " : "  ",
+                  },
+                  {
+                    width: COL.status,
+                    content: statusInfo.icon + " ",
+                    color: statusInfo.color,
+                  },
+                  {
+                    width: COL.buildNum,
+                    content: run.buildNumber ?? "",
+                    bold: true,
+                  },
+                  { flex: 1, content: requestedBy },
+                  {
+                    width: COL.reason,
+                    content: reasonText,
+                    dimColor: true,
+                  },
+                  {
+                    width: COL.branch,
+                    content: branchText,
+                    color: getTheme().meta.branch,
+                  },
+                  {
+                    width: COL.time,
+                    content: timeText,
+                    dimColor: true,
+                  },
+                  {
+                    width: COL.duration,
+                    content: durationText,
+                    dimColor: true,
+                  },
+                ]}
+              />
             );
-          }
-
-          return (
-            <Box key={run.id}>
-              <Text>
-                {selector}
-                <Text color={statusInfo.color}>{statusIcon}</Text>
-                <Text bold>{buildNum}</Text>
-                <Text>{msg}</Text>
-                <Text dimColor>{reason}</Text>
-                <Text color={getTheme().meta.branch}>{branch}</Text>
-                <Text dimColor>{time}</Text>
-                <Text dimColor>{duration}</Text>
-              </Text>
-            </Box>
-          );
-        })
-      )}
+          })
+        )}
+      </Panel>
 
       {/* Footer */}
-      <Box position="absolute" marginTop={height - 2} marginLeft={2}>
-        <Text dimColor>
-          {"\u2191\u2193"}: navigate | Enter/o: open in browser | Esc: back
-        </Text>
-      </Box>
+      <Text dimColor>
+        {"  "}
+        {"\u2191\u2193"}: navigate | Enter/o: open in browser | Esc: back
+      </Text>
     </Box>
   );
 }

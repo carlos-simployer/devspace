@@ -7,6 +7,7 @@ import {
   formatBranch,
 } from "../../utils/azure-status.ts";
 import { getTheme } from "../../ui/theme.ts";
+import { TableRow } from "../../ui/table-row.tsx";
 
 interface Props {
   release: AzureRelease;
@@ -36,41 +37,44 @@ export function ReleaseRow({ release, isSelected, width }: Props) {
   const rawBranch = artifact?.definitionReference?.branch?.name ?? "";
   const branch = rawBranch ? formatBranch(rawBranch) : "";
   const sourceText = branch ? `${version} ${branch}` : version;
-  const truncSource =
-    sourceText.length > sourceWidth - 1
-      ? sourceText.slice(0, sourceWidth - 2) + "…"
-      : sourceText;
 
-  const releaseName = release.name.slice(0, COL.name - 1).padEnd(COL.name);
-  const source = truncSource.padEnd(sourceWidth);
-  const createdText = created.text.padEnd(COL.created);
-  const selector = isSelected ? "> " : "  ";
-
-  // Build stage badges text for the selected (inverse) rendering
+  // Build stage badges
   const stageParts = release.environments.map((env) => {
     const status = getReleaseEnvStatusIcon(env.status);
     return { name: env.name, color: status.color };
   });
+  const stageStr = stageParts.map((s) => s.name).join("  ");
 
+  // When selected, use TableRow for consistent inverse rendering
   if (isSelected) {
-    const stageStr = stageParts.map((s) => s.name).join("  ");
-    const line = selector + releaseName + source + createdText + stageStr;
     return (
-      <Box>
-        <Text inverse bold>
-          {line}
-        </Text>
-      </Box>
+      <TableRow
+        selected={true}
+        width={width}
+        columns={[
+          { width: COL.selector, content: "> " },
+          { width: COL.name, content: release.name, bold: true },
+          { width: sourceWidth, content: sourceText },
+          { width: COL.created, content: created.text },
+          { flex: 1, content: stageStr },
+        ]}
+      />
     );
   }
 
+  // When not selected, render stages with individual colors
   return (
     <Box>
       <Text>
-        {selector}
-        <Text bold>{releaseName}</Text>
-        <Text color={getTheme().meta.branch}>{source}</Text>
-        <Text dimColor>{createdText}</Text>
+        {"  "}
+        <Text bold>{release.name.slice(0, COL.name - 1).padEnd(COL.name)}</Text>
+        <Text color={getTheme().meta.branch}>
+          {(sourceText.length > sourceWidth - 1
+            ? sourceText.slice(0, sourceWidth - 2) + "\u2026"
+            : sourceText
+          ).padEnd(sourceWidth)}
+        </Text>
+        <Text dimColor>{created.text.padEnd(COL.created)}</Text>
         {stageParts.map((stage, i) => (
           <Text key={stage.name + i}>
             <Text color={stage.color as any}>{stage.name}</Text>

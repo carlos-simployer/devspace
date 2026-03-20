@@ -4,6 +4,7 @@ import type { LocalProject } from "../../api/types.ts";
 import type { ProcessState } from "../../hooks/use-local-processes.ts";
 import { processKey } from "../../hooks/use-local-processes.ts";
 import { getTheme, icons } from "../../ui/index.ts";
+import { TableRow, TableHeader } from "../../ui/table-row.tsx";
 
 interface Props {
   project: LocalProject;
@@ -55,11 +56,6 @@ function formatUptime(startedAt?: number): string {
   return `${hours}h${remainMin > 0 ? `${remainMin}m` : ""}`;
 }
 
-function pad(str: string, w: number): string {
-  if (str.length >= w) return str.slice(0, w - 1) + "\u2026";
-  return str.padEnd(w);
-}
-
 export function CommandPanel({
   project,
   states,
@@ -97,16 +93,17 @@ export function CommandPanel({
   const fixedCols = selW + nameW + cmdW + pidW + upW + memW + cpuW + urlW;
   const pathW = Math.max(10, width - fixedCols - 2);
 
-  const header =
-    "".padEnd(selW) +
-    "Name".padEnd(nameW) +
-    "Command".padEnd(cmdW) +
-    (urlW > 0 ? "URL".padEnd(urlW) : "") +
-    "Path".padEnd(pathW) +
-    "PID".padEnd(pidW) +
-    "CPU".padEnd(cpuW) +
-    "Mem".padEnd(memW) +
-    "Uptime".padEnd(upW);
+  const headerColumns = [
+    { width: selW, label: "" },
+    { width: nameW, label: "Name" },
+    { width: cmdW, label: "Command" },
+    ...(urlW > 0 ? [{ width: urlW, label: "URL" }] : []),
+    { width: pathW, label: "Path" },
+    { width: pidW, label: "PID" },
+    { width: cpuW, label: "CPU" },
+    { width: memW, label: "Mem" },
+    { width: upW, label: "Uptime" },
+  ];
 
   // Selected command for logs
   const selectedCmd = commands[selectedCommandIndex];
@@ -149,7 +146,7 @@ export function CommandPanel({
       {/* Command table */}
       <Box flexDirection="column" height={tableHeight}>
         <Box>
-          <Text dimColor>{header}</Text>
+          <TableHeader width={width} dimColor columns={headerColumns} />
         </Box>
         {visibleCommands.map((cmd, vi) => {
           const i = cmdStartIdx + vi;
@@ -170,50 +167,38 @@ export function CommandPanel({
 
           const cwdPath = cmd.cwd || project.path;
 
-          const urlStr = urlW > 0 ? (cmd.url ?? "").padEnd(urlW) : "";
-
           const memStr = state.memoryMB ? `${state.memoryMB}M` : "";
           const cpuStr = state.cpuPercent ? `${state.cpuPercent}%` : "";
 
-          const sel = (isSelected ? "> " : "  ") + icon + " ";
-          const name = pad(cmd.name, nameW);
-          const cmdStr = pad(cmd.command, cmdW);
-          const pathStr = pad(cwdPath, pathW);
-          const pid = pidStr.padEnd(pidW);
-          const cpu = cpuStr.padEnd(cpuW);
-          const mem = memStr.padEnd(memW);
-          const up = upStr.padEnd(upW);
+          const selectorContent = (isSelected ? "> " : "  ") + icon + " ";
 
-          if (isSelected) {
-            const content =
-              sel + name + cmdStr + urlStr + pathStr + pid + cpu + mem + up;
-            const line =
-              content.length < width
-                ? content + " ".repeat(width - content.length)
-                : content;
-            return (
-              <Box key={key}>
-                <Text inverse bold>
-                  {line}
-                </Text>
-              </Box>
-            );
-          }
+          const rowColumns = [
+            { width: selW, content: selectorContent, color },
+            { width: nameW, content: cmd.name },
+            { width: cmdW, content: cmd.command, color: theme.ui.muted },
+            ...(urlW > 0
+              ? [
+                  {
+                    width: urlW,
+                    content: cmd.url ?? "",
+                    color: theme.status.info,
+                  },
+                ]
+              : []),
+            { width: pathW, content: cwdPath, dimColor: true },
+            { width: pidW, content: pidStr, color: theme.ui.muted },
+            { width: cpuW, content: cpuStr, color: theme.status.failure },
+            { width: memW, content: memStr, color: theme.status.pending },
+            { width: upW, content: upStr, color: theme.status.success },
+          ];
 
           return (
-            <Box key={key}>
-              <Text>
-                {"  "}
-                <Text color={color}>{icon}</Text> {name}
-                <Text color={theme.ui.muted}>{cmdStr}</Text>
-                {urlStr && <Text color={theme.status.info}>{urlStr}</Text>}
-                <Text dimColor>{pathStr}</Text>
-                <Text color={theme.ui.muted}>{pid}</Text>
-                <Text color={theme.status.failure}>{cpu}</Text>
-                <Text color={theme.status.pending}>{mem}</Text>
-                <Text color={theme.status.success}>{up}</Text>
-              </Text>
-            </Box>
+            <TableRow
+              key={key}
+              selected={isSelected}
+              width={width}
+              columns={rowColumns}
+            />
           );
         })}
       </Box>

@@ -2,6 +2,8 @@ import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { AzureRelease } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { TableHeader } from "../../ui/table-row.tsx";
 import { ReleaseRow } from "./release-row.tsx";
 import {
   groupByTimeBucketGeneric,
@@ -40,8 +42,12 @@ export const ReleaseList = React.memo(function ReleaseList({
   loading,
   definitionName,
 }: Props) {
-  const listHeight = height - 1;
-  const sourceWidth = getSourceWidth(width);
+  // Panel borders (2) + header (1) + margin (1) = 4
+  const panelContentHeight = height - 2;
+  const listHeight = panelContentHeight - 2;
+  // Inner width = panel width minus borders (2) minus paddingX (2)
+  const innerWidth = width - 4;
+  const sourceWidth = getSourceWidth(innerWidth);
   const theme = getTheme();
 
   // Group releases by time bucket
@@ -102,16 +108,32 @@ export const ReleaseList = React.memo(function ReleaseList({
     }
   }
 
+  const count =
+    releases.length > 0
+      ? `${Math.min(selectedIndex + 1, releases.length)} of ${releases.length}`
+      : undefined;
+
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Box>
-        <Text bold dimColor={!isFocused}>
-          {"".padEnd(COL.selector)}
-          <Text dimColor>{"Release".padEnd(COL.name)}</Text>
-          {"Source".padEnd(sourceWidth)}
-          {"Created".padEnd(COL.created)}
-          {"Stages"}
-        </Text>
+    <Panel
+      title="Releases"
+      focused={isFocused}
+      width={width}
+      height={height}
+      count={count}
+    >
+      <Box marginBottom={1}>
+        <TableHeader
+          width={innerWidth}
+          dimColor={!isFocused}
+          bold
+          columns={[
+            { width: COL.selector, label: "" },
+            { width: COL.name, label: "Release", dimColor: true },
+            { width: sourceWidth, label: "Source" },
+            { width: COL.created, label: "Created" },
+            { flex: 1, label: "Stages" },
+          ]}
+        />
       </Box>
       {loading && releases.length === 0 ? (
         <Box paddingLeft={2} paddingTop={1}>
@@ -146,11 +168,11 @@ export const ReleaseList = React.memo(function ReleaseList({
               key={release.id}
               release={release}
               isSelected={isSelected}
-              width={width}
+              width={innerWidth}
             />
           );
         })
       )}
-    </Box>
+    </Panel>
   );
 });

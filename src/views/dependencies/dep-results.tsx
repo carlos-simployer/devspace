@@ -2,6 +2,8 @@ import React from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { DependencyResult } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { TableRow, TableHeader } from "../../ui/table-row.tsx";
 import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
@@ -37,8 +39,12 @@ export const DepResults = React.memo(function DepResults({
   loading,
   error,
 }: Props) {
-  const listHeight = height - 1;
-  const repoWidth = getRepoWidth(width);
+  // Panel borders (2) + header row (1) + margin (1) = 4
+  const panelContentHeight = height - 2;
+  const listHeight = panelContentHeight - 2;
+  // Inner width = panel width minus borders (2) minus paddingX (2)
+  const innerWidth = width - 4;
+  const repoWidth = getRepoWidth(innerWidth);
 
   // Viewport windowing
   let startIndex = 0;
@@ -53,16 +59,32 @@ export const DepResults = React.memo(function DepResults({
   }
   const visible = results.slice(startIndex, startIndex + listHeight);
 
+  const count =
+    results.length > 0
+      ? `${Math.min(selectedIndex + 1, results.length)} of ${results.length}`
+      : undefined;
+
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Box>
-        <Text bold dimColor={!isFocused}>
-          {"".padEnd(COL.selector)}
-          <Text dimColor>{"Repository".padEnd(repoWidth)}</Text>
-          {"Version".padEnd(COL.version)}
-          {"Branch".padEnd(COL.branch)}
-          {"Type".padEnd(COL.depType)}
-        </Text>
+    <Panel
+      title="Results"
+      focused={isFocused}
+      width={width}
+      height={height}
+      count={count}
+    >
+      <Box marginBottom={1}>
+        <TableHeader
+          width={innerWidth}
+          dimColor={!isFocused}
+          bold
+          columns={[
+            { width: COL.selector, label: "" },
+            { flex: 1, label: "Repository", dimColor: true },
+            { width: COL.version, label: "Version" },
+            { width: COL.branch, label: "Branch" },
+            { width: COL.depType, label: "Type" },
+          ]}
+        />
       </Box>
       {error && results.length > 0 ? (
         <Box paddingLeft={2}>
@@ -93,24 +115,40 @@ export const DepResults = React.memo(function DepResults({
           const isSelected = isFocused && actualIndex === selectedIndex;
 
           return (
-            <Box key={`${result.repo}:${result.depType}`}>
-              <Text inverse={isSelected} bold={isSelected}>
-                {isSelected ? "> " : "  "}
-                <Text bold={isSelected}>{result.repo.padEnd(repoWidth)}</Text>
-                <Text
-                  color={isSelected ? undefined : getTheme().status.pending}
-                >
-                  {result.version.padEnd(COL.version)}
-                </Text>
-                <Text dimColor={!isSelected}>
-                  {result.branch.padEnd(COL.branch)}
-                </Text>
-                <Text dimColor={!isSelected}>{result.depType}</Text>
-              </Text>
-            </Box>
+            <TableRow
+              key={`${result.repo}:${result.depType}`}
+              selected={isSelected}
+              width={innerWidth}
+              columns={[
+                {
+                  width: COL.selector,
+                  content: isSelected ? "> " : "  ",
+                },
+                {
+                  flex: 1,
+                  content: result.repo,
+                  bold: isSelected,
+                },
+                {
+                  width: COL.version,
+                  content: result.version,
+                  color: getTheme().status.pending,
+                },
+                {
+                  width: COL.branch,
+                  content: result.branch,
+                  dimColor: true,
+                },
+                {
+                  width: COL.depType,
+                  content: result.depType,
+                  dimColor: true,
+                },
+              ]}
+            />
           );
         })
       )}
-    </Box>
+    </Panel>
   );
 });

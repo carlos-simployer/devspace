@@ -2,6 +2,8 @@ import React from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { AzurePipelineDefinition } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
+import { TableHeader } from "../../ui/table-row.tsx";
 import { PipelineRow, COL, getNameWidth } from "./pipeline-row.tsx";
 
 interface Props {
@@ -21,8 +23,12 @@ export function PipelineList({
   isFocused,
   loading,
 }: Props) {
-  const listHeight = height - 2;
-  const nameWidth = getNameWidth(width);
+  // Panel borders (2) + header (1) + margin (1) = 4
+  const panelContentHeight = height - 2;
+  const listHeight = panelContentHeight - 2;
+  // Inner width = panel width minus borders (2) minus paddingX (2)
+  const innerWidth = width - 4;
+  const nameWidth = getNameWidth(innerWidth);
 
   // Viewport windowing
   let startIndex = 0;
@@ -37,19 +43,35 @@ export function PipelineList({
   }
   const visible = pipelines.slice(startIndex, startIndex + listHeight);
 
+  const count =
+    pipelines.length > 0
+      ? `${Math.min(selectedIndex + 1, pipelines.length)} of ${pipelines.length}`
+      : undefined;
+
   return (
-    <Box flexDirection="column" flexGrow={1}>
+    <Panel
+      title="Builds"
+      focused={isFocused}
+      width={width}
+      height={height}
+      count={count}
+    >
       <Box marginBottom={1}>
-        <Text bold dimColor={!isFocused}>
-          {"".padEnd(COL.selector)}
-          <Text dimColor>{"St".padEnd(COL.status)}</Text>
-          {"Pipeline".padEnd(nameWidth)}
-          {"Build #".padEnd(COL.buildNum)}
-          {"Reason".padEnd(COL.reason)}
-          {"Branch".padEnd(COL.branch)}
-          {"Time".padEnd(COL.time)}
-          {"Duration".padEnd(COL.duration)}
-        </Text>
+        <TableHeader
+          width={innerWidth}
+          dimColor={!isFocused}
+          bold
+          columns={[
+            { width: COL.selector, label: "" },
+            { width: COL.status, label: "St", dimColor: true },
+            { flex: 1, label: "Pipeline" },
+            { width: COL.buildNum, label: "Build #" },
+            { width: COL.reason, label: "Reason" },
+            { width: COL.branch, label: "Branch" },
+            { width: COL.time, label: "Time" },
+            { width: COL.duration, label: "Duration" },
+          ]}
+        />
       </Box>
       {loading ? (
         <Box paddingLeft={2} paddingTop={1}>
@@ -67,11 +89,11 @@ export function PipelineList({
               key={pipeline.id}
               pipeline={pipeline}
               isSelected={isFocused && actualIndex === selectedIndex}
-              width={width}
+              width={innerWidth}
             />
           );
         })
       )}
-    </Box>
+    </Panel>
   );
 }

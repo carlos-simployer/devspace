@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Box, Text } from "ink";
 import { Spinner } from "@inkjs/ui";
 import type { JiraIssue } from "../../api/types.ts";
+import { TableHeader } from "../../ui/table-row.tsx";
 import { IssueRow, JIRA_COL, getIssueTitleWidth } from "./issue-row.tsx";
 import {
   groupByStatus,
@@ -117,15 +118,20 @@ export function IssueList({
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Box marginBottom={1}>
-        <Text bold dimColor>
-          {"".padEnd(JIRA_COL.selector) +
-            "Key".padEnd(JIRA_COL.key) +
-            "Type".padEnd(JIRA_COL.type) +
-            "Summary".padEnd(titleWidth) +
-            "Assignee".padEnd(JIRA_COL.assignee) +
-            "Priority".padEnd(JIRA_COL.priority) +
-            "Updated".padEnd(JIRA_COL.updated)}
-        </Text>
+        <TableHeader
+          width={width}
+          dimColor
+          bold
+          columns={[
+            { width: JIRA_COL.selector, label: "" },
+            { width: JIRA_COL.key, label: "Key" },
+            { width: JIRA_COL.type, label: "Type" },
+            { flex: 1, label: "Summary" },
+            { width: JIRA_COL.assignee, label: "Assignee" },
+            { width: JIRA_COL.priority, label: "Priority" },
+            { width: JIRA_COL.updated, label: "Updated" },
+          ]}
+        />
       </Box>
       {loading ? (
         <Box paddingLeft={2} paddingTop={1}>
