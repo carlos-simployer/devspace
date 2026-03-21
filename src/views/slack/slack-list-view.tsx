@@ -58,7 +58,7 @@ export function SlackListView() {
 
   // Layout measurement
   const statusRef = useRef<DOMElement>(null);
-  const [measuredStatus, setMeasuredStatus] = useState(2);
+  const [measuredStatus, setMeasuredStatus] = useState(3);
 
   useEffect(() => {
     if (statusRef.current) {

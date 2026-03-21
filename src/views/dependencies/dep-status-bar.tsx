@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { TrackedPackage } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { relativeTime } from "../../utils/time.ts";
 
 interface Props {
@@ -25,15 +26,7 @@ export const DepStatusBar = React.memo(function DepStatusBar({
       : "";
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> Package: {selectedPackage?.name ?? "none"} </Text>
@@ -43,6 +36,6 @@ export const DepStatusBar = React.memo(function DepStatusBar({
           <Text dimColor> {refreshText} </Text>
         </Text>
       </Box>
-    </Box>
+    </Panel>
   );
 });

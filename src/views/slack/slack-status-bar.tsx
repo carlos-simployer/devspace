@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { SlackChannel } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { getTheme } from "../../ui/theme.ts";
 import type { SlackInputMode } from "./slack-context.ts";
 
@@ -31,15 +32,7 @@ export function SlackStatusBar({
     : "No channel";
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> {channelName} </Text>
@@ -69,6 +62,6 @@ export function SlackStatusBar({
           )}
         </Text>
       </Box>
-    </Box>
+    </Panel>
   );
 }

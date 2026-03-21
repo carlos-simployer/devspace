@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { JiraFilterMode, JiraIssue } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
@@ -37,15 +38,7 @@ export function JiraStatusBar({
   const theme = getTheme();
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> Filter: {FILTER_LABELS[filterMode]} </Text>
@@ -99,6 +92,6 @@ export function JiraStatusBar({
           )}
         </Box>
       )}
-    </Box>
+    </Panel>
   );
 }

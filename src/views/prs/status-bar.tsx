@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { FilterMode, PullRequest, SortMode } from "../../api/types.ts";
 import { getReviewers, hexToAnsiColor } from "../../utils/reviewers.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { getTheme } from "../../ui/theme.ts";
 
 interface Props {
@@ -57,15 +58,7 @@ export function StatusBar({
   const labels = selectedPR?.labels?.nodes ?? [];
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> Filter: {FILTER_LABELS[filterMode]} </Text>
@@ -170,6 +163,6 @@ export function StatusBar({
           ))}
         </Box>
       )}
-    </Box>
+    </Panel>
   );
 }

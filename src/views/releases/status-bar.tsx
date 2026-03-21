@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { AzureReleaseDefinition } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 
 interface Props {
   selectedDefinition: AzureReleaseDefinition | null;
@@ -20,15 +21,7 @@ export const ReleaseStatusBar = React.memo(function ReleaseStatusBar({
     : "";
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> Definition: {selectedDefinition?.name ?? "none"} </Text>
@@ -48,6 +41,6 @@ export const ReleaseStatusBar = React.memo(function ReleaseStatusBar({
           ) : null}
         </Text>
       </Box>
-    </Box>
+    </Panel>
   );
 });

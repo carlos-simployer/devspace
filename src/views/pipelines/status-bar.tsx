@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { AzurePipelineDefinition } from "../../api/types.ts";
+import { Panel } from "../../ui/panel.tsx";
 import { relativeTime } from "../../utils/time.ts";
 
 interface Props {
@@ -29,15 +30,7 @@ export const PipelineStatusBar = React.memo(function PipelineStatusBar({
   const fetchingText = fetching ? "Refreshing..." : "";
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       <Box>
         <Text>
           <Text bold> Pipelines: {pipelineCount} pinned </Text>
@@ -53,6 +46,6 @@ export const PipelineStatusBar = React.memo(function PipelineStatusBar({
           ) : null}
         </Text>
       </Box>
-    </Box>
+    </Panel>
   );
 });

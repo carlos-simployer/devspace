@@ -1,5 +1,5 @@
 import React from "react";
-import { Box } from "ink";
+import { Panel } from "./panel.tsx";
 
 interface Props {
   width: number;
@@ -8,16 +8,8 @@ interface Props {
 
 export function StatusBarLayout({ width, children }: Props) {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="single"
-      borderTop
-      borderBottom={false}
-      borderLeft={false}
-      borderRight={false}
-      width={width}
-    >
+    <Panel width={width} paddingX={0}>
       {children}
-    </Box>
+    </Panel>
   );
 }

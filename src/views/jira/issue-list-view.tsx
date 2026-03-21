@@ -40,7 +40,7 @@ export function JiraIssueListView() {
 
   // Layout measurement
   const statusRef = useRef<DOMElement>(null);
-  const [measuredStatus, setMeasuredStatus] = useState(3);
+  const [measuredStatus, setMeasuredStatus] = useState(4);
 
   useEffect(() => {
     if (statusRef.current) {

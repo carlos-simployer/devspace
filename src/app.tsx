@@ -110,7 +110,7 @@ function AppInner({ client, org, token }: Props) {
 
   // Layout measurement for the shared header
   const viewHeaderRef = useRef<DOMElement>(null);
-  const [measuredViewHeader, setMeasuredViewHeader] = useState(3);
+  const [measuredViewHeader, setMeasuredViewHeader] = useState(4);
 
   useEffect(() => {
     if (viewHeaderRef.current) {
@@ -294,7 +294,7 @@ function AppInner({ client, org, token }: Props) {
   return (
     <AppContext.Provider value={appCtx}>
       <Box height={height} width={width} flexDirection="column">
-        <ViewHeader route={route} headerRef={viewHeaderRef} />
+        <ViewHeader route={route} width={width} headerRef={viewHeaderRef} />
         <RouteRenderer routes={routes} />
       </Box>
     </AppContext.Provider>
