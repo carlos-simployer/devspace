@@ -28,7 +28,7 @@ export const DepStatusBar = React.memo(function DepStatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> Package: {selectedPackage?.name ?? "none"} </Text>
           <Text dimColor>|</Text>
           <Text> {selectedPackage?.results.length ?? 0} repos </Text>

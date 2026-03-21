@@ -40,7 +40,7 @@ export function JiraStatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> Filter: {FILTER_LABELS[filterMode]} </Text>
           <Text dimColor>|</Text>
           <Text bold> {projectKey || "No project"} </Text>
@@ -76,20 +76,22 @@ export function JiraStatusBar({
       </Box>
       {selectedIssue && (
         <Box>
-          <Text dimColor> </Text>
-          <Text bold>{selectedIssue.key}</Text>
-          <Text dimColor> | </Text>
-          <Text>
-            {selectedIssue.fields.assignee?.displayName ?? "Unassigned"}
+          <Text wrap="truncate">
+            <Text dimColor> </Text>
+            <Text bold>{selectedIssue.key}</Text>
+            <Text dimColor> | </Text>
+            <Text>
+              {selectedIssue.fields.assignee?.displayName ?? "Unassigned"}
+            </Text>
+            <Text dimColor> | </Text>
+            <Text>{selectedIssue.fields.priority.name}</Text>
+            {selectedIssue.fields.labels.length > 0 && (
+              <>
+                <Text dimColor> | </Text>
+                <Text dimColor>{selectedIssue.fields.labels.join(", ")}</Text>
+              </>
+            )}
           </Text>
-          <Text dimColor> | </Text>
-          <Text>{selectedIssue.fields.priority.name}</Text>
-          {selectedIssue.fields.labels.length > 0 && (
-            <>
-              <Text dimColor> | </Text>
-              <Text dimColor>{selectedIssue.fields.labels.join(", ")}</Text>
-            </>
-          )}
         </Box>
       )}
     </Panel>

@@ -32,7 +32,7 @@ export const PipelineStatusBar = React.memo(function PipelineStatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> Pipelines: {pipelineCount} pinned </Text>
           <Text dimColor>|</Text>
           <Text> Selected: {selectedPipeline?.name ?? "none"} </Text>

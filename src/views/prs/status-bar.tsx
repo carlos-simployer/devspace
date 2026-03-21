@@ -60,7 +60,7 @@ export function StatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> Filter: {FILTER_LABELS[filterMode]} </Text>
           <Text dimColor>│</Text>
           <Text bold> Sort: {SORT_LABELS[sortMode]} </Text>
@@ -100,67 +100,73 @@ export function StatusBar({
       </Box>
       {selectedPR && (
         <Box>
-          <Text dimColor> Branch: </Text>
-          <Text color={getTheme().meta.branch}>{selectedPR.headRefName}</Text>
-          <Text dimColor> │ </Text>
-          <Text color={getTheme().diff.added}>+{selectedPR.additions}</Text>
-          <Text dimColor> </Text>
-          <Text color={getTheme().diff.removed}>-{selectedPR.deletions}</Text>
-          <Text dimColor> ({selectedPR.changedFiles} files)</Text>
-          {selectedPR.mergeable === "CONFLICTING" && (
-            <>
-              <Text dimColor> │ </Text>
-              <Text color={getTheme().status.failure} bold>
-                Conflicts
-              </Text>
-            </>
-          )}
+          <Text wrap="truncate">
+            <Text dimColor> Branch: </Text>
+            <Text color={getTheme().meta.branch}>{selectedPR.headRefName}</Text>
+            <Text dimColor> │ </Text>
+            <Text color={getTheme().diff.added}>+{selectedPR.additions}</Text>
+            <Text dimColor> </Text>
+            <Text color={getTheme().diff.removed}>-{selectedPR.deletions}</Text>
+            <Text dimColor> ({selectedPR.changedFiles} files)</Text>
+            {selectedPR.mergeable === "CONFLICTING" && (
+              <>
+                <Text dimColor> │ </Text>
+                <Text color={getTheme().status.failure} bold>
+                  Conflicts
+                </Text>
+              </>
+            )}
+          </Text>
         </Box>
       )}
       {selectedPR && (
         <Box>
-          <Text dimColor> Reviewers: </Text>
-          {reviewers.length > 0 ? (
-            reviewers.map((r, i) => {
-              const color =
-                r.state === "approved"
-                  ? getTheme().status.success
-                  : r.state === "changes"
-                    ? getTheme().status.failure
-                    : r.state === "pending"
-                      ? getTheme().status.pending
-                      : undefined;
-              const icon =
-                r.state === "approved"
-                  ? "✓"
-                  : r.state === "changes"
-                    ? "✗"
-                    : r.state === "pending"
-                      ? "◌"
-                      : "●";
-              return (
-                <Text key={r.name}>
-                  {i > 0 ? ", " : ""}
-                  <Text color={color as any}>{icon}</Text> {r.name}
-                </Text>
-              );
-            })
-          ) : (
-            <Text dimColor>none</Text>
-          )}
+          <Text wrap="truncate">
+            <Text dimColor> Reviewers: </Text>
+            {reviewers.length > 0 ? (
+              reviewers.map((r, i) => {
+                const color =
+                  r.state === "approved"
+                    ? getTheme().status.success
+                    : r.state === "changes"
+                      ? getTheme().status.failure
+                      : r.state === "pending"
+                        ? getTheme().status.pending
+                        : undefined;
+                const icon =
+                  r.state === "approved"
+                    ? "✓"
+                    : r.state === "changes"
+                      ? "✗"
+                      : r.state === "pending"
+                        ? "◌"
+                        : "●";
+                return (
+                  <Text key={r.name}>
+                    {i > 0 ? ", " : ""}
+                    <Text color={color as any}>{icon}</Text> {r.name}
+                  </Text>
+                );
+              })
+            ) : (
+              <Text dimColor>none</Text>
+            )}
+          </Text>
         </Box>
       )}
       {labels.length > 0 && (
         <Box>
-          <Text dimColor> Labels: </Text>
-          {labels.map((label, i) => (
-            <Text key={label.name}>
-              {i > 0 ? " " : ""}
-              <Text color={hexToAnsiColor(label.color) as any}>
-                {label.name}
+          <Text wrap="truncate">
+            <Text dimColor> Labels: </Text>
+            {labels.map((label, i) => (
+              <Text key={label.name}>
+                {i > 0 ? " " : ""}
+                <Text color={hexToAnsiColor(label.color) as any}>
+                  {label.name}
+                </Text>
               </Text>
-            </Text>
-          ))}
+            ))}
+          </Text>
         </Box>
       )}
     </Panel>

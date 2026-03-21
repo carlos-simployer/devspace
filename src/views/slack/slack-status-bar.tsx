@@ -34,7 +34,7 @@ export function SlackStatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> {channelName} </Text>
           <Text dimColor>|</Text>
           <Text> {messageCount} messages </Text>

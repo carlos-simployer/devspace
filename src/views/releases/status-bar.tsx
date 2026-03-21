@@ -23,7 +23,7 @@ export const ReleaseStatusBar = React.memo(function ReleaseStatusBar({
   return (
     <Panel width={width} paddingX={0}>
       <Box>
-        <Text>
+        <Text wrap="truncate">
           <Text bold> Definition: {selectedDefinition?.name ?? "none"} </Text>
           <Text dimColor>|</Text>
           <Text> {releaseCount} releases </Text>

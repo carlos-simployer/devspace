@@ -299,7 +299,7 @@ export function ProjectsListView() {
   );
   const gap = 1;
   const mainWidth = width - sidebarWidth - gap;
-  const statusBarHeight = 2;
+  const statusBarHeight = 3;
   const mainContentHeight = height - statusBarHeight;
 
   // Handle sidebar-only selection of [+] Add
@@ -367,18 +367,10 @@ export function ProjectsListView() {
       </Box>
 
       {/* Status bar */}
-      <Box
-        width={width}
-        borderStyle="single"
-        borderTop
-        borderBottom={false}
-        borderLeft={false}
-        borderRight={false}
-        paddingX={1}
-      >
+      <Panel width={width} paddingX={0}>
         <Box>
-          <Text>
-            <Text dimColor>Projects: </Text>
+          <Text wrap="truncate">
+            <Text dimColor> Projects: </Text>
             <Text bold>{localProjects.length}</Text>
             <Text dimColor> {"\u2502"} Running: </Text>
             <Text
@@ -398,12 +390,8 @@ export function ProjectsListView() {
               </>
             )}
           </Text>
-          <Box flexGrow={1} />
-          <Text dimColor>
-            {"\u2190\u2192"} focus {"\u2502"} {"[ ]"} scroll logs
-          </Text>
         </Box>
-      </Box>
+      </Panel>
 
       {/* Add project overlay */}
       {showAdd && (

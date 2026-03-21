@@ -1,5 +1,5 @@
 import React from "react";
-import { Box } from "ink";
+import { Box, Text } from "ink";
 import type { DOMElement } from "ink";
 import { getBarShortcuts } from "../ui/route-shortcuts.ts";
 import { getBaseRoute } from "../ui/tabs.ts";
@@ -25,9 +25,9 @@ export function ViewHeader({ route, width, headerRef }: Props) {
 
   return (
     <Box ref={headerRef} flexDirection="column">
-      <Panel title={APP_NAME} focused={true} width={width} paddingX={1}>
+      <Panel title={APP_NAME} width={width} paddingX={1}>
         <TabBar activeView={activeView} />
-        {items.length > 0 && <Shortcuts items={items} />}
+        {items.length > 0 ? <Shortcuts items={items} /> : <Text> </Text>}
       </Panel>
     </Box>
   );

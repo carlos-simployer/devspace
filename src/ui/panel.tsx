@@ -107,6 +107,7 @@ export function Panel({
       {useDynamicBorders ? (
         <Box
           flexDirection="column"
+          width={width}
           borderStyle="single"
           borderColor={color}
           borderTop={false}
