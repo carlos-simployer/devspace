@@ -96,21 +96,42 @@ export function Panel({
     );
   };
 
+  // For dynamic-height panels (no fixed height), use Ink's native
+  // borderStyle for left/right borders since we can't pre-render │ columns.
+  // For fixed-height panels, render │ columns manually to fill the height.
+  const useDynamicBorders = contentHeight === undefined;
+
   return (
     <Box flexDirection="column" width={width}>
       <Text color={color}>{topLine}</Text>
-      <Box flexDirection="row" height={contentHeight}>
-        {hasLeft && borderCol(contentHeight)}
+      {useDynamicBorders ? (
         <Box
           flexDirection="column"
-          paddingLeft={paddingX}
-          paddingRight={paddingX}
-          flexGrow={1}
+          borderStyle="single"
+          borderColor={color}
+          borderTop={false}
+          borderBottom={false}
+          borderLeft={hasLeft}
+          borderRight={hasRight}
+          paddingLeft={hasLeft ? paddingX : 0}
+          paddingRight={hasRight ? paddingX : 0}
         >
           {children}
         </Box>
-        {hasRight && borderCol(contentHeight)}
-      </Box>
+      ) : (
+        <Box flexDirection="row" height={contentHeight}>
+          {hasLeft && borderCol(contentHeight)}
+          <Box
+            flexDirection="column"
+            paddingLeft={paddingX}
+            paddingRight={paddingX}
+            flexGrow={1}
+          >
+            {children}
+          </Box>
+          {hasRight && borderCol(contentHeight)}
+        </Box>
+      )}
       <Text color={color}>{botLine}</Text>
     </Box>
   );
