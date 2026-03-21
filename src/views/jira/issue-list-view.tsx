@@ -158,10 +158,21 @@ export function JiraIssueListView() {
 
   const mainHeight = Math.max(1, height - measuredStatus);
 
+  const count =
+    filteredIssues.length > 0
+      ? `${Math.min(selectedIndex + 1, filteredIssues.length)} of ${filteredIssues.length}`
+      : undefined;
+
   return (
     <Box height={height} width={width} flexDirection="column">
       {/* Main issue list in a Panel */}
-      <Panel title="Issues" focused={true} width={width} height={mainHeight}>
+      <Panel
+        title="Issues"
+        focused={true}
+        width={width}
+        height={mainHeight}
+        count={count}
+      >
         <IssueList
           issues={filteredIssues}
           statusOrder={statusOrder}

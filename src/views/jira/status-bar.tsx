@@ -74,8 +74,8 @@ export function JiraStatusBar({
           )}
         </Text>
       </Box>
-      {selectedIssue && (
-        <Box>
+      <Box>
+        {selectedIssue ? (
           <Text wrap="truncate">
             <Text dimColor> </Text>
             <Text bold>{selectedIssue.key}</Text>
@@ -92,8 +92,10 @@ export function JiraStatusBar({
               </>
             )}
           </Text>
-        </Box>
-      )}
+        ) : (
+          <Text> </Text>
+        )}
+      </Box>
     </Panel>
   );
 }
